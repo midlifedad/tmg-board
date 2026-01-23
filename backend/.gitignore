@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+
+# Environment
+.env
+*.env.local
+
+# Database
+*.db
+*.sqlite3
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Keys
+keys/
+*.pem
+*.key
+
+# Uploads
+uploads/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
