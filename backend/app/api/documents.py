@@ -1,8 +1,11 @@
 from typing import List, Optional
 from datetime import datetime
 import uuid
+import os
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -15,26 +18,9 @@ from app.config import get_settings
 router = APIRouter()
 settings = get_settings()
 
-
-class UploadUrlRequest(BaseModel):
-    """Request for presigned upload URL."""
-    filename: str
-    content_type: str = "application/pdf"
-
-
-class UploadUrlResponse(BaseModel):
-    """Response with presigned upload URL."""
-    upload_url: str
-    file_key: str
-    expires_in: int
-
-
-class CreateDocumentRequest(BaseModel):
-    """Request to create document record after upload."""
-    title: str
-    type: str  # financial, resolution, minutes, audit, strategy, etc.
-    description: Optional[str] = None
-    file_key: str  # S3 key from upload
+# Storage directory - Railway Volume or local uploads folder
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "./uploads"))
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.get("/")
@@ -83,66 +69,47 @@ async def get_document(
     return document
 
 
-@router.post("/upload-url", response_model=UploadUrlResponse)
-async def get_upload_url(
-    request: UploadUrlRequest,
-    current_user: BoardMember = Depends(require_chair)
-):
-    """
-    Get presigned URL for direct upload to S3.
-
-    Chair or Admin only. Returns a URL valid for 15 minutes.
-    Frontend uploads directly to S3, then calls POST /documents with file_key.
-    """
-    if settings.storage_type != "s3":
-        # For local dev, return a mock response
-        file_key = f"documents/{uuid.uuid4()}/{request.filename}"
-        return UploadUrlResponse(
-            upload_url=f"http://localhost:3010/api/documents/upload-local",
-            file_key=file_key,
-            expires_in=900
-        )
-
-    from app.services.storage import storage_service
-
-    if not storage_service:
-        raise HTTPException(
-            status_code=503,
-            detail="Storage service not configured"
-        )
-
-    # Generate unique file key
-    file_key = f"documents/{uuid.uuid4()}/{request.filename}"
-
-    result = await storage_service.generate_presigned_upload_url(
-        file_key=file_key,
-        content_type=request.content_type,
-        expires_in=900  # 15 minutes
-    )
-
-    return UploadUrlResponse(
-        upload_url=result["upload_url"],
-        file_key=result["file_key"],
-        expires_in=result["expires_in"]
-    )
-
-
-@router.post("/")
-async def create_document(
-    request: CreateDocumentRequest,
+@router.post("/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    type: str = Form(...),
+    description: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: BoardMember = Depends(require_chair)
 ):
     """
-    Create document record after file upload.
+    Upload a document file with metadata.
 
-    Chair or Admin only. Call this after uploading to S3.
+    Chair or Admin only. Accepts multipart form with:
+    - file: PDF file
+    - title: Document title
+    - type: Document type (financial, resolution, minutes, audit, strategy)
+    - description: Optional description
     """
+    # Validate file type
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    # Generate unique filename
+    file_id = str(uuid.uuid4())
+    safe_filename = f"{file_id}.pdf"
+    file_path = UPLOAD_DIR / safe_filename
+
+    # Save file
+    try:
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    # Create document record
     document = Document(
-        title=request.title,
-        type=request.type,
-        description=request.description,
-        file_path=request.file_key,
+        title=title,
+        type=type,
+        description=description,
+        file_path=safe_filename,
         uploaded_by_id=current_user.id,
     )
 
@@ -153,13 +120,35 @@ async def create_document(
     return document
 
 
-@router.get("/{document_id}/download-url")
-async def get_download_url(
+@router.post("/")
+async def create_document(
+    title: str = Form(...),
+    type: str = Form(...),
+    description: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_chair)
+):
+    """
+    Create document with file upload (alias for /upload).
+    """
+    return await upload_document(
+        file=file,
+        title=title,
+        type=type,
+        description=description,
+        db=db,
+        current_user=current_user
+    )
+
+
+@router.get("/{document_id}/download")
+async def download_document(
     document_id: int,
     db: Session = Depends(get_db),
     current_user: BoardMember = Depends(require_member)
 ):
-    """Get presigned URL for downloading document."""
+    """Download document file."""
     document = db.query(Document).filter(
         Document.id == document_id,
         Document.deleted_at.is_(None)
@@ -168,27 +157,16 @@ async def get_download_url(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    if settings.storage_type != "s3":
-        # Local dev - return file path
-        return {
-            "download_url": f"/uploads/{document.file_path}",
-            "expires_in": 3600
-        }
+    file_path = UPLOAD_DIR / document.file_path
 
-    from app.services.storage import storage_service
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
 
-    if not storage_service:
-        raise HTTPException(status_code=503, detail="Storage service not configured")
-
-    url = await storage_service.generate_presigned_download_url(
-        file_key=document.file_path,
-        expires_in=3600
+    return FileResponse(
+        path=file_path,
+        filename=f"{document.title}.pdf",
+        media_type="application/pdf"
     )
-
-    return {
-        "download_url": url,
-        "expires_in": 3600
-    }
 
 
 @router.delete("/{document_id}")
