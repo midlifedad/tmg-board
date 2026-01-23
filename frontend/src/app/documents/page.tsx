@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { documentsApi, api, type Document as ApiDocument } from "@/lib/api";
+import { UploadDocumentModal } from "@/components/upload-document-modal";
 
 type SigningStatusType = "signed" | "pending" | "draft" | "declined";
 
@@ -63,6 +64,7 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -103,7 +105,32 @@ export default function DocumentsPage() {
   }, [session?.user?.email]);
 
   const userRole = (session?.user as { role?: string })?.role;
-  const isAdmin = userRole === "admin";
+  // Show upload button for admin/chair roles, or in dev mode (no session)
+  const isDev = process.env.NODE_ENV === "development";
+  const isAdmin = userRole === "admin" || userRole === "chair" || isDev;
+
+  const refetchDocuments = async () => {
+    try {
+      const data = await documentsApi.list();
+      const transformed: Document[] = data.map((doc) => {
+        let status: SigningStatusType = "draft";
+        if (doc.signing_status === "completed") status = "signed";
+        else if (doc.signing_status === "pending" || doc.signing_status === "sent") status = "pending";
+        else if (doc.signing_status === "declined") status = "declined";
+        return {
+          id: String(doc.id),
+          title: doc.title,
+          type: doc.type,
+          date: doc.created_at.split("T")[0],
+          status: status,
+          uploadedBy: `User ${doc.uploaded_by_id}`,
+        };
+      });
+      setDocuments(transformed);
+    } catch (err) {
+      console.error("Failed to refetch documents:", err);
+    }
+  };
 
   // Filter documents
   const filteredDocuments = documents.filter((doc) => {
@@ -152,7 +179,7 @@ export default function DocumentsPage() {
             </p>
           </div>
           {isAdmin && (
-            <Button>
+            <Button onClick={() => setShowUploadModal(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Upload Document
             </Button>
@@ -295,6 +322,13 @@ export default function DocumentsPage() {
           <p>Showing {filteredDocuments.length} of {documents.length} documents</p>
         </div>
       </div>
+
+      {/* Upload Modal */}
+      <UploadDocumentModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={refetchDocuments}
+      />
     </AppShell>
   );
 }

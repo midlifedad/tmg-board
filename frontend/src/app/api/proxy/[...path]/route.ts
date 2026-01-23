@@ -29,9 +29,17 @@ async function proxyRequest(req: NextRequest, path: string[]) {
     }
   });
 
-  const body = req.body && req.method !== "GET" && req.method !== "HEAD"
-    ? await req.text()
-    : undefined;
+  // Handle body - for multipart/form-data, pass as buffer; otherwise as text
+  let body: BodyInit | undefined;
+  if (req.body && req.method !== "GET" && req.method !== "HEAD") {
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      // For file uploads, pass the body as ArrayBuffer
+      body = await req.arrayBuffer();
+    } else {
+      body = await req.text();
+    }
+  }
 
   try {
     const response = await fetch(url.toString(), {
