@@ -590,6 +590,52 @@ export const decisionsApi = {
   }> => {
     return api.get(`/decisions/${decisionId}/results/`);
   },
+
+  /**
+   * Create a new decision
+   */
+  create: async (data: {
+    title: string;
+    description?: string | null;
+    type: "vote" | "consent" | "resolution";
+    deadline?: string | null;
+    meeting_id?: number | null;
+  }): Promise<Decision> => {
+    return api.post("/decisions/", data);
+  },
+
+  /**
+   * Update a decision
+   */
+  update: async (id: string, data: {
+    title?: string;
+    description?: string | null;
+    type?: "vote" | "consent" | "resolution";
+    deadline?: string | null;
+  }): Promise<Decision> => {
+    return api.put(`/decisions/${id}/`, data);
+  },
+
+  /**
+   * Close voting on a decision
+   */
+  close: async (id: string): Promise<Decision> => {
+    return api.post(`/decisions/${id}/close/`);
+  },
+
+  /**
+   * Reopen voting on a decision
+   */
+  reopen: async (id: string): Promise<Decision> => {
+    return api.post(`/decisions/${id}/reopen/`);
+  },
+
+  /**
+   * Archive a decision
+   */
+  archive: async (id: string): Promise<void> => {
+    return api.post(`/decisions/${id}/archive/`);
+  },
 };
 
 // =============================================================================
@@ -654,6 +700,30 @@ export const ideasApi = {
   getComments: async (ideaId: string): Promise<Comment[]> => {
     const response = await api.get<PaginatedResponse<Comment>>(`/ideas/${ideaId}/comments/`);
     return response.items || [];
+  },
+
+  /**
+   * Update an idea
+   */
+  update: async (id: string, data: {
+    title?: string;
+    description?: string | null;
+  }): Promise<Idea> => {
+    return api.put(`/ideas/${id}/`, data);
+  },
+
+  /**
+   * Update idea status (moderate)
+   */
+  updateStatus: async (id: string, status: Idea["status"]): Promise<Idea> => {
+    return api.put(`/ideas/${id}/status/`, { status });
+  },
+
+  /**
+   * Delete an idea
+   */
+  delete: async (id: string): Promise<void> => {
+    return api.delete(`/ideas/${id}/`);
   },
 
   /**
