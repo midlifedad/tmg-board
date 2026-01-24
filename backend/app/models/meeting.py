@@ -16,9 +16,15 @@ class Meeting(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     scheduled_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    duration_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Room name or "Virtual"
     meeting_link: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Zoom/Meet URL
     status: Mapped[str] = mapped_column(String(20), default="scheduled")  # scheduled/in_progress/completed/cancelled
+
+    # Meeting lifecycle timestamps
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    recording_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("board_members.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
