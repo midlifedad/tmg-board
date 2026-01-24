@@ -657,13 +657,44 @@ export const decisionsApi = {
 // Ideas API
 // =============================================================================
 
+export interface IdeaCategory {
+  id: number;
+  name: string;
+  color: string;
+  description?: string | null;
+}
+
 export interface Idea {
   id: number;
   title: string;
   description?: string | null;
   submitted_by_id: number;
   status: "new" | "under_review" | "approved" | "rejected" | "promoted";
+  category_id?: number | null;
+  category?: IdeaCategory | null;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface IdeaHistory {
+  id: number;
+  idea_id: number;
+  field_changed: string;
+  old_value?: string | null;
+  new_value?: string | null;
+  changed_by_id: number;
+  changed_by_name?: string;
+  reason?: string | null;
+  created_at: string;
+}
+
+export type ReactionType = "thumbs_up" | "lightbulb" | "heart" | "warning";
+
+export interface CommentReaction {
+  id: number;
+  comment_id: number;
+  user_id: number;
+  reaction_type: ReactionType;
 }
 
 export interface Comment {
@@ -672,6 +703,11 @@ export interface Comment {
   user_id: number;
   user_name?: string;
   content: string;
+  parent_id?: number | null;
+  is_pinned?: boolean;
+  edited_at?: string | null;
+  reactions?: Record<ReactionType, number>;
+  user_reaction?: ReactionType | null;
   created_at: string;
 }
 
@@ -742,10 +778,81 @@ export const ideasApi = {
   },
 
   /**
+   * Update idea status with reason
+   */
+  updateStatusWithReason: async (id: string, status: Idea["status"], reason?: string): Promise<Idea> => {
+    return api.put(`/ideas/${id}/status/`, { status, reason });
+  },
+
+  /**
+   * Get idea history
+   */
+  getHistory: async (id: string): Promise<IdeaHistory[]> => {
+    const response = await api.get<PaginatedResponse<IdeaHistory>>(`/ideas/${id}/history/`);
+    return response.items || [];
+  },
+
+  /**
    * Promote idea to decision (chair/admin only)
    */
   promote: async (ideaId: string): Promise<Decision> => {
     return api.post(`/ideas/${ideaId}/promote/`);
+  },
+
+  /**
+   * Toggle reaction on a comment
+   */
+  toggleReaction: async (commentId: number, reactionType: ReactionType): Promise<void> => {
+    return api.post(`/comments/${commentId}/react/`, { reaction_type: reactionType });
+  },
+
+  /**
+   * Pin/unpin a comment
+   */
+  togglePinComment: async (commentId: number): Promise<Comment> => {
+    return api.post(`/comments/${commentId}/pin/`);
+  },
+
+  /**
+   * Edit a comment
+   */
+  editComment: async (commentId: number, content: string): Promise<Comment> => {
+    return api.put(`/comments/${commentId}/`, { content });
+  },
+};
+
+// =============================================================================
+// Idea Categories API (Admin only)
+// =============================================================================
+
+export const categoriesApi = {
+  /**
+   * List all categories
+   */
+  list: async (): Promise<IdeaCategory[]> => {
+    const response = await api.get<PaginatedResponse<IdeaCategory>>("/categories/");
+    return response.items || [];
+  },
+
+  /**
+   * Create a category
+   */
+  create: async (data: { name: string; color: string; description?: string }): Promise<IdeaCategory> => {
+    return api.post("/categories/", data);
+  },
+
+  /**
+   * Update a category
+   */
+  update: async (id: number, data: { name?: string; color?: string; description?: string }): Promise<IdeaCategory> => {
+    return api.put(`/categories/${id}/`, data);
+  },
+
+  /**
+   * Delete a category
+   */
+  delete: async (id: number): Promise<void> => {
+    return api.delete(`/categories/${id}/`);
   },
 };
 
