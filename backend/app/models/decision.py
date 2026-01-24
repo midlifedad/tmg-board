@@ -18,6 +18,9 @@ class Decision(Base):
     type: Mapped[str] = mapped_column(String(20), nullable=False)  # vote/consent/resolution
     status: Mapped[str] = mapped_column(String(20), default="draft")  # draft/open/closed
 
+    # Voting visibility: standard (results after close), anonymous (no voter names), transparent (live results)
+    visibility: Mapped[str] = mapped_column(String(20), default="standard")
+
     meeting_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("meetings.id"), nullable=True)
     deadline: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -27,6 +30,7 @@ class Decision(Base):
 
     created_by_id: Mapped[int] = mapped_column(Integer, ForeignKey("board_members.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Soft delete
@@ -35,11 +39,19 @@ class Decision(Base):
         Integer, ForeignKey("board_members.id"), nullable=True
     )
 
+    # Archive (different from delete - archived decisions are kept for records)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    archived_by_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("board_members.id"), nullable=True
+    )
+    archived_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     # Relationships
     meeting: Mapped[Optional["Meeting"]] = relationship("Meeting")
     document: Mapped[Optional["Document"]] = relationship("Document")
     created_by: Mapped["BoardMember"] = relationship("BoardMember", foreign_keys=[created_by_id])
     deleted_by: Mapped[Optional["BoardMember"]] = relationship("BoardMember", foreign_keys=[deleted_by_id])
+    archived_by: Mapped[Optional["BoardMember"]] = relationship("BoardMember", foreign_keys=[archived_by_id])
     votes: Mapped[List["Vote"]] = relationship("Vote", back_populates="decision", cascade="all, delete-orphan")
 
     @property
@@ -49,6 +61,10 @@ class Decision(Base):
     @property
     def is_open(self) -> bool:
         return self.status == "open"
+
+    @property
+    def is_archived(self) -> bool:
+        return self.archived_at is not None
 
     def get_results(self) -> dict:
         """Get voting results summary."""
