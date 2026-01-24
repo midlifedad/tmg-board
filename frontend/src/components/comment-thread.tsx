@@ -25,6 +25,13 @@ const reactionConfig: Record<ReactionType, { icon: typeof ThumbsUp; label: strin
   warning: { icon: AlertTriangle, label: "Concern" },
 };
 
+function formatDate(dateString: string | undefined | null): string {
+  if (!dateString) return "Just now";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Just now";
+  return date.toLocaleDateString();
+}
+
 interface CommentThreadProps {
   comments: Comment[];
   onCommentsChange: (comments: Comment[]) => void;
@@ -144,7 +151,7 @@ export function CommentThread({
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{comment.user_name || `User ${comment.user_id}`}</span>
               <span className="text-xs text-muted-foreground">
-                {new Date(comment.created_at).toLocaleDateString()}
+                {formatDate(comment.created_at)}
               </span>
               {comment.edited_at && (
                 <span className="text-xs text-muted-foreground">(edited)</span>
