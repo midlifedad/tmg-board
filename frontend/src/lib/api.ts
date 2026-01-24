@@ -113,9 +113,13 @@ export class ApiError extends Error {
 // Singleton instance
 export const api = new ApiClient(API_BASE_URL);
 
-// In development, set a default user email for API authentication
-if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
-  api.setUserEmail("test@example.com");
+// Set default user email for API authentication (dev/staging without real auth)
+// Can be overridden by NEXT_PUBLIC_DEFAULT_USER_EMAIL env var
+const defaultEmail = process.env.NEXT_PUBLIC_DEFAULT_USER_EMAIL ||
+  (process.env.NODE_ENV === "development" ? "test@example.com" : null);
+
+if (typeof window !== "undefined" && defaultEmail) {
+  api.setUserEmail(defaultEmail);
 }
 
 // =============================================================================
