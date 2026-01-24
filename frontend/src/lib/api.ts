@@ -600,8 +600,23 @@ export const decisionsApi = {
     type: "vote" | "consent" | "resolution";
     deadline?: string | null;
     meeting_id?: number | null;
+    visibility?: "standard" | "anonymous" | "transparent";
   }): Promise<Decision> => {
     return api.post("/decisions/", data);
+  },
+
+  /**
+   * Extend deadline
+   */
+  extendDeadline: async (id: string, newDeadline: string): Promise<Decision> => {
+    return api.post(`/decisions/${id}/extend-deadline/`, { deadline: newDeadline });
+  },
+
+  /**
+   * Send reminders to pending voters
+   */
+  sendReminders: async (id: string): Promise<{ sent_count: number }> => {
+    return api.post(`/decisions/${id}/remind/`);
   },
 
   /**

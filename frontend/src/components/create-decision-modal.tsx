@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, CheckSquare, Loader2, Calendar } from "lucide-react";
-import { api } from "@/lib/api";
+import { X, CheckSquare, Loader2, Calendar, Eye, EyeOff, Users } from "lucide-react";
+import { decisionsApi } from "@/lib/api";
 
 interface CreateDecisionModalProps {
   isOpen: boolean;
@@ -18,10 +18,17 @@ const decisionTypes = [
   { value: "resolution", label: "Resolution", description: "Formal board resolution" },
 ];
 
+const visibilityModes = [
+  { value: "standard", label: "Standard", description: "Voters see their own vote, admins see all", icon: Eye },
+  { value: "anonymous", label: "Anonymous", description: "Only final tally shown, no individual votes", icon: EyeOff },
+  { value: "transparent", label: "Transparent", description: "All votes visible to all members", icon: Users },
+];
+
 export function CreateDecisionModal({ isOpen, onClose, onSuccess }: CreateDecisionModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("vote");
+  const [visibility, setVisibility] = useState<"standard" | "anonymous" | "transparent">("standard");
   const [deadline, setDeadline] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +37,7 @@ export function CreateDecisionModal({ isOpen, onClose, onSuccess }: CreateDecisi
     setTitle("");
     setDescription("");
     setType("vote");
+    setVisibility("standard");
     setDeadline("");
     setError(null);
   };
@@ -53,13 +61,12 @@ export function CreateDecisionModal({ isOpen, onClose, onSuccess }: CreateDecisi
     setError(null);
 
     try {
-      // POST to create decision endpoint (will be available once backend is ready)
-      await api.post("/decisions/", {
+      await decisionsApi.create({
         title: title.trim(),
         description: description.trim() || null,
-        type,
+        type: type as "vote" | "consent" | "resolution",
         deadline: deadline || null,
-        status: "open",
+        visibility,
       });
 
       resetForm();
@@ -149,6 +156,35 @@ export function CreateDecisionModal({ isOpen, onClose, onSuccess }: CreateDecisi
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* Visibility Mode */}
+            <div>
+              <label className="text-sm font-medium">Voting Visibility</label>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {visibilityModes.map((vm) => {
+                  const Icon = vm.icon;
+                  return (
+                    <button
+                      key={vm.value}
+                      type="button"
+                      onClick={() => setVisibility(vm.value as typeof visibility)}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-md border transition-colors ${
+                        visibility === vm.value
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-muted-foreground/50"
+                      }`}
+                      disabled={submitting}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-xs font-medium">{vm.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {visibilityModes.find((v) => v.value === visibility)?.description}
+              </p>
             </div>
 
             {/* Deadline */}

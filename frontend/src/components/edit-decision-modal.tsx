@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, CheckSquare, Loader2, Calendar } from "lucide-react";
+import { X, CheckSquare, Loader2, Calendar, Eye, EyeOff, Users, Clock } from "lucide-react";
 import { decisionsApi } from "@/lib/api";
 
 interface EditDecisionModalProps {
@@ -16,8 +16,16 @@ interface EditDecisionModalProps {
     description: string | null;
     type: "vote" | "consent" | "resolution";
     deadline: string | null;
+    visibility?: "standard" | "anonymous" | "transparent";
+    status?: "pending" | "open" | "closed";
   } | null;
 }
+
+const visibilityModes = [
+  { value: "standard", label: "Standard", description: "Voters see their own vote, admins see all", icon: Eye },
+  { value: "anonymous", label: "Anonymous", description: "Only final tally shown, no individual votes", icon: EyeOff },
+  { value: "transparent", label: "Transparent", description: "All votes visible to all members", icon: Users },
+];
 
 const decisionTypes = [
   { value: "vote", label: "Vote", description: "Standard yes/no/abstain vote" },
@@ -34,7 +42,9 @@ export function EditDecisionModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"vote" | "consent" | "resolution">("vote");
+  const [visibility, setVisibility] = useState<"standard" | "anonymous" | "transparent">("standard");
   const [deadline, setDeadline] = useState("");
+  const [extendingDeadline, setExtendingDeadline] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,9 +53,23 @@ export function EditDecisionModal({
       setTitle(decision.title);
       setDescription(decision.description || "");
       setType(decision.type);
+      setVisibility(decision.visibility || "standard");
       setDeadline(decision.deadline?.split("T")[0] || "");
     }
   }, [decision]);
+
+  const handleExtendDeadline = async () => {
+    if (!decision || !deadline) return;
+    setExtendingDeadline(true);
+    try {
+      await decisionsApi.extendDeadline(decision.id, deadline);
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to extend deadline");
+    } finally {
+      setExtendingDeadline(false);
+    }
+  };
 
   const handleClose = () => {
     if (!submitting) {
