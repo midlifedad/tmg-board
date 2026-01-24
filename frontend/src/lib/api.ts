@@ -191,6 +191,17 @@ export interface Document {
   updated_at: string;
 }
 
+export interface DocumentVersion {
+  id: number;
+  document_id: number;
+  version_number: number;
+  file_path: string;
+  uploaded_by_id: number;
+  uploaded_by_name?: string;
+  upload_reason?: string | null;
+  created_at: string;
+}
+
 export const documentsApi = {
   /**
    * List all documents with optional filters
@@ -199,11 +210,13 @@ export const documentsApi = {
     type?: string;
     year?: number;
     status?: string;
+    archived?: boolean;
   }): Promise<Document[]> => {
     const searchParams = new URLSearchParams();
     if (params?.type) searchParams.set("type", params.type);
     if (params?.year) searchParams.set("year", params.year.toString());
     if (params?.status) searchParams.set("status", params.status);
+    if (params?.archived !== undefined) searchParams.set("archived", String(params.archived));
 
     const query = searchParams.toString();
     const response = await api.get<PaginatedResponse<Document>>(`/documents/${query ? `?${query}` : ""}`);
@@ -230,6 +243,19 @@ export const documentsApi = {
   },
 
   /**
+   * Update document metadata
+   */
+  update: async (id: string, data: {
+    title?: string;
+    type?: string;
+    description?: string;
+    category?: string;
+    tags?: string[];
+  }): Promise<Document> => {
+    return api.put(`/documents/${id}/`, data);
+  },
+
+  /**
    * Send document for signature via DocuSign
    */
   sendForSignature: async (id: string): Promise<{ envelope_id: string }> => {
@@ -246,6 +272,72 @@ export const documentsApi = {
     signers: Array<{ email: string; name: string; signed_at?: string }>;
   }> => {
     return api.get(`/documents/${id}/status`);
+  },
+
+  /**
+   * Get document version history
+   */
+  getVersions: async (id: string): Promise<DocumentVersion[]> => {
+    const response = await api.get<PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions/`);
+    return response.items || [];
+  },
+
+  /**
+   * Upload a new version
+   */
+  uploadVersion: async (id: string, file: File, reason?: string): Promise<DocumentVersion> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (reason) formData.append("reason", reason);
+
+    const response = await fetch(`/api/proxy/documents/${id}/versions/`, {
+      method: "POST",
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, error.message || "Failed to upload version");
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Archive document
+   */
+  archive: async (id: string): Promise<void> => {
+    return api.post(`/documents/${id}/archive/`);
+  },
+
+  /**
+   * Unarchive document
+   */
+  unarchive: async (id: string): Promise<void> => {
+    return api.post(`/documents/${id}/unarchive/`);
+  },
+
+  /**
+   * Get document activity log
+   */
+  getActivity: async (id: string): Promise<Array<{
+    id: number;
+    action: string;
+    user_name: string;
+    created_at: string;
+    details?: string;
+  }>> => {
+    const response = await api.get<PaginatedResponse<{
+      id: number;
+      action: string;
+      user_name: string;
+      created_at: string;
+      details?: string;
+    }>>(`/documents/${id}/activity/`);
+    return response.items || [];
   },
 };
 
@@ -266,13 +358,15 @@ export interface Meeting {
 }
 
 export interface AgendaItem {
-  id: string;
-  meeting_id: string;
+  id: number;
+  meeting_id: number;
   title: string;
-  description?: string;
-  order: number;
-  presenter_id?: string;
-  decision_id?: string;
+  description?: string | null;
+  duration_minutes: number;
+  order_index: number;
+  presenter?: string | null;
+  status: "pending" | "in_progress" | "completed" | "skipped";
+  decision_id?: number | null;
 }
 
 export const meetingsApi = {
@@ -311,13 +405,112 @@ export const meetingsApi = {
   },
 
   /**
+   * Update meeting
+   */
+  update: async (id: string, data: {
+    title?: string;
+    scheduled_date?: string;
+    location?: string;
+  }): Promise<Meeting> => {
+    return api.put(`/meetings/${id}/`, data);
+  },
+
+  /**
+   * Cancel meeting
+   */
+  cancel: async (id: string): Promise<void> => {
+    return api.post(`/meetings/${id}/cancel/`);
+  },
+
+  /**
+   * Start meeting
+   */
+  start: async (id: string): Promise<Meeting> => {
+    return api.post(`/meetings/${id}/start/`);
+  },
+
+  /**
+   * End meeting
+   */
+  end: async (id: string): Promise<Meeting> => {
+    return api.post(`/meetings/${id}/end/`);
+  },
+
+  /**
    * Add agenda item
    */
   addAgendaItem: async (
     meetingId: string,
-    data: { title: string; description?: string; presenter_id?: string }
+    data: {
+      title: string;
+      description?: string;
+      duration_minutes?: number;
+      presenter?: string;
+    }
   ): Promise<AgendaItem> => {
     return api.post(`/meetings/${meetingId}/agenda/`, data);
+  },
+
+  /**
+   * Update agenda item
+   */
+  updateAgendaItem: async (
+    meetingId: string,
+    itemId: number,
+    data: {
+      title?: string;
+      description?: string;
+      duration_minutes?: number;
+      presenter?: string;
+    }
+  ): Promise<AgendaItem> => {
+    return api.put(`/meetings/${meetingId}/agenda/${itemId}/`, data);
+  },
+
+  /**
+   * Delete agenda item
+   */
+  deleteAgendaItem: async (meetingId: string, itemId: number): Promise<void> => {
+    return api.delete(`/meetings/${meetingId}/agenda/${itemId}/`);
+  },
+
+  /**
+   * Reorder agenda items
+   */
+  reorderAgendaItems: async (
+    meetingId: string,
+    items: Array<{ id: number; order_index: number }>
+  ): Promise<void> => {
+    return api.post(`/meetings/${meetingId}/agenda/reorder/`, { items });
+  },
+
+  /**
+   * Get attendance
+   */
+  getAttendance: async (meetingId: string): Promise<Array<{
+    user_id: number;
+    user_name: string;
+    status: "present" | "absent" | "excused";
+    checked_in_at?: string;
+  }>> => {
+    const response = await api.get<PaginatedResponse<{
+      user_id: number;
+      user_name: string;
+      status: "present" | "absent" | "excused";
+      checked_in_at?: string;
+    }>>(`/meetings/${meetingId}/attendance/`);
+    return response.items || [];
+  },
+
+  /**
+   * Update attendance
+   */
+  updateAttendance: async (
+    meetingId: string,
+    userId: number,
+    status: "present" | "absent" | "excused"
+  ): Promise<void> => {
+    return api.put(`/meetings/${meetingId}/attendance/${userId}/`, { status });
   },
 };
 
@@ -397,6 +590,52 @@ export const decisionsApi = {
   }> => {
     return api.get(`/decisions/${decisionId}/results/`);
   },
+
+  /**
+   * Create a new decision
+   */
+  create: async (data: {
+    title: string;
+    description?: string | null;
+    type: "vote" | "consent" | "resolution";
+    deadline?: string | null;
+    meeting_id?: number | null;
+  }): Promise<Decision> => {
+    return api.post("/decisions/", data);
+  },
+
+  /**
+   * Update a decision
+   */
+  update: async (id: string, data: {
+    title?: string;
+    description?: string | null;
+    type?: "vote" | "consent" | "resolution";
+    deadline?: string | null;
+  }): Promise<Decision> => {
+    return api.put(`/decisions/${id}/`, data);
+  },
+
+  /**
+   * Close voting on a decision
+   */
+  close: async (id: string): Promise<Decision> => {
+    return api.post(`/decisions/${id}/close/`);
+  },
+
+  /**
+   * Reopen voting on a decision
+   */
+  reopen: async (id: string): Promise<Decision> => {
+    return api.post(`/decisions/${id}/reopen/`);
+  },
+
+  /**
+   * Archive a decision
+   */
+  archive: async (id: string): Promise<void> => {
+    return api.post(`/decisions/${id}/archive/`);
+  },
 };
 
 // =============================================================================
@@ -464,9 +703,289 @@ export const ideasApi = {
   },
 
   /**
+   * Update an idea
+   */
+  update: async (id: string, data: {
+    title?: string;
+    description?: string | null;
+  }): Promise<Idea> => {
+    return api.put(`/ideas/${id}/`, data);
+  },
+
+  /**
+   * Update idea status (moderate)
+   */
+  updateStatus: async (id: string, status: Idea["status"]): Promise<Idea> => {
+    return api.put(`/ideas/${id}/status/`, { status });
+  },
+
+  /**
+   * Delete an idea
+   */
+  delete: async (id: string): Promise<void> => {
+    return api.delete(`/ideas/${id}/`);
+  },
+
+  /**
    * Promote idea to decision (chair/admin only)
    */
   promote: async (ideaId: string): Promise<Decision> => {
     return api.post(`/ideas/${ideaId}/promote/`);
+  },
+};
+
+// =============================================================================
+// Admin API (requires admin/chair role)
+// =============================================================================
+
+export interface BoardMember {
+  id: number;
+  name: string;
+  email: string;
+  role: "member" | "chair" | "admin";
+  status?: "active" | "inactive";
+  created_at: string;
+  last_login_at?: string | null;
+}
+
+export interface Invitation {
+  id: number;
+  email: string;
+  name: string;
+  role: "member" | "chair" | "admin";
+  invited_by_id: number;
+  message?: string | null;
+  expires_at: string;
+  created_at: string;
+  accepted_at?: string | null;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  user_id: number;
+  user_name?: string;
+  action: string;
+  entity_type: string;
+  entity_id: number;
+  entity_name?: string;
+  old_value?: string | null;
+  new_value?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+}
+
+export interface SystemSettings {
+  organization_name: string;
+  organization_logo_url?: string | null;
+  default_meeting_duration: number;
+  voting_reminder_days: number;
+  signature_reminder_days: number;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export const adminApi = {
+  // -------------------------------------------------------------------------
+  // User Management
+  // -------------------------------------------------------------------------
+
+  /**
+   * List all users (admin only)
+   */
+  listUsers: async (): Promise<BoardMember[]> => {
+    const response = await api.get<PaginatedResponse<BoardMember>>("/admin/users/");
+    return response.items || [];
+  },
+
+  /**
+   * Get user by ID
+   */
+  getUser: async (id: string): Promise<BoardMember> => {
+    return api.get(`/admin/users/${id}/`);
+  },
+
+  /**
+   * Update user (role, status)
+   */
+  updateUser: async (
+    id: string,
+    data: { role?: string; status?: string }
+  ): Promise<BoardMember> => {
+    return api.put(`/admin/users/${id}/`, data);
+  },
+
+  /**
+   * Deactivate user (soft delete)
+   */
+  deactivateUser: async (id: string): Promise<void> => {
+    return api.delete(`/admin/users/${id}/`);
+  },
+
+  /**
+   * Reactivate user
+   */
+  reactivateUser: async (id: string): Promise<BoardMember> => {
+    return api.post(`/admin/users/${id}/restore/`);
+  },
+
+  // -------------------------------------------------------------------------
+  // Invitations
+  // -------------------------------------------------------------------------
+
+  /**
+   * List pending invitations
+   */
+  listInvitations: async (): Promise<Invitation[]> => {
+    const response = await api.get<PaginatedResponse<Invitation>>("/admin/invites/");
+    return response.items || [];
+  },
+
+  /**
+   * Send invitation
+   */
+  sendInvitation: async (data: {
+    email: string;
+    name: string;
+    role: string;
+    message?: string;
+  }): Promise<Invitation> => {
+    return api.post("/admin/users/invite/", data);
+  },
+
+  /**
+   * Resend invitation
+   */
+  resendInvitation: async (id: string): Promise<void> => {
+    return api.post(`/admin/invites/${id}/resend/`);
+  },
+
+  /**
+   * Cancel invitation
+   */
+  cancelInvitation: async (id: string): Promise<void> => {
+    return api.delete(`/admin/invites/${id}/`);
+  },
+
+  // -------------------------------------------------------------------------
+  // Audit Log
+  // -------------------------------------------------------------------------
+
+  /**
+   * List audit log entries
+   */
+  listAuditLog: async (params?: {
+    user_id?: string;
+    action?: string;
+    entity_type?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: AuditLogEntry[]; total: number }> => {
+    const searchParams = new URLSearchParams();
+    if (params?.user_id) searchParams.set("user_id", params.user_id);
+    if (params?.action) searchParams.set("action", params.action);
+    if (params?.entity_type) searchParams.set("entity_type", params.entity_type);
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.offset) searchParams.set("offset", params.offset.toString());
+
+    const query = searchParams.toString();
+    return api.get(`/admin/audit/${query ? `?${query}` : ""}`);
+  },
+
+  /**
+   * Export audit log as CSV
+   */
+  exportAuditLog: async (params?: {
+    start_date?: string;
+    end_date?: string;
+  }): Promise<Blob> => {
+    const searchParams = new URLSearchParams();
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+
+    const query = searchParams.toString();
+    const response = await fetch(`/api/proxy/admin/audit/export/${query ? `?${query}` : ""}`, {
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(response.status, "Failed to export audit log");
+    }
+
+    return response.blob();
+  },
+
+  // -------------------------------------------------------------------------
+  // Settings
+  // -------------------------------------------------------------------------
+
+  /**
+   * Get all settings
+   */
+  getSettings: async (): Promise<SystemSettings> => {
+    return api.get("/admin/settings/");
+  },
+
+  /**
+   * Update settings
+   */
+  updateSettings: async (settings: Partial<SystemSettings>): Promise<SystemSettings> => {
+    return api.put("/admin/settings/", settings);
+  },
+
+  /**
+   * Upload organization logo
+   */
+  uploadLogo: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/proxy/admin/settings/logo/", {
+      method: "POST",
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, error.message || "Failed to upload logo");
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Remove organization logo
+   */
+  removeLogo: async (): Promise<void> => {
+    return api.delete("/admin/settings/logo/");
+  },
+
+  // -------------------------------------------------------------------------
+  // Roles & Permissions (placeholder - will be enhanced once backend ready)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Get permission matrix for all roles
+   */
+  getPermissionMatrix: async (): Promise<Record<string, string[]>> => {
+    return api.get("/admin/permissions/");
+  },
+
+  /**
+   * Update permissions for a role
+   */
+  updateRolePermissions: async (
+    role: string,
+    permissions: string[]
+  ): Promise<void> => {
+    return api.put(`/admin/roles/${role}/`, { permissions });
   },
 };
