@@ -105,9 +105,8 @@ export default function DocumentsPage() {
   }, [session?.user?.email]);
 
   const userRole = (session?.user as { role?: string })?.role;
-  // Show upload button for admin/chair roles, or in dev mode (no session)
-  const isDev = process.env.NODE_ENV === "development";
-  const isAdmin = userRole === "admin" || userRole === "chair" || isDev;
+  // Show upload button for admin/chair roles, or when no session (dev/staging with hardcoded email)
+  const isAdmin = userRole === "admin" || userRole === "chair" || !session;
 
   const refetchDocuments = async () => {
     try {
