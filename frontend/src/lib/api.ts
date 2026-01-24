@@ -114,11 +114,10 @@ export class ApiError extends Error {
 export const api = new ApiClient(API_BASE_URL);
 
 // Set default user email for API authentication (dev/staging without real auth)
-// Can be overridden by NEXT_PUBLIC_DEFAULT_USER_EMAIL env var
-const defaultEmail = process.env.NEXT_PUBLIC_DEFAULT_USER_EMAIL ||
-  (process.env.NODE_ENV === "development" ? "test@example.com" : null);
-
-if (typeof window !== "undefined" && defaultEmail) {
+// TODO: Replace with proper OAuth authentication
+if (typeof window !== "undefined") {
+  // Use env var if available, otherwise fallback to admin email for staging/dev
+  const defaultEmail = process.env.NEXT_PUBLIC_DEFAULT_USER_EMAIL || "admin@themany.com";
   api.setUserEmail(defaultEmail);
 }
 
