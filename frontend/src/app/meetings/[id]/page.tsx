@@ -104,10 +104,10 @@ export default function MeetingDetailPage({
           createdBy: `User ${meetingData.created_by_id}`, // TODO: Fetch user name
           agenda: agendaData.map((item, index) => ({
             id: String(item.id),
-            order: item.order || index + 1,
+            order: item.order_index ?? index + 1,
             title: item.title,
-            duration: "", // TODO: Get from API if available
-            presenter: item.presenter_id ? String(item.presenter_id) : null,
+            duration: item.duration_minutes ? `${item.duration_minutes} min` : "",
+            presenter: item.presenter || null,
             relatedDecision: item.decision_id
               ? { id: String(item.decision_id), title: "Related Decision" }
               : undefined,

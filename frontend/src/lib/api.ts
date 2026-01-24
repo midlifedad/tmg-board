@@ -358,13 +358,15 @@ export interface Meeting {
 }
 
 export interface AgendaItem {
-  id: string;
-  meeting_id: string;
+  id: number;
+  meeting_id: number;
   title: string;
-  description?: string;
-  order: number;
-  presenter_id?: string;
-  decision_id?: string;
+  description?: string | null;
+  duration_minutes: number;
+  order_index: number;
+  presenter?: string | null;
+  status: "pending" | "in_progress" | "completed" | "skipped";
+  decision_id?: number | null;
 }
 
 export const meetingsApi = {
@@ -403,13 +405,112 @@ export const meetingsApi = {
   },
 
   /**
+   * Update meeting
+   */
+  update: async (id: string, data: {
+    title?: string;
+    scheduled_date?: string;
+    location?: string;
+  }): Promise<Meeting> => {
+    return api.put(`/meetings/${id}/`, data);
+  },
+
+  /**
+   * Cancel meeting
+   */
+  cancel: async (id: string): Promise<void> => {
+    return api.post(`/meetings/${id}/cancel/`);
+  },
+
+  /**
+   * Start meeting
+   */
+  start: async (id: string): Promise<Meeting> => {
+    return api.post(`/meetings/${id}/start/`);
+  },
+
+  /**
+   * End meeting
+   */
+  end: async (id: string): Promise<Meeting> => {
+    return api.post(`/meetings/${id}/end/`);
+  },
+
+  /**
    * Add agenda item
    */
   addAgendaItem: async (
     meetingId: string,
-    data: { title: string; description?: string; presenter_id?: string }
+    data: {
+      title: string;
+      description?: string;
+      duration_minutes?: number;
+      presenter?: string;
+    }
   ): Promise<AgendaItem> => {
     return api.post(`/meetings/${meetingId}/agenda/`, data);
+  },
+
+  /**
+   * Update agenda item
+   */
+  updateAgendaItem: async (
+    meetingId: string,
+    itemId: number,
+    data: {
+      title?: string;
+      description?: string;
+      duration_minutes?: number;
+      presenter?: string;
+    }
+  ): Promise<AgendaItem> => {
+    return api.put(`/meetings/${meetingId}/agenda/${itemId}/`, data);
+  },
+
+  /**
+   * Delete agenda item
+   */
+  deleteAgendaItem: async (meetingId: string, itemId: number): Promise<void> => {
+    return api.delete(`/meetings/${meetingId}/agenda/${itemId}/`);
+  },
+
+  /**
+   * Reorder agenda items
+   */
+  reorderAgendaItems: async (
+    meetingId: string,
+    items: Array<{ id: number; order_index: number }>
+  ): Promise<void> => {
+    return api.post(`/meetings/${meetingId}/agenda/reorder/`, { items });
+  },
+
+  /**
+   * Get attendance
+   */
+  getAttendance: async (meetingId: string): Promise<Array<{
+    user_id: number;
+    user_name: string;
+    status: "present" | "absent" | "excused";
+    checked_in_at?: string;
+  }>> => {
+    const response = await api.get<PaginatedResponse<{
+      user_id: number;
+      user_name: string;
+      status: "present" | "absent" | "excused";
+      checked_in_at?: string;
+    }>>(`/meetings/${meetingId}/attendance/`);
+    return response.items || [];
+  },
+
+  /**
+   * Update attendance
+   */
+  updateAttendance: async (
+    meetingId: string,
+    userId: number,
+    status: "present" | "absent" | "excused"
+  ): Promise<void> => {
+    return api.put(`/meetings/${meetingId}/attendance/${userId}/`, { status });
   },
 };
 
