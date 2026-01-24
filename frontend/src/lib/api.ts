@@ -470,3 +470,259 @@ export const ideasApi = {
     return api.post(`/ideas/${ideaId}/promote/`);
   },
 };
+
+// =============================================================================
+// Admin API (requires admin/chair role)
+// =============================================================================
+
+export interface BoardMember {
+  id: number;
+  name: string;
+  email: string;
+  role: "member" | "chair" | "admin";
+  status?: "active" | "inactive";
+  created_at: string;
+  last_login_at?: string | null;
+}
+
+export interface Invitation {
+  id: number;
+  email: string;
+  name: string;
+  role: "member" | "chair" | "admin";
+  invited_by_id: number;
+  message?: string | null;
+  expires_at: string;
+  created_at: string;
+  accepted_at?: string | null;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  user_id: number;
+  user_name?: string;
+  action: string;
+  entity_type: string;
+  entity_id: number;
+  entity_name?: string;
+  old_value?: string | null;
+  new_value?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+}
+
+export interface SystemSettings {
+  organization_name: string;
+  organization_logo_url?: string | null;
+  default_meeting_duration: number;
+  voting_reminder_days: number;
+  signature_reminder_days: number;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export const adminApi = {
+  // -------------------------------------------------------------------------
+  // User Management
+  // -------------------------------------------------------------------------
+
+  /**
+   * List all users (admin only)
+   */
+  listUsers: async (): Promise<BoardMember[]> => {
+    const response = await api.get<PaginatedResponse<BoardMember>>("/admin/users/");
+    return response.items || [];
+  },
+
+  /**
+   * Get user by ID
+   */
+  getUser: async (id: string): Promise<BoardMember> => {
+    return api.get(`/admin/users/${id}/`);
+  },
+
+  /**
+   * Update user (role, status)
+   */
+  updateUser: async (
+    id: string,
+    data: { role?: string; status?: string }
+  ): Promise<BoardMember> => {
+    return api.put(`/admin/users/${id}/`, data);
+  },
+
+  /**
+   * Deactivate user (soft delete)
+   */
+  deactivateUser: async (id: string): Promise<void> => {
+    return api.delete(`/admin/users/${id}/`);
+  },
+
+  /**
+   * Reactivate user
+   */
+  reactivateUser: async (id: string): Promise<BoardMember> => {
+    return api.post(`/admin/users/${id}/restore/`);
+  },
+
+  // -------------------------------------------------------------------------
+  // Invitations
+  // -------------------------------------------------------------------------
+
+  /**
+   * List pending invitations
+   */
+  listInvitations: async (): Promise<Invitation[]> => {
+    const response = await api.get<PaginatedResponse<Invitation>>("/admin/invites/");
+    return response.items || [];
+  },
+
+  /**
+   * Send invitation
+   */
+  sendInvitation: async (data: {
+    email: string;
+    name: string;
+    role: string;
+    message?: string;
+  }): Promise<Invitation> => {
+    return api.post("/admin/users/invite/", data);
+  },
+
+  /**
+   * Resend invitation
+   */
+  resendInvitation: async (id: string): Promise<void> => {
+    return api.post(`/admin/invites/${id}/resend/`);
+  },
+
+  /**
+   * Cancel invitation
+   */
+  cancelInvitation: async (id: string): Promise<void> => {
+    return api.delete(`/admin/invites/${id}/`);
+  },
+
+  // -------------------------------------------------------------------------
+  // Audit Log
+  // -------------------------------------------------------------------------
+
+  /**
+   * List audit log entries
+   */
+  listAuditLog: async (params?: {
+    user_id?: string;
+    action?: string;
+    entity_type?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: AuditLogEntry[]; total: number }> => {
+    const searchParams = new URLSearchParams();
+    if (params?.user_id) searchParams.set("user_id", params.user_id);
+    if (params?.action) searchParams.set("action", params.action);
+    if (params?.entity_type) searchParams.set("entity_type", params.entity_type);
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.offset) searchParams.set("offset", params.offset.toString());
+
+    const query = searchParams.toString();
+    return api.get(`/admin/audit/${query ? `?${query}` : ""}`);
+  },
+
+  /**
+   * Export audit log as CSV
+   */
+  exportAuditLog: async (params?: {
+    start_date?: string;
+    end_date?: string;
+  }): Promise<Blob> => {
+    const searchParams = new URLSearchParams();
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+
+    const query = searchParams.toString();
+    const response = await fetch(`/api/proxy/admin/audit/export/${query ? `?${query}` : ""}`, {
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(response.status, "Failed to export audit log");
+    }
+
+    return response.blob();
+  },
+
+  // -------------------------------------------------------------------------
+  // Settings
+  // -------------------------------------------------------------------------
+
+  /**
+   * Get all settings
+   */
+  getSettings: async (): Promise<SystemSettings> => {
+    return api.get("/admin/settings/");
+  },
+
+  /**
+   * Update settings
+   */
+  updateSettings: async (settings: Partial<SystemSettings>): Promise<SystemSettings> => {
+    return api.put("/admin/settings/", settings);
+  },
+
+  /**
+   * Upload organization logo
+   */
+  uploadLogo: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/api/proxy/admin/settings/logo/", {
+      method: "POST",
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, error.message || "Failed to upload logo");
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Remove organization logo
+   */
+  removeLogo: async (): Promise<void> => {
+    return api.delete("/admin/settings/logo/");
+  },
+
+  // -------------------------------------------------------------------------
+  // Roles & Permissions (placeholder - will be enhanced once backend ready)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Get permission matrix for all roles
+   */
+  getPermissionMatrix: async (): Promise<Record<string, string[]>> => {
+    return api.get("/admin/permissions/");
+  },
+
+  /**
+   * Update permissions for a role
+   */
+  updateRolePermissions: async (
+    role: string,
+    permissions: string[]
+  ): Promise<void> => {
+    return api.put(`/admin/roles/${role}/`, { permissions });
+  },
+};

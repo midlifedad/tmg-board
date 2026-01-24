@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meetingsApi, api, type Meeting as ApiMeeting } from "@/lib/api";
+import { CreateMeetingModal } from "@/components/create-meeting-modal";
 
 interface Meeting {
   id: string;
@@ -47,6 +48,7 @@ export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const fetchMeetings = async () => {
@@ -94,7 +96,38 @@ export default function MeetingsPage() {
   }, [session?.user?.email]);
 
   const userRole = (session?.user as { role?: string })?.role;
-  const isChairOrAdmin = userRole === "admin" || userRole === "chair";
+  const isChairOrAdmin = userRole === "admin" || userRole === "chair" || !session;
+
+  const refetchMeetings = async () => {
+    try {
+      const data = await meetingsApi.list();
+      const transformed: Meeting[] = data.map((meeting) => {
+        const dateObj = new Date(meeting.scheduled_date);
+        const time = dateObj.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        const dateStr = dateObj.toISOString().split("T")[0];
+        const isVirtual = meeting.meeting_link != null ||
+                         meeting.location.toLowerCase().includes("virtual") ||
+                         meeting.location.toLowerCase().includes("zoom");
+        return {
+          id: String(meeting.id),
+          title: meeting.title,
+          date: dateStr,
+          time: time,
+          location: meeting.location,
+          isVirtual: isVirtual,
+          status: meeting.status,
+          hasMinutes: meeting.status === "completed",
+        };
+      });
+      setMeetings(transformed);
+    } catch (err) {
+      console.error("Failed to refetch meetings:", err);
+    }
+  };
 
   const upcomingMeetings = meetings.filter(
     (m) => m.status === "scheduled" && new Date(m.date) >= new Date()
@@ -184,7 +217,7 @@ export default function MeetingsPage() {
               </button>
             </div>
             {isChairOrAdmin && (
-              <Button>
+              <Button onClick={() => setShowCreateModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule Meeting
               </Button>
@@ -316,6 +349,13 @@ export default function MeetingsPage() {
           </div>
         )}
       </div>
+
+      {/* Create Meeting Modal */}
+      <CreateMeetingModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={refetchMeetings}
+      />
     </AppShell>
   );
 }

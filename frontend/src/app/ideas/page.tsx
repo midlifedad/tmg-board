@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ideasApi, api, type Idea as ApiIdea } from "@/lib/api";
+import { SubmitIdeaModal } from "@/components/submit-idea-modal";
 
 type IdeaStatus = "new" | "under_review" | "approved" | "rejected" | "promoted";
 
@@ -75,6 +76,24 @@ export default function IdeasPage() {
 
     fetchIdeas();
   }, [session?.user?.email]);
+
+  const refetchIdeas = async () => {
+    try {
+      const data = await ideasApi.list();
+      const transformed: Idea[] = data.map((idea) => ({
+        id: String(idea.id),
+        title: idea.title,
+        description: idea.description || "",
+        submittedBy: `User ${idea.submitted_by_id}`,
+        submittedAt: idea.created_at,
+        status: idea.status,
+        commentCount: 0,
+      }));
+      setIdeas(transformed);
+    } catch (err) {
+      console.error("Failed to refetch ideas:", err);
+    }
+  };
 
   const filteredIdeas = ideas.filter((idea) => {
     if (filter === "all") return true;
@@ -170,6 +189,13 @@ export default function IdeasPage() {
           </Card>
         )}
       </div>
+
+      {/* Submit Idea Modal */}
+      <SubmitIdeaModal
+        isOpen={showSubmitModal}
+        onClose={() => setShowSubmitModal(false)}
+        onSuccess={refetchIdeas}
+      />
     </AppShell>
   );
 }

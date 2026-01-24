@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { decisionsApi, api, type Decision as ApiDecision } from "@/lib/api";
+import { CreateDecisionModal } from "@/components/create-decision-modal";
 
 type DecisionStatus = "pending" | "open" | "closed";
 type VoteValue = "yes" | "no" | "abstain" | null;
@@ -62,6 +63,7 @@ export default function DecisionsPage() {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const fetchDecisions = async () => {
@@ -114,7 +116,44 @@ export default function DecisionsPage() {
   }, [session?.user?.email]);
 
   const userRole = (session?.user as { role?: string })?.role;
-  const isChairOrAdmin = userRole === "admin" || userRole === "chair";
+  const isChairOrAdmin = userRole === "admin" || userRole === "chair" || !session;
+
+  const refetchDecisions = async () => {
+    try {
+      const data = await decisionsApi.list();
+      const transformed: Decision[] = await Promise.all(
+        data.map(async (decision) => {
+          let results = { yes: 0, no: 0, abstain: 0, pending: 0 };
+          let userVote: VoteValue = null;
+          try {
+            const detail = await decisionsApi.get(String(decision.id));
+            results = detail.results;
+            userVote = detail.user_vote as VoteValue;
+          } catch {
+            // Ignore errors for results fetch
+          }
+          return {
+            id: String(decision.id),
+            title: decision.title,
+            description: decision.description || "",
+            type: decision.type,
+            status: decision.status,
+            deadline: decision.deadline || null,
+            meetingId: decision.meeting_id ? String(decision.meeting_id) : null,
+            meetingTitle: null,
+            userVote: userVote,
+            results: results,
+            outcome: decision.status === "closed"
+              ? (results.yes > results.no ? "passed" : "failed")
+              : null,
+          };
+        })
+      );
+      setDecisions(transformed);
+    } catch (err) {
+      console.error("Failed to refetch decisions:", err);
+    }
+  };
 
   const filteredDecisions = decisions.filter((d) => {
     if (filter === "all") return true;
@@ -157,7 +196,7 @@ export default function DecisionsPage() {
             </p>
           </div>
           {isChairOrAdmin && (
-            <Button>
+            <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Decision
             </Button>
@@ -222,6 +261,13 @@ export default function DecisionsPage() {
           </Card>
         )}
       </div>
+
+      {/* Create Decision Modal */}
+      <CreateDecisionModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={refetchDecisions}
+      />
     </AppShell>
   );
 }
