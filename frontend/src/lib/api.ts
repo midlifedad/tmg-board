@@ -191,6 +191,17 @@ export interface Document {
   updated_at: string;
 }
 
+export interface DocumentVersion {
+  id: number;
+  document_id: number;
+  version_number: number;
+  file_path: string;
+  uploaded_by_id: number;
+  uploaded_by_name?: string;
+  upload_reason?: string | null;
+  created_at: string;
+}
+
 export const documentsApi = {
   /**
    * List all documents with optional filters
@@ -199,11 +210,13 @@ export const documentsApi = {
     type?: string;
     year?: number;
     status?: string;
+    archived?: boolean;
   }): Promise<Document[]> => {
     const searchParams = new URLSearchParams();
     if (params?.type) searchParams.set("type", params.type);
     if (params?.year) searchParams.set("year", params.year.toString());
     if (params?.status) searchParams.set("status", params.status);
+    if (params?.archived !== undefined) searchParams.set("archived", String(params.archived));
 
     const query = searchParams.toString();
     const response = await api.get<PaginatedResponse<Document>>(`/documents/${query ? `?${query}` : ""}`);
@@ -230,6 +243,19 @@ export const documentsApi = {
   },
 
   /**
+   * Update document metadata
+   */
+  update: async (id: string, data: {
+    title?: string;
+    type?: string;
+    description?: string;
+    category?: string;
+    tags?: string[];
+  }): Promise<Document> => {
+    return api.put(`/documents/${id}/`, data);
+  },
+
+  /**
    * Send document for signature via DocuSign
    */
   sendForSignature: async (id: string): Promise<{ envelope_id: string }> => {
@@ -246,6 +272,72 @@ export const documentsApi = {
     signers: Array<{ email: string; name: string; signed_at?: string }>;
   }> => {
     return api.get(`/documents/${id}/status`);
+  },
+
+  /**
+   * Get document version history
+   */
+  getVersions: async (id: string): Promise<DocumentVersion[]> => {
+    const response = await api.get<PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions/`);
+    return response.items || [];
+  },
+
+  /**
+   * Upload a new version
+   */
+  uploadVersion: async (id: string, file: File, reason?: string): Promise<DocumentVersion> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (reason) formData.append("reason", reason);
+
+    const response = await fetch(`/api/proxy/documents/${id}/versions/`, {
+      method: "POST",
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, error.message || "Failed to upload version");
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Archive document
+   */
+  archive: async (id: string): Promise<void> => {
+    return api.post(`/documents/${id}/archive/`);
+  },
+
+  /**
+   * Unarchive document
+   */
+  unarchive: async (id: string): Promise<void> => {
+    return api.post(`/documents/${id}/unarchive/`);
+  },
+
+  /**
+   * Get document activity log
+   */
+  getActivity: async (id: string): Promise<Array<{
+    id: number;
+    action: string;
+    user_name: string;
+    created_at: string;
+    details?: string;
+  }>> => {
+    const response = await api.get<PaginatedResponse<{
+      id: number;
+      action: string;
+      user_name: string;
+      created_at: string;
+      details?: string;
+    }>>(`/documents/${id}/activity/`);
+    return response.items || [];
   },
 };
 

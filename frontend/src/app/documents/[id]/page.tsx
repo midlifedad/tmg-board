@@ -17,9 +17,19 @@ import {
   Calendar,
   Tag,
   Loader2,
+  History,
+  Archive,
+  ArchiveRestore,
+  Edit,
+  Upload,
+  MoreVertical,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { documentsApi, api, type Document as ApiDocument } from "@/lib/api";
+import { documentsApi, api, type Document as ApiDocument, type DocumentVersion } from "@/lib/api";
+import { usePermissions } from "@/hooks/use-permissions";
+import { EditDocumentModal } from "@/components/edit-document-modal";
+import { UploadVersionModal } from "@/components/upload-version-modal";
 
 interface DocumentDetail {
   id: string;
@@ -31,6 +41,9 @@ interface DocumentDetail {
   uploadedAt: string;
   signers: Array<{ name: string; email: string; signedAt: string | null }>;
   relatedDocuments: Array<{ id: string; title: string; type: string }>;
+  archivedAt: string | null;
+  category: string | null;
+  tags: string[];
 }
 
 const typeColors: Record<string, string> = {
@@ -48,9 +61,16 @@ export default function DocumentDetailPage({
 }) {
   const { id } = use(params);
   const { data: session } = useSession();
+  const { can } = usePermissions();
   const [document, setDocument] = useState<DocumentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [versions, setVersions] = useState<DocumentVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -81,12 +101,15 @@ export default function DocumentDetailPage({
           id: String(docData.id),
           title: docData.title,
           type: docData.type,
-          description: "", // TODO: Get from API if available
+          description: (docData as any).description || "",
           fileUrl: docData.file_path,
           uploadedBy: `User ${docData.uploaded_by_id}`, // TODO: Fetch user name
           uploadedAt: docData.created_at,
           signers: signers,
           relatedDocuments: [], // TODO: Fetch related documents
+          archivedAt: (docData as any).archived_at || null,
+          category: (docData as any).category || null,
+          tags: (docData as any).tags || [],
         });
         setError(null);
       } catch (err) {
@@ -98,6 +121,51 @@ export default function DocumentDetailPage({
 
     fetchDocument();
   }, [id, session?.user?.email]);
+
+  // Fetch version history when expanded
+  useEffect(() => {
+    const fetchVersions = async () => {
+      if (!showVersionHistory || versions.length > 0) return;
+      try {
+        setVersionsLoading(true);
+        const versionData = await documentsApi.getVersions(id);
+        setVersions(versionData);
+      } catch (err) {
+        console.error("Failed to fetch versions:", err);
+      } finally {
+        setVersionsLoading(false);
+      }
+    };
+    fetchVersions();
+  }, [id, showVersionHistory, versions.length]);
+
+  const handleArchive = async () => {
+    if (!document) return;
+    try {
+      setArchiving(true);
+      await documentsApi.archive(id);
+      // Update local state
+      setDocument((prev) => prev ? { ...prev, archivedAt: new Date().toISOString() } : null);
+    } catch (err) {
+      console.error("Failed to archive document:", err);
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleUnarchive = async () => {
+    if (!document) return;
+    try {
+      setArchiving(true);
+      await documentsApi.unarchive(id);
+      // Update local state
+      setDocument((prev) => prev ? { ...prev, archivedAt: null } : null);
+    } catch (err) {
+      console.error("Failed to unarchive document:", err);
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   const userEmail = session?.user?.email;
   const currentUserSigner = document?.signers.find(
@@ -155,6 +223,16 @@ export default function DocumentDetailPage({
               >
                 {document.type}
               </span>
+              {document.archivedAt && (
+                <span className="inline-flex px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-400">
+                  Archived
+                </span>
+              )}
+              {document.category && (
+                <span className="inline-flex px-2 py-1 rounded text-xs font-medium bg-muted text-muted-foreground">
+                  {document.category}
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
@@ -173,10 +251,43 @@ export default function DocumentDetailPage({
           </div>
 
           <div className="flex items-center gap-2">
+            {can("documents.edit") && !document.archivedAt && (
+              <Button variant="outline" onClick={() => setShowEditModal(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+            {can("documents.upload") && !document.archivedAt && (
+              <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                New Version
+              </Button>
+            )}
             <Button variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </Button>
+            {can("documents.archive") && (
+              document.archivedAt ? (
+                <Button
+                  variant="outline"
+                  onClick={handleUnarchive}
+                  disabled={archiving}
+                >
+                  <ArchiveRestore className="h-4 w-4 mr-2" />
+                  {archiving ? "Restoring..." : "Restore"}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={handleArchive}
+                  disabled={archiving}
+                >
+                  <Archive className="h-4 w-4 mr-2" />
+                  {archiving ? "Archiving..." : "Archive"}
+                </Button>
+              )
+            )}
             {currentUserSigner && !hasUserSigned && (
               <Button>
                 <PenLine className="h-4 w-4 mr-2" />
@@ -222,6 +333,85 @@ export default function DocumentDetailPage({
                 </CardContent>
               </Card>
             )}
+
+            {/* Version History */}
+            <Card>
+              <CardHeader className="pb-2">
+                <button
+                  onClick={() => setShowVersionHistory(!showVersionHistory)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    Version History
+                  </CardTitle>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 transition-transform",
+                      showVersionHistory && "rotate-90"
+                    )}
+                  />
+                </button>
+              </CardHeader>
+              {showVersionHistory && (
+                <CardContent className="space-y-2">
+                  {versionsLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : versions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">
+                      No version history available
+                    </p>
+                  ) : (
+                    versions.map((version) => (
+                      <div
+                        key={version.id}
+                        className="flex items-start justify-between py-2 border-b border-border/50 last:border-0"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              v{version.version_number}
+                            </span>
+                            {version.version_number === versions[0]?.version_number && (
+                              <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {version.uploaded_by_name || `User ${version.uploaded_by_id}`}
+                          </p>
+                          {version.upload_reason && (
+                            <p className="text-xs text-muted-foreground italic">
+                              "{version.upload_reason}"
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(version.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs mt-1"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              )}
+            </Card>
 
             {/* Signature Status */}
             <Card>
@@ -302,6 +492,54 @@ export default function DocumentDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Edit Document Modal */}
+      <EditDocumentModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={async () => {
+          // Refresh document data
+          const docData = await documentsApi.get(id);
+          setDocument((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  title: docData.title,
+                  type: docData.type,
+                  description: (docData as any).description || "",
+                  category: (docData as any).category || null,
+                  tags: (docData as any).tags || [],
+                }
+              : null
+          );
+        }}
+        document={
+          document
+            ? {
+                id: document.id,
+                title: document.title,
+                type: document.type,
+                description: document.description,
+                category: document.category,
+                tags: document.tags,
+              }
+            : null
+        }
+      />
+
+      {/* Upload Version Modal */}
+      <UploadVersionModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={async () => {
+          // Refresh versions
+          const versionData = await documentsApi.getVersions(id);
+          setVersions(versionData);
+          setShowVersionHistory(true);
+        }}
+        documentId={id}
+        documentTitle={document?.title || ""}
+      />
     </AppShell>
   );
 }
