@@ -100,6 +100,7 @@ app = FastAPI(
     docs_url="/api/docs" if settings.debug else None,
     redoc_url="/api/redoc" if settings.debug else None,
     lifespan=lifespan,
+    redirect_slashes=False,  # Prevent 307 redirects that break POST requests
 )
 
 # CORS middleware
