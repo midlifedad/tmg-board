@@ -160,6 +160,7 @@ export default function DecisionsPage() {
     return d.status === filter;
   });
 
+  const pendingDecisions = decisions.filter((d) => d.status === "pending");
   const openDecisions = decisions.filter((d) => d.status === "open");
   const closedDecisions = decisions.filter((d) => d.status === "closed");
 
@@ -224,6 +225,20 @@ export default function DecisionsPage() {
             </button>
           ))}
         </div>
+
+        {/* Pending Decisions Section */}
+        {filter === "all" && pendingDecisions.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">
+              Pending ({pendingDecisions.length})
+            </h2>
+            <div className="space-y-3">
+              {pendingDecisions.map((decision) => (
+                <DecisionCard key={decision.id} decision={decision} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Open Votes Section */}
         {filter !== "closed" && openDecisions.length > 0 && (
