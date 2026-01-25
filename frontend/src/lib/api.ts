@@ -390,7 +390,7 @@ export const meetingsApi = {
    */
   create: async (data: {
     title: string;
-    date: string;
+    scheduled_date: string;
     location: string;
   }): Promise<Meeting> => {
     return api.post("/meetings/", data);
