@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -24,10 +24,13 @@ router = APIRouter()
 class CreateMeetingRequest(BaseModel):
     title: str
     description: Optional[str] = None
-    scheduled_date: datetime
+    scheduled_date: datetime = Field(..., alias="date")  # Accept 'date' from frontend
     duration_minutes: Optional[int] = None
     location: Optional[str] = None
     meeting_link: Optional[str] = None
+
+    class Config:
+        populate_by_name = True  # Allow both 'date' and 'scheduled_date'
 
 
 class UpdateMeetingRequest(BaseModel):
