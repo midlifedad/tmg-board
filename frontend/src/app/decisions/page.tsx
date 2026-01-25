@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { decisionsApi, api, type Decision as ApiDecision } from "@/lib/api";
 import { CreateDecisionModal } from "@/components/create-decision-modal";
 
-type DecisionStatus = "pending" | "open" | "closed";
+type DecisionStatus = "draft" | "pending" | "open" | "closed";
 type VoteValue = "yes" | "no" | "abstain" | null;
 
 interface Decision {
@@ -43,6 +43,7 @@ interface Decision {
 }
 
 const statusConfig = {
+  draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: Clock },
   pending: { label: "Pending", color: "bg-muted text-muted-foreground", icon: Clock },
   open: { label: "Open", color: "bg-blue-500/20 text-blue-400", icon: CheckSquare },
   closed: { label: "Closed", color: "bg-muted text-muted-foreground", icon: CheckCircle },
@@ -160,7 +161,7 @@ export default function DecisionsPage() {
     return d.status === filter;
   });
 
-  const pendingDecisions = decisions.filter((d) => d.status === "pending");
+  const pendingDecisions = decisions.filter((d) => d.status === "pending" || d.status === "draft");
   const openDecisions = decisions.filter((d) => d.status === "open");
   const closedDecisions = decisions.filter((d) => d.status === "closed");
 
