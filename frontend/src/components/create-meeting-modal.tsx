@@ -68,7 +68,7 @@ export function CreateMeetingModal({ isOpen, onClose, onSuccess }: CreateMeeting
 
       await meetingsApi.create({
         title: title.trim(),
-        date: scheduledDate,
+        scheduled_date: scheduledDate,
         location: locationType === "virtual"
           ? `Virtual - ${meetingLink.trim()}`
           : location.trim(),
