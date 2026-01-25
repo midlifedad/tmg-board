@@ -59,7 +59,7 @@ class CastVoteRequest(BaseModel):
 # Decision CRUD
 # =============================================================================
 
-@router.get("/")
+@router.get("")
 async def list_decisions(
     status: Optional[str] = Query(None, description="Filter by status"),
     type: Optional[str] = Query(None, description="Filter by type"),
@@ -152,7 +152,7 @@ async def get_decision(
     }
 
 
-@router.post("/")
+@router.post("")
 async def create_decision(
     request: CreateDecisionRequest,
     db: Session = Depends(get_db),

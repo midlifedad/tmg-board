@@ -181,7 +181,7 @@ async def delete_category(
 # Ideas CRUD
 # ============================================================================
 
-@router.get("/")
+@router.get("")
 async def list_ideas(
     status: Optional[str] = Query(None, description="Filter by status"),
     category_id: Optional[int] = Query(None, description="Filter by category"),
@@ -227,7 +227,7 @@ async def get_idea(
     return idea
 
 
-@router.post("/")
+@router.post("")
 async def create_idea(
     data: IdeaCreate,
     db: Session = Depends(get_db),
