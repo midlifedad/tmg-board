@@ -50,6 +50,21 @@ class CommentUpdate(BaseModel):
     content: str
 
 
+class CommentResponse(BaseModel):
+    """Response model for comments - avoids circular reference issues."""
+    id: int
+    idea_id: int
+    author_id: int
+    content: str
+    created_at: datetime
+    parent_id: Optional[int] = None
+    is_pinned: bool = False
+    edited_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ReactionToggle(BaseModel):
     reaction_type: str  # thumbs_up, lightbulb, heart, warning
 
@@ -502,7 +517,7 @@ async def get_comments(
     return top_level
 
 
-@router.post("/{idea_id}/comments")
+@router.post("/{idea_id}/comments", response_model=CommentResponse)
 async def add_comment(
     idea_id: int,
     data: CommentCreate,
@@ -541,7 +556,7 @@ async def add_comment(
     return comment
 
 
-@router.patch("/{idea_id}/comments/{comment_id}")
+@router.patch("/{idea_id}/comments/{comment_id}", response_model=CommentResponse)
 async def edit_comment(
     idea_id: int,
     comment_id: int,
