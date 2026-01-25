@@ -227,7 +227,7 @@ export const documentsApi = {
    * Get document by ID
    */
   get: async (id: string): Promise<Document> => {
-    return api.get(`/documents/${id}/`);
+    return api.get(`/documents/${id}`);
   },
 
   /**
@@ -252,7 +252,7 @@ export const documentsApi = {
     category?: string;
     tags?: string[];
   }): Promise<Document> => {
-    return api.put(`/documents/${id}/`, data);
+    return api.put(`/documents/${id}`, data);
   },
 
   /**
@@ -278,7 +278,7 @@ export const documentsApi = {
    * Get document version history
    */
   getVersions: async (id: string): Promise<DocumentVersion[]> => {
-    const response = await api.get<PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions/`);
+    const response = await api.get<PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions`);
     return response.items || [];
   },
 
@@ -290,7 +290,7 @@ export const documentsApi = {
     formData.append("file", file);
     if (reason) formData.append("reason", reason);
 
-    const response = await fetch(`/api/proxy/documents/${id}/versions/`, {
+    const response = await fetch(`/api/proxy/documents/${id}/versions`, {
       method: "POST",
       headers: {
         "X-User-Email": api["userEmail"] || "",
@@ -310,14 +310,14 @@ export const documentsApi = {
    * Archive document
    */
   archive: async (id: string): Promise<void> => {
-    return api.post(`/documents/${id}/archive/`);
+    return api.post(`/documents/${id}/archive`);
   },
 
   /**
    * Unarchive document
    */
   unarchive: async (id: string): Promise<void> => {
-    return api.post(`/documents/${id}/unarchive/`);
+    return api.post(`/documents/${id}/unarchive`);
   },
 
   /**
@@ -336,7 +336,7 @@ export const documentsApi = {
       user_name: string;
       created_at: string;
       details?: string;
-    }>>(`/documents/${id}/activity/`);
+    }>>(`/documents/${id}/activity`);
     return response.items || [];
   },
 };
@@ -374,7 +374,7 @@ export const meetingsApi = {
    * List all meetings
    */
   list: async (): Promise<Meeting[]> => {
-    const response = await api.get<PaginatedResponse<Meeting>>("/meetings/");
+    const response = await api.get<PaginatedResponse<Meeting>>("/meetings");
     return response.items || [];
   },
 
@@ -382,7 +382,7 @@ export const meetingsApi = {
    * Get meeting by ID
    */
   get: async (id: string): Promise<Meeting> => {
-    return api.get(`/meetings/${id}/`);
+    return api.get(`/meetings/${id}`);
   },
 
   /**
@@ -393,14 +393,14 @@ export const meetingsApi = {
     scheduled_date: string;
     location: string;
   }): Promise<Meeting> => {
-    return api.post("/meetings/", data);
+    return api.post("/meetings", data);
   },
 
   /**
    * Get meeting agenda
    */
   getAgenda: async (meetingId: string): Promise<AgendaItem[]> => {
-    const response = await api.get<PaginatedResponse<AgendaItem>>(`/meetings/${meetingId}/agenda/`);
+    const response = await api.get<PaginatedResponse<AgendaItem>>(`/meetings/${meetingId}/agenda`);
     return response.items || [];
   },
 
@@ -412,28 +412,28 @@ export const meetingsApi = {
     scheduled_date?: string;
     location?: string;
   }): Promise<Meeting> => {
-    return api.put(`/meetings/${id}/`, data);
+    return api.put(`/meetings/${id}`, data);
   },
 
   /**
    * Cancel meeting
    */
   cancel: async (id: string): Promise<void> => {
-    return api.post(`/meetings/${id}/cancel/`);
+    return api.post(`/meetings/${id}/cancel`);
   },
 
   /**
    * Start meeting
    */
   start: async (id: string): Promise<Meeting> => {
-    return api.post(`/meetings/${id}/start/`);
+    return api.post(`/meetings/${id}/start`);
   },
 
   /**
    * End meeting
    */
   end: async (id: string): Promise<Meeting> => {
-    return api.post(`/meetings/${id}/end/`);
+    return api.post(`/meetings/${id}/end`);
   },
 
   /**
@@ -448,7 +448,7 @@ export const meetingsApi = {
       presenter?: string;
     }
   ): Promise<AgendaItem> => {
-    return api.post(`/meetings/${meetingId}/agenda/`, data);
+    return api.post(`/meetings/${meetingId}/agenda`, data);
   },
 
   /**
@@ -464,14 +464,14 @@ export const meetingsApi = {
       presenter?: string;
     }
   ): Promise<AgendaItem> => {
-    return api.put(`/meetings/${meetingId}/agenda/${itemId}/`, data);
+    return api.put(`/meetings/${meetingId}/agenda/${itemId}`, data);
   },
 
   /**
    * Delete agenda item
    */
   deleteAgendaItem: async (meetingId: string, itemId: number): Promise<void> => {
-    return api.delete(`/meetings/${meetingId}/agenda/${itemId}/`);
+    return api.delete(`/meetings/${meetingId}/agenda/${itemId}`);
   },
 
   /**
@@ -481,7 +481,7 @@ export const meetingsApi = {
     meetingId: string,
     items: Array<{ id: number; order_index: number }>
   ): Promise<void> => {
-    return api.post(`/meetings/${meetingId}/agenda/reorder/`, { items });
+    return api.post(`/meetings/${meetingId}/agenda/reorder`, { items });
   },
 
   /**
@@ -498,7 +498,7 @@ export const meetingsApi = {
       user_name: string;
       status: "present" | "absent" | "excused";
       checked_in_at?: string;
-    }>>(`/meetings/${meetingId}/attendance/`);
+    }>>(`/meetings/${meetingId}/attendance`);
     return response.items || [];
   },
 
@@ -510,7 +510,7 @@ export const meetingsApi = {
     userId: number,
     status: "present" | "absent" | "excused"
   ): Promise<void> => {
-    return api.put(`/meetings/${meetingId}/attendance/${userId}/`, { status });
+    return api.put(`/meetings/${meetingId}/attendance/${userId}`, { status });
   },
 };
 
@@ -563,7 +563,7 @@ export const decisionsApi = {
    * Get decision by ID (returns decision with votes and results)
    */
   get: async (id: string): Promise<DecisionDetail> => {
-    return api.get(`/decisions/${id}/`);
+    return api.get(`/decisions/${id}`);
   },
 
   /**
@@ -573,7 +573,7 @@ export const decisionsApi = {
     decisionId: string,
     vote: "yes" | "no" | "abstain"
   ): Promise<Vote> => {
-    return api.post(`/decisions/${decisionId}/vote/`, { vote });
+    return api.post(`/decisions/${decisionId}/vote`, { vote });
   },
 
   /**
@@ -588,7 +588,7 @@ export const decisionsApi = {
     pending: number;
     votes: Vote[];
   }> => {
-    return api.get(`/decisions/${decisionId}/results/`);
+    return api.get(`/decisions/${decisionId}/results`);
   },
 
   /**
@@ -602,21 +602,21 @@ export const decisionsApi = {
     meeting_id?: number | null;
     visibility?: "standard" | "anonymous" | "transparent";
   }): Promise<Decision> => {
-    return api.post("/decisions/", data);
+    return api.post("/decisions", data);
   },
 
   /**
    * Extend deadline
    */
   extendDeadline: async (id: string, newDeadline: string): Promise<Decision> => {
-    return api.post(`/decisions/${id}/extend-deadline/`, { deadline: newDeadline });
+    return api.post(`/decisions/${id}/extend-deadline`, { deadline: newDeadline });
   },
 
   /**
    * Send reminders to pending voters
    */
   sendReminders: async (id: string): Promise<{ sent_count: number }> => {
-    return api.post(`/decisions/${id}/remind/`);
+    return api.post(`/decisions/${id}/remind`);
   },
 
   /**
@@ -628,28 +628,28 @@ export const decisionsApi = {
     type?: "vote" | "consent" | "resolution";
     deadline?: string | null;
   }): Promise<Decision> => {
-    return api.put(`/decisions/${id}/`, data);
+    return api.put(`/decisions/${id}`, data);
   },
 
   /**
    * Close voting on a decision
    */
   close: async (id: string): Promise<Decision> => {
-    return api.post(`/decisions/${id}/close/`);
+    return api.post(`/decisions/${id}/close`);
   },
 
   /**
    * Reopen voting on a decision
    */
   reopen: async (id: string): Promise<Decision> => {
-    return api.post(`/decisions/${id}/reopen/`);
+    return api.post(`/decisions/${id}/reopen`);
   },
 
   /**
    * Archive a decision
    */
   archive: async (id: string): Promise<void> => {
-    return api.post(`/decisions/${id}/archive/`);
+    return api.post(`/decisions/${id}/archive`);
   },
 };
 
@@ -725,7 +725,7 @@ export const ideasApi = {
    * Get idea by ID
    */
   get: async (id: string): Promise<Idea> => {
-    return api.get(`/ideas/${id}/`);
+    return api.get(`/ideas/${id}`);
   },
 
   /**
@@ -735,21 +735,21 @@ export const ideasApi = {
     title: string;
     description?: string;
   }): Promise<Idea> => {
-    return api.post("/ideas/", data);
+    return api.post("/ideas", data);
   },
 
   /**
    * Add comment to idea
    */
   addComment: async (ideaId: string, content: string): Promise<Comment> => {
-    return api.post(`/ideas/${ideaId}/comments/`, { content });
+    return api.post(`/ideas/${ideaId}/comments`, { content });
   },
 
   /**
    * Get comments for idea
    */
   getComments: async (ideaId: string): Promise<Comment[]> => {
-    const response = await api.get<PaginatedResponse<Comment>>(`/ideas/${ideaId}/comments/`);
+    const response = await api.get<PaginatedResponse<Comment>>(`/ideas/${ideaId}/comments`);
     return response.items || [];
   },
 
@@ -760,35 +760,35 @@ export const ideasApi = {
     title?: string;
     description?: string | null;
   }): Promise<Idea> => {
-    return api.put(`/ideas/${id}/`, data);
+    return api.put(`/ideas/${id}`, data);
   },
 
   /**
    * Update idea status (moderate)
    */
   updateStatus: async (id: string, status: Idea["status"]): Promise<Idea> => {
-    return api.put(`/ideas/${id}/status/`, { status });
+    return api.put(`/ideas/${id}/status`, { status });
   },
 
   /**
    * Delete an idea
    */
   delete: async (id: string): Promise<void> => {
-    return api.delete(`/ideas/${id}/`);
+    return api.delete(`/ideas/${id}`);
   },
 
   /**
    * Update idea status with reason
    */
   updateStatusWithReason: async (id: string, status: Idea["status"], reason?: string): Promise<Idea> => {
-    return api.put(`/ideas/${id}/status/`, { status, reason });
+    return api.put(`/ideas/${id}/status`, { status, reason });
   },
 
   /**
    * Get idea history
    */
   getHistory: async (id: string): Promise<IdeaHistory[]> => {
-    const response = await api.get<PaginatedResponse<IdeaHistory>>(`/ideas/${id}/history/`);
+    const response = await api.get<PaginatedResponse<IdeaHistory>>(`/ideas/${id}/history`);
     return response.items || [];
   },
 
@@ -796,28 +796,28 @@ export const ideasApi = {
    * Promote idea to decision (chair/admin only)
    */
   promote: async (ideaId: string): Promise<Decision> => {
-    return api.post(`/ideas/${ideaId}/promote/`);
+    return api.post(`/ideas/${ideaId}/promote`);
   },
 
   /**
    * Toggle reaction on a comment
    */
   toggleReaction: async (commentId: number, reactionType: ReactionType): Promise<void> => {
-    return api.post(`/comments/${commentId}/react/`, { reaction_type: reactionType });
+    return api.post(`/comments/${commentId}/react`, { reaction_type: reactionType });
   },
 
   /**
    * Pin/unpin a comment
    */
   togglePinComment: async (commentId: number): Promise<Comment> => {
-    return api.post(`/comments/${commentId}/pin/`);
+    return api.post(`/comments/${commentId}/pin`);
   },
 
   /**
    * Edit a comment
    */
   editComment: async (commentId: number, content: string): Promise<Comment> => {
-    return api.put(`/comments/${commentId}/`, { content });
+    return api.put(`/comments/${commentId}`, { content });
   },
 };
 
@@ -830,7 +830,7 @@ export const categoriesApi = {
    * List all categories
    */
   list: async (): Promise<IdeaCategory[]> => {
-    const response = await api.get<PaginatedResponse<IdeaCategory>>("/categories/");
+    const response = await api.get<PaginatedResponse<IdeaCategory>>("/categories");
     return response.items || [];
   },
 
@@ -838,21 +838,21 @@ export const categoriesApi = {
    * Create a category
    */
   create: async (data: { name: string; color: string; description?: string }): Promise<IdeaCategory> => {
-    return api.post("/categories/", data);
+    return api.post("/categories", data);
   },
 
   /**
    * Update a category
    */
   update: async (id: number, data: { name?: string; color?: string; description?: string }): Promise<IdeaCategory> => {
-    return api.put(`/categories/${id}/`, data);
+    return api.put(`/categories/${id}`, data);
   },
 
   /**
    * Delete a category
    */
   delete: async (id: number): Promise<void> => {
-    return api.delete(`/categories/${id}/`);
+    return api.delete(`/categories/${id}`);
   },
 };
 
@@ -915,7 +915,7 @@ export const adminApi = {
    * List all users (admin only)
    */
   listUsers: async (): Promise<BoardMember[]> => {
-    const response = await api.get<PaginatedResponse<BoardMember>>("/admin/users/");
+    const response = await api.get<PaginatedResponse<BoardMember>>("/admin/users");
     return response.items || [];
   },
 
@@ -923,7 +923,7 @@ export const adminApi = {
    * Get user by ID
    */
   getUser: async (id: string): Promise<BoardMember> => {
-    return api.get(`/admin/users/${id}/`);
+    return api.get(`/admin/users/${id}`);
   },
 
   /**
@@ -933,21 +933,21 @@ export const adminApi = {
     id: string,
     data: { role?: string; status?: string }
   ): Promise<BoardMember> => {
-    return api.put(`/admin/users/${id}/`, data);
+    return api.put(`/admin/users/${id}`, data);
   },
 
   /**
    * Deactivate user (soft delete)
    */
   deactivateUser: async (id: string): Promise<void> => {
-    return api.delete(`/admin/users/${id}/`);
+    return api.delete(`/admin/users/${id}`);
   },
 
   /**
    * Reactivate user
    */
   reactivateUser: async (id: string): Promise<BoardMember> => {
-    return api.post(`/admin/users/${id}/restore/`);
+    return api.post(`/admin/users/${id}/restore`);
   },
 
   // -------------------------------------------------------------------------
@@ -958,7 +958,7 @@ export const adminApi = {
    * List pending invitations
    */
   listInvitations: async (): Promise<Invitation[]> => {
-    const response = await api.get<PaginatedResponse<Invitation>>("/admin/invites/");
+    const response = await api.get<PaginatedResponse<Invitation>>("/admin/invites");
     return response.items || [];
   },
 
@@ -971,21 +971,21 @@ export const adminApi = {
     role: string;
     message?: string;
   }): Promise<Invitation> => {
-    return api.post("/admin/users/invite/", data);
+    return api.post("/admin/users/invite", data);
   },
 
   /**
    * Resend invitation
    */
   resendInvitation: async (id: string): Promise<void> => {
-    return api.post(`/admin/invites/${id}/resend/`);
+    return api.post(`/admin/invites/${id}/resend`);
   },
 
   /**
    * Cancel invitation
    */
   cancelInvitation: async (id: string): Promise<void> => {
-    return api.delete(`/admin/invites/${id}/`);
+    return api.delete(`/admin/invites/${id}`);
   },
 
   // -------------------------------------------------------------------------
@@ -1050,14 +1050,14 @@ export const adminApi = {
    * Get all settings
    */
   getSettings: async (): Promise<SystemSettings> => {
-    return api.get("/admin/settings/");
+    return api.get("/admin/settings");
   },
 
   /**
    * Update settings
    */
   updateSettings: async (settings: Partial<SystemSettings>): Promise<SystemSettings> => {
-    return api.put("/admin/settings/", settings);
+    return api.put("/admin/settings", settings);
   },
 
   /**
@@ -1067,7 +1067,7 @@ export const adminApi = {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/api/proxy/admin/settings/logo/", {
+    const response = await fetch("/api/proxy/admin/settings/logo", {
       method: "POST",
       headers: {
         "X-User-Email": api["userEmail"] || "",
@@ -1087,7 +1087,7 @@ export const adminApi = {
    * Remove organization logo
    */
   removeLogo: async (): Promise<void> => {
-    return api.delete("/admin/settings/logo/");
+    return api.delete("/admin/settings/logo");
   },
 
   // -------------------------------------------------------------------------
@@ -1098,7 +1098,7 @@ export const adminApi = {
    * Get permission matrix for all roles
    */
   getPermissionMatrix: async (): Promise<Record<string, string[]>> => {
-    return api.get("/admin/permissions/");
+    return api.get("/admin/permissions");
   },
 
   /**
@@ -1108,6 +1108,6 @@ export const adminApi = {
     role: string,
     permissions: string[]
   ): Promise<void> => {
-    return api.put(`/admin/roles/${role}/`, { permissions });
+    return api.put(`/admin/roles/${role}`, { permissions });
   },
 };
