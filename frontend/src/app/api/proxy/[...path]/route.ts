@@ -10,8 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3010";
 
 async function proxyRequest(req: NextRequest, path: string[]) {
-  // FastAPI routes are defined WITHOUT trailing slashes
-  // Trailing slashes cause 307 redirects which lose POST body
+  // Backend routes are defined WITHOUT trailing slashes (PR #24)
+  // redirect_slashes=False means we must match exactly - no trailing slash
   const targetPath = `/api/${path.join("/")}`;
   const url = new URL(targetPath, BACKEND_URL);
   console.log("Proxy request to:", url.toString());
