@@ -81,7 +81,7 @@ class UpdateAttendanceRequest(BaseModel):
 # Meeting CRUD
 # =============================================================================
 
-@router.get("/")
+@router.get("")
 async def list_meetings(
     status: Optional[str] = Query(None, description="Filter by status"),
     upcoming: bool = Query(False, description="Only show upcoming meetings"),
@@ -131,7 +131,7 @@ async def get_meeting(
     return meeting
 
 
-@router.post("/")
+@router.post("")
 async def create_meeting(
     request: CreateMeetingRequest,
     db: Session = Depends(get_db),

@@ -24,7 +24,7 @@ UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "./uploads"))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-@router.get("/")
+@router.get("")
 async def list_documents(
     type: Optional[str] = Query(None, description="Filter by document type"),
     status: Optional[str] = Query(None, description="Filter by signing status"),
@@ -145,7 +145,7 @@ async def upload_document(
     return document
 
 
-@router.post("/")
+@router.post("")
 async def create_document(
     title: str = Form(...),
     type: str = Form(...),
