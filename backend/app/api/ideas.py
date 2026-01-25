@@ -553,7 +553,17 @@ async def add_comment(
     db.commit()
     db.refresh(comment)
 
-    return comment
+    # Explicitly return dict to avoid serialization issues with ORM relationships
+    return {
+        "id": comment.id,
+        "idea_id": comment.idea_id,
+        "author_id": comment.author_id,
+        "content": comment.content,
+        "created_at": comment.created_at,
+        "parent_id": comment.parent_id,
+        "is_pinned": comment.is_pinned or False,
+        "edited_at": comment.edited_at
+    }
 
 
 @router.patch("/{idea_id}/comments/{comment_id}", response_model=CommentResponse)
@@ -583,7 +593,17 @@ async def edit_comment(
     db.commit()
     db.refresh(comment)
 
-    return comment
+    # Explicitly return dict to avoid serialization issues
+    return {
+        "id": comment.id,
+        "idea_id": comment.idea_id,
+        "author_id": comment.author_id,
+        "content": comment.content,
+        "created_at": comment.created_at,
+        "parent_id": comment.parent_id,
+        "is_pinned": comment.is_pinned or False,
+        "edited_at": comment.edited_at
+    }
 
 
 @router.delete("/{idea_id}/comments/{comment_id}")
