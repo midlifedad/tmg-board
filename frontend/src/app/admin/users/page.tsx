@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { adminApi, api, type BoardMember, type Invitation } from "@/lib/api";
 import { usePermissions } from "@/hooks/use-permissions";
 import { InviteUserModal } from "@/components/invite-user-modal";
+import { EditUserModal } from "@/components/edit-user-modal";
 
 const roleConfig: Record<string, { label: string; icon: typeof Shield; color: string }> = {
   admin: { label: "Admin", icon: ShieldAlert, color: "text-red-500" },
@@ -43,6 +44,8 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<BoardMember | null>(null);
   const [activeTab, setActiveTab] = useState<"users" | "invitations">("users");
 
   useEffect(() => {
@@ -110,6 +113,34 @@ export default function AdminUsersPage() {
       refetchData();
     } catch (err) {
       console.error("Failed to cancel invite:", err);
+    }
+  };
+
+  const handleEditUser = (user: BoardMember) => {
+    setSelectedUser(user);
+    setShowEditModal(true);
+  };
+
+  const handleDeactivateUser = async (user: BoardMember) => {
+    if (user.email === session?.user?.email) {
+      alert("You cannot deactivate your own account");
+      return;
+    }
+    if (!confirm(`Are you sure you want to deactivate ${user.name}?`)) return;
+    try {
+      await adminApi.deactivateUser(String(user.id));
+      refetchData();
+    } catch (err) {
+      console.error("Failed to deactivate user:", err);
+    }
+  };
+
+  const handleReactivateUser = async (user: BoardMember) => {
+    try {
+      await adminApi.reactivateUser(String(user.id));
+      refetchData();
+    } catch (err) {
+      console.error("Failed to reactivate user:", err);
     }
   };
 
@@ -331,10 +362,34 @@ export default function AdminUsersPage() {
                               : "Never"}
                           </td>
                           <td className="p-4">
-                            <div className="flex items-center justify-end">
-                              <Button variant="ghost" size="sm">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditUser(user)}
+                              >
                                 Edit
                               </Button>
+                              {user.status === "inactive" ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-green-500 hover:text-green-400"
+                                  onClick={() => handleReactivateUser(user)}
+                                >
+                                  Activate
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive/80"
+                                  onClick={() => handleDeactivateUser(user)}
+                                  disabled={user.email === session?.user?.email}
+                                >
+                                  Deactivate
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -453,6 +508,17 @@ export default function AdminUsersPage() {
       <InviteUserModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
+        onSuccess={refetchData}
+      />
+
+      {/* Edit Modal */}
+      <EditUserModal
+        isOpen={showEditModal}
+        user={selectedUser}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedUser(null);
+        }}
         onSuccess={refetchData}
       />
     </AppShell>
