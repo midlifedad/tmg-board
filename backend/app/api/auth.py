@@ -92,6 +92,58 @@ async def require_admin(
 # Auth Endpoints
 # =============================================================================
 
+class VerifyEmailRequest(BaseModel):
+    """Request body for email verification."""
+    email: str
+
+
+class VerifyEmailResponse(BaseModel):
+    """Response for email verification."""
+    exists: bool
+    id: Optional[int] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+    role: Optional[str] = None
+    permissions: Optional[list[str]] = None
+
+
+@router.post("/verify", response_model=VerifyEmailResponse)
+async def verify_email(
+    request: VerifyEmailRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify if email exists in board_members whitelist.
+
+    Used by NextAuth during sign-in callback to check authorization.
+    No authentication required - just checks if email is whitelisted.
+
+    Returns user info + permissions if authorized, exists=false if not.
+    """
+    member = db.query(BoardMember).filter(
+        BoardMember.email == request.email,
+        BoardMember.deleted_at.is_(None)
+    ).first()
+
+    if not member:
+        return VerifyEmailResponse(exists=False)
+
+    # Get permissions for role
+    from app.models.admin import Permission, RolePermission
+    permissions = db.query(Permission.code).join(RolePermission).filter(
+        RolePermission.role == member.role
+    ).all()
+
+    return VerifyEmailResponse(
+        exists=True,
+        id=member.id,
+        email=member.email,
+        name=member.name,
+        role=member.role,
+        permissions=[p[0] for p in permissions]
+    )
+
+
 @router.post("/google", response_model=AuthResponse)
 async def verify_google_auth(
     request: GoogleAuthRequest,
