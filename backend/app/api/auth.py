@@ -52,36 +52,51 @@ async def get_current_user(
     return member
 
 
-async def require_member(
+async def require_authenticated(
     user: Optional[BoardMember] = Depends(get_current_user)
 ) -> BoardMember:
     """
     Enforces authentication (401 if missing).
-    Use this for endpoints that require a logged-in user.
+    Allows any role including shareholder.
     """
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     return user
 
 
+async def require_board(
+    user: BoardMember = Depends(require_authenticated)
+) -> BoardMember:
+    """
+    Enforces board-level access (403 if shareholder).
+    Allows: board, chair, admin. Denies: shareholder.
+    """
+    if user.role not in ("board", "chair", "admin"):
+        raise HTTPException(status_code=403, detail="Board member access required")
+    return user
+
+
+# Keep require_member as alias for backward compatibility
+require_member = require_board
+
+
 async def require_chair(
-    user: BoardMember = Depends(require_member)
+    user: BoardMember = Depends(require_authenticated)
 ) -> BoardMember:
     """
     Enforces Chair or Admin role (403 if not).
-    Use this for endpoints that require chair-level access.
+    Note: board has same permissions as chair for now.
     """
-    if user.role not in ("chair", "admin"):
+    if user.role not in ("board", "chair", "admin"):
         raise HTTPException(status_code=403, detail="Chair or Admin access required")
     return user
 
 
 async def require_admin(
-    user: BoardMember = Depends(require_member)
+    user: BoardMember = Depends(require_authenticated)
 ) -> BoardMember:
     """
     Enforces Admin role (403 if not).
-    Use this for endpoints that require admin-level access.
     """
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")

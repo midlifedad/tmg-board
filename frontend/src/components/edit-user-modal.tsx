@@ -14,14 +14,15 @@ interface EditUserModalProps {
 }
 
 const roles = [
-  { value: "member", label: "Member", description: "View-only access to board content" },
-  { value: "chair", label: "Chair", description: "Can create and edit content" },
+  { value: "shareholder", label: "Shareholder", description: "View reports and documents only" },
+  { value: "board", label: "Board", description: "Full access to board content and features" },
+  { value: "chair", label: "Chair", description: "Board chair with same access as board" },
   { value: "admin", label: "Admin", description: "Full access including user management" },
 ];
 
 export function EditUserModal({ isOpen, user, onClose, onSuccess }: EditUserModalProps) {
   const [name, setName] = useState("");
-  const [role, setRole] = useState("member");
+  const [role, setRole] = useState("board");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

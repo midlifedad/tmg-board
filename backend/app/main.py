@@ -26,11 +26,13 @@ async def lifespan(app: FastAPI):
         # Seed board members
         if db.query(BoardMember).count() == 0:
             members = [
-                BoardMember(email="admin@themany.com", name="Admin User", role="admin"),
-                BoardMember(email="chair@themany.com", name="Board Chair", role="chair"),
-                BoardMember(email="member1@themany.com", name="Board Member 1", role="member"),
-                BoardMember(email="member2@themany.com", name="Board Member 2", role="member"),
-                BoardMember(email="member3@themany.com", name="Board Member 3", role="member"),
+                BoardMember(email="amir.haque@themany.com", name="Amir Haque", role="admin"),
+                BoardMember(email="jens.stoelken@themany.com", name="Jens Stoelken", role="board"),
+                BoardMember(email="christian.jacobsen@themany.com", name="Christian Jacobsen", role="board"),
+                BoardMember(email="naser.khan@themany.com", name="Naser Khan", role="board"),
+                BoardMember(email="damien.eley@themany.com", name="Damien Eley", role="shareholder"),
+                BoardMember(email="scott.harris@themany.com", name="Scott Harris", role="shareholder"),
+                BoardMember(email="blake.marquis@themany.com", name="Blake Marquis", role="shareholder"),
             ]
             for member in members:
                 db.add(member)
@@ -75,16 +77,19 @@ async def lifespan(app: FastAPI):
             for perm_id in perm_map.values():
                 db.add(RolePermission(role="admin", permission_id=perm_id))
 
-            # Chair gets most except admin
+            # Chair gets everything except admin
             chair_perms = [c for c in perm_map.keys() if not c.startswith("admin.")]
             for code in chair_perms:
                 db.add(RolePermission(role="chair", permission_id=perm_map[code]))
 
-            # Member gets view + vote + submit
-            member_perms = ["documents.view", "meetings.view", "decisions.view", "decisions.vote",
-                          "ideas.view", "ideas.submit"]
-            for code in member_perms:
-                db.add(RolePermission(role="member", permission_id=perm_map[code]))
+            # Board gets same as chair (identical permissions for now)
+            for code in chair_perms:
+                db.add(RolePermission(role="board", permission_id=perm_map[code]))
+
+            # Shareholder gets reports/documents view only
+            shareholder_perms = ["documents.view"]
+            for code in shareholder_perms:
+                db.add(RolePermission(role="shareholder", permission_id=perm_map[code]))
 
             db.commit()
     finally:

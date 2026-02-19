@@ -7,7 +7,8 @@ import {
   hasPermission,
   hasAnyPermission,
   hasAllPermissions,
-  isAdminOrChair,
+  isBoardOrAbove,
+  isAdmin,
 } from "@/lib/permissions";
 
 /**
@@ -32,11 +33,11 @@ export function usePermissions() {
     canAny: (permissions: Permission[]) => hasAnyPermission(role, permissions),
     canAll: (permissions: Permission[]) => hasAllPermissions(role, permissions),
 
-    // Common shortcuts
-    isAdmin: role === "admin",
-    isChair: role === "chair",
-    isMember: role === "member",
-    isAdminOrChair: isAdminOrChair(role),
+    // Role checks
+    isAdmin: isAdmin(role),
+    isBoard: isBoardOrAbove(role),
+    isShareholder: role === "shareholder",
+    isBoardOrAbove: isBoardOrAbove(role),
   };
 }
 
@@ -64,7 +65,7 @@ export function RequirePermission({
 }
 
 /**
- * Component that conditionally renders children for admin/chair only
+ * Component that conditionally renders children for admin only
  */
 export function AdminOnly({
   children,
@@ -73,11 +74,11 @@ export function AdminOnly({
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) {
-  const { isAdminOrChair, isLoading } = usePermissions();
+  const { isAdmin, isLoading } = usePermissions();
 
   if (isLoading) {
     return null;
   }
 
-  return isAdminOrChair ? <>{children}</> : <>{fallback}</>;
+  return isAdmin ? <>{children}</> : <>{fallback}</>;
 }

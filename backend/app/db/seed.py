@@ -13,14 +13,15 @@ from app.models.idea import Idea, Comment
 
 
 def seed_board_members(db):
-    """Seed initial board members for testing."""
+    """Seed initial board members."""
     members = [
-        {"email": "admin@themany.com", "name": "Admin User", "role": "admin"},
-        {"email": "chair@themany.com", "name": "Board Chair", "role": "chair"},
-        {"email": "member1@themany.com", "name": "Board Member 1", "role": "member"},
-        {"email": "member2@themany.com", "name": "Board Member 2", "role": "member"},
-        {"email": "member3@themany.com", "name": "Board Member 3", "role": "member"},
-        {"email": "test@example.com", "name": "Test User", "role": "member"},
+        {"email": "amir.haque@themany.com", "name": "Amir Haque", "role": "admin"},
+        {"email": "jens.stoelken@themany.com", "name": "Jens Stoelken", "role": "board"},
+        {"email": "christian.jacobsen@themany.com", "name": "Christian Jacobsen", "role": "board"},
+        {"email": "naser.khan@themany.com", "name": "Naser Khan", "role": "board"},
+        {"email": "damien.eley@themany.com", "name": "Damien Eley", "role": "shareholder"},
+        {"email": "scott.harris@themany.com", "name": "Scott Harris", "role": "shareholder"},
+        {"email": "blake.marquis@themany.com", "name": "Blake Marquis", "role": "shareholder"},
     ]
 
     for member_data in members:
@@ -37,8 +38,8 @@ def seed_board_members(db):
 
 def seed_documents(db):
     """Seed sample documents."""
-    admin = db.query(BoardMember).filter(BoardMember.email == "admin@themany.com").first()
-    chair = db.query(BoardMember).filter(BoardMember.email == "chair@themany.com").first()
+    admin = db.query(BoardMember).filter(BoardMember.email == "amir.haque@themany.com").first()
+    board1 = db.query(BoardMember).filter(BoardMember.email == "jens.stoelken@themany.com").first()
 
     if db.query(Document).count() > 0:
         print("  Documents already seeded")
@@ -59,7 +60,7 @@ def seed_documents(db):
             "type": "resolution",
             "description": "Resolution to approve strategic partnership with TechCorp",
             "file_path": "/documents/resolution-partnership.pdf",
-            "uploaded_by_id": chair.id,
+            "uploaded_by_id": board1.id,
             "signing_status": "pending",
             "docusign_envelope_id": "env-67890",
         },
@@ -68,7 +69,7 @@ def seed_documents(db):
             "type": "strategy",
             "description": "Annual strategic planning document",
             "file_path": "/documents/2026-strategy.pdf",
-            "uploaded_by_id": chair.id,
+            "uploaded_by_id": board1.id,
             "signing_status": None,
         },
         {
@@ -100,8 +101,8 @@ def seed_documents(db):
 
 def seed_meetings(db):
     """Seed sample meetings with agendas."""
-    chair = db.query(BoardMember).filter(BoardMember.email == "chair@themany.com").first()
-    member1 = db.query(BoardMember).filter(BoardMember.email == "member1@themany.com").first()
+    chair = db.query(BoardMember).filter(BoardMember.email == "amir.haque@themany.com").first()
+    member1 = db.query(BoardMember).filter(BoardMember.email == "jens.stoelken@themany.com").first()
 
     if db.query(Meeting).count() > 0:
         print("  Meetings already seeded")
@@ -188,11 +189,11 @@ def seed_meetings(db):
 
 def seed_decisions(db):
     """Seed sample decisions with votes."""
-    chair = db.query(BoardMember).filter(BoardMember.email == "chair@themany.com").first()
-    admin = db.query(BoardMember).filter(BoardMember.email == "admin@themany.com").first()
-    member1 = db.query(BoardMember).filter(BoardMember.email == "member1@themany.com").first()
-    member2 = db.query(BoardMember).filter(BoardMember.email == "member2@themany.com").first()
-    member3 = db.query(BoardMember).filter(BoardMember.email == "member3@themany.com").first()
+    chair = db.query(BoardMember).filter(BoardMember.email == "amir.haque@themany.com").first()
+    admin = chair  # Amir is both admin and chair
+    member1 = db.query(BoardMember).filter(BoardMember.email == "jens.stoelken@themany.com").first()
+    member2 = db.query(BoardMember).filter(BoardMember.email == "christian.jacobsen@themany.com").first()
+    member3 = db.query(BoardMember).filter(BoardMember.email == "naser.khan@themany.com").first()
 
     if db.query(Decision).count() > 0:
         print("  Decisions already seeded")
@@ -259,10 +260,10 @@ def seed_decisions(db):
 
 def seed_ideas(db):
     """Seed sample ideas with comments."""
-    chair = db.query(BoardMember).filter(BoardMember.email == "chair@themany.com").first()
-    admin = db.query(BoardMember).filter(BoardMember.email == "admin@themany.com").first()
-    member1 = db.query(BoardMember).filter(BoardMember.email == "member1@themany.com").first()
-    member2 = db.query(BoardMember).filter(BoardMember.email == "member2@themany.com").first()
+    chair = db.query(BoardMember).filter(BoardMember.email == "amir.haque@themany.com").first()
+    admin = chair  # Amir is both admin and chair
+    member1 = db.query(BoardMember).filter(BoardMember.email == "jens.stoelken@themany.com").first()
+    member2 = db.query(BoardMember).filter(BoardMember.email == "christian.jacobsen@themany.com").first()
 
     if db.query(Idea).count() > 0:
         print("  Ideas already seeded")

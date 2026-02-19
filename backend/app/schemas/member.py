@@ -8,7 +8,7 @@ class BoardMemberBase(BaseModel):
     """Base schema for board member data."""
     email: EmailStr
     name: str
-    role: str = "member"
+    role: str = "board"
 
 
 class BoardMemberCreate(BoardMemberBase):

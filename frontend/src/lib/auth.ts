@@ -7,7 +7,7 @@ interface BackendUser {
   id: string;
   email: string;
   name: string;
-  role: "member" | "chair" | "admin";
+  role: "admin" | "chair" | "board" | "shareholder";
 }
 
 /**
@@ -37,7 +37,7 @@ async function verifyAndGetUser(email: string): Promise<BackendUser | null> {
         id: "dev-user",
         email,
         name: email.split("@")[0],
-        role: "member",
+        role: "board",
       };
     }
     return null;

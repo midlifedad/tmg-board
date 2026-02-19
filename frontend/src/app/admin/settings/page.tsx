@@ -31,7 +31,7 @@ type SettingsTab = "general" | "permissions" | "audit";
 export default function AdminSettingsPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { isAdminOrChair, isAdmin, isLoading: permissionsLoading } = usePermissions();
+  const { isAdmin, isLoading: permissionsLoading } = usePermissions();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [loading, setLoading] = useState(true);
@@ -61,10 +61,10 @@ export default function AdminSettingsPage() {
   });
 
   useEffect(() => {
-    if (!permissionsLoading && !isAdminOrChair) {
+    if (!permissionsLoading && !isAdmin) {
       router.push("/");
     }
-  }, [isAdminOrChair, permissionsLoading, router]);
+  }, [isAdmin, permissionsLoading, router]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -85,10 +85,10 @@ export default function AdminSettingsPage() {
       }
     };
 
-    if (isAdminOrChair) {
+    if (isAdmin) {
       fetchSettings();
     }
-  }, [session?.user?.email, isAdminOrChair]);
+  }, [session?.user?.email, isAdmin]);
 
   const fetchAuditLog = async () => {
     try {
@@ -110,10 +110,10 @@ export default function AdminSettingsPage() {
   };
 
   useEffect(() => {
-    if (activeTab === "audit" && isAdminOrChair) {
+    if (activeTab === "audit" && isAdmin) {
       fetchAuditLog();
     }
-  }, [activeTab, isAdminOrChair, auditFilters]);
+  }, [activeTab, isAdmin, auditFilters]);
 
   const handleSaveSettings = async () => {
     try {
@@ -176,7 +176,7 @@ export default function AdminSettingsPage() {
     );
   }
 
-  if (!isAdminOrChair) {
+  if (!isAdmin) {
     return null;
   }
 
@@ -427,7 +427,8 @@ export default function AdminSettingsPage() {
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-2 pr-4 font-medium">Permission</th>
-                          <th className="text-center py-2 px-4 font-medium">Member</th>
+                          <th className="text-center py-2 px-4 font-medium">Shareholder</th>
+                          <th className="text-center py-2 px-4 font-medium">Board</th>
                           <th className="text-center py-2 px-4 font-medium">Chair</th>
                           <th className="text-center py-2 px-4 font-medium">Admin</th>
                         </tr>
@@ -436,6 +437,13 @@ export default function AdminSettingsPage() {
                         {category.permissions.map((perm) => (
                           <tr key={perm.code} className="border-b last:border-0">
                             <td className="py-2 pr-4">{perm.label}</td>
+                            <td className="text-center py-2 px-4">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                disabled
+                              />
+                            </td>
                             <td className="text-center py-2 px-4">
                               <input
                                 type="checkbox"
