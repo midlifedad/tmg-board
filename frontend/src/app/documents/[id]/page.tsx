@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/app-shell";
@@ -80,6 +80,37 @@ export default function DocumentDetailPage({
   const [isHtmlDocument, setIsHtmlDocument] = useState(false);
   const [htmlBlobUrl, setHtmlBlobUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRef = useRef<HTMLDivElement>(null);
+
+  const enterFullscreen = useCallback(async () => {
+    if (fullscreenRef.current) {
+      try {
+        await fullscreenRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } catch {
+        // Fallback to CSS fullscreen if API not available
+        setIsFullscreen(true);
+      }
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(async () => {
+    if (window.document.fullscreenElement) {
+      await window.document.exitFullscreen();
+    }
+    setIsFullscreen(false);
+  }, []);
+
+  // Listen for fullscreen changes (e.g. user presses Escape)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!window.document.fullscreenElement) {
+        setIsFullscreen(false);
+      }
+    };
+    window.document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => window.document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -329,10 +360,15 @@ export default function DocumentDetailPage({
           </div>
         </div>
 
-        {/* Fullscreen HTML Viewer Overlay */}
-        {isHtmlDocument && isFullscreen && (
-          <div className="fixed inset-0 z-50 bg-background">
-            <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
+        {/* Fullscreen HTML Viewer Container */}
+        {isHtmlDocument && (
+          <div
+            ref={fullscreenRef}
+            className={cn(
+              isFullscreen ? "fixed inset-0 z-50 bg-background flex flex-col" : "hidden"
+            )}
+          >
+            <div className="flex items-center justify-between px-4 py-2 border-b bg-card shrink-0">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-indigo-400" />
                 <span className="text-sm font-medium">{document.title}</span>
@@ -340,7 +376,7 @@ export default function DocumentDetailPage({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsFullscreen(false)}
+                onClick={exitFullscreen}
               >
                 <Minimize2 className="h-4 w-4 mr-1" />
                 Exit Fullscreen
@@ -348,8 +384,7 @@ export default function DocumentDetailPage({
             </div>
             <iframe
               src={htmlBlobUrl || "about:blank"}
-              className="w-full border-0"
-              style={{ height: "calc(100vh - 49px)" }}
+              className="w-full flex-1 border-0"
               sandbox="allow-same-origin"
               title={document.title}
             />
@@ -373,7 +408,7 @@ export default function DocumentDetailPage({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setIsFullscreen(true)}
+                    onClick={enterFullscreen}
                   >
                     <Maximize2 className="h-4 w-4 mr-1" />
                     Fullscreen

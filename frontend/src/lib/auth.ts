@@ -37,7 +37,7 @@ async function verifyAndGetUser(email: string): Promise<BackendUser | null> {
         id: "dev-user",
         email,
         name: email.split("@")[0],
-        role: "board",
+        role: "admin",
       };
     }
     return null;
