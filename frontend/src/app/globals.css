@@ -1,38 +1,54 @@
 @import "tailwindcss";
 
-/* Dark theme by default (matching themany-forecasting) */
+/* TMG Board — inspired by the Participation Company whitepaper aesthetic */
+/* Warm ink/paper/gold palette with editorial typography */
+
 :root {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
+  /* Core palette from whitepaper */
+  --ink: #0e0e12;
+  --ink-light: #16161d;
+  --steel: #2a2d3a;
+  --steel-light: #353848;
+  --paper: #f5f2eb;
+  --paper-warm: #ede9df;
+  --gold: #b8923a;
+  --gold-light: #d4aa5a;
+  --mist: #8b8f9e;
+  --rule: #2e3142;
+  --accent-red: #8b2635;
 
-  --card: #171717;
-  --card-foreground: #fafafa;
+  /* Semantic tokens (dark theme) */
+  --background: var(--ink);
+  --foreground: var(--paper);
 
-  --popover: #171717;
-  --popover-foreground: #fafafa;
+  --card: var(--ink-light);
+  --card-foreground: var(--paper);
 
-  --primary: #3b82f6;
-  --primary-foreground: #fafafa;
+  --popover: var(--ink-light);
+  --popover-foreground: var(--paper);
 
-  --secondary: #262626;
-  --secondary-foreground: #fafafa;
+  --primary: var(--gold);
+  --primary-foreground: var(--ink);
 
-  --muted: #262626;
-  --muted-foreground: #a1a1aa;
+  --secondary: var(--steel);
+  --secondary-foreground: var(--paper);
 
-  --accent: #262626;
-  --accent-foreground: #fafafa;
+  --muted: var(--steel);
+  --muted-foreground: var(--mist);
 
-  --destructive: #dc2626;
-  --destructive-foreground: #fafafa;
+  --accent: var(--steel);
+  --accent-foreground: var(--paper);
 
-  --border: #262626;
-  --input: #262626;
-  --ring: #3b82f6;
+  --destructive: var(--accent-red);
+  --destructive-foreground: var(--paper);
 
-  --radius: 0.5rem;
+  --border: var(--rule);
+  --input: var(--steel);
+  --ring: var(--gold);
 
-  /* Sidebar specific */
+  --radius: 0.375rem;
+
+  /* Sidebar */
   --sidebar-width: 264px;
 }
 
@@ -56,12 +72,15 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+  --font-sans: var(--font-dm-sans);
+  --font-serif: var(--font-cormorant);
+  --font-mono: var(--font-dm-mono);
 }
 
 * {
@@ -72,13 +91,62 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Focus ring utility */
+/* Heading typography - editorial serif */
+h1, h2 {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* Monospace labels - used for categories, metadata, section headers */
+.label-mono {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* Gold accent rule - decorative line */
+.gold-rule {
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.4;
+}
+
+/* Subtle card hover with gold hint */
+.card-hover:hover {
+  border-color: rgba(184, 146, 58, 0.3);
+}
+
+/* Focus ring */
 .focus-ring {
   outline: none;
   ring: 2px;
   ring-color: var(--ring);
   ring-offset: 2px;
   ring-offset-color: var(--background);
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ink);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--steel);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--steel-light);
 }

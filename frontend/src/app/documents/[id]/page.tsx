@@ -24,6 +24,9 @@ import {
   Upload,
   MoreVertical,
   ChevronRight,
+  Maximize2,
+  Minimize2,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { documentsApi, api, type Document as ApiDocument, type DocumentVersion } from "@/lib/api";
@@ -52,6 +55,9 @@ const typeColors: Record<string, string> = {
   financial: "bg-amber-500/20 text-amber-400",
   consent: "bg-purple-500/20 text-purple-400",
   legal: "bg-red-500/20 text-red-400",
+  whitepaper: "bg-indigo-500/20 text-indigo-400",
+  strategy: "bg-cyan-500/20 text-cyan-400",
+  audit: "bg-orange-500/20 text-orange-400",
 };
 
 export default function DocumentDetailPage({
@@ -71,6 +77,9 @@ export default function DocumentDetailPage({
   const [archiving, setArchiving] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isHtmlDocument, setIsHtmlDocument] = useState(false);
+  const [htmlBlobUrl, setHtmlBlobUrl] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -81,6 +90,9 @@ export default function DocumentDetailPage({
           api.setUserEmail(email);
         }
         const docData = await documentsApi.get(id);
+
+        // Check if this is an HTML document
+        setIsHtmlDocument(documentsApi.isHtmlDocument(docData));
 
         // Fetch signing status if available
         let signers: Array<{ name: string; email: string; signedAt: string | null }> = [];
@@ -121,6 +133,26 @@ export default function DocumentDetailPage({
 
     fetchDocument();
   }, [id, session?.user?.email]);
+
+  // Fetch HTML content for inline rendering
+  useEffect(() => {
+    if (!isHtmlDocument) return;
+
+    let blobUrl: string | null = null;
+    const fetchHtml = async () => {
+      try {
+        blobUrl = await documentsApi.fetchHtmlContent(id);
+        setHtmlBlobUrl(blobUrl);
+      } catch (err) {
+        console.error("Failed to load HTML document:", err);
+      }
+    };
+    fetchHtml();
+
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [id, isHtmlDocument]);
 
   // Fetch version history when expanded
   useEffect(() => {
@@ -214,7 +246,7 @@ export default function DocumentDetailPage({
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{document.title}</h1>
+              <h1 className="text-2xl font-light">{document.title}</h1>
               <span
                 className={cn(
                   "inline-flex px-2 py-1 rounded text-xs font-medium capitalize",
@@ -265,7 +297,7 @@ export default function DocumentDetailPage({
             )}
             <Button variant="outline">
               <Download className="h-4 w-4 mr-2" />
-              Download PDF
+              Download {isHtmlDocument ? "HTML" : "PDF"}
             </Button>
             {can("documents.archive") && (
               document.archivedAt ? (
@@ -297,25 +329,85 @@ export default function DocumentDetailPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* PDF Viewer */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardContent className="p-0">
-                <div className="aspect-[8.5/11] bg-muted/50 rounded-lg flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium">PDF Viewer</p>
-                    <p className="text-sm">
-                      Document preview will be displayed here
-                    </p>
-                    <p className="text-xs mt-2">
-                      (react-pdf integration pending)
-                    </p>
+        {/* Fullscreen HTML Viewer Overlay */}
+        {isHtmlDocument && isFullscreen && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <div className="flex items-center justify-between px-4 py-2 border-b bg-card">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-indigo-400" />
+                <span className="text-sm font-medium">{document.title}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsFullscreen(false)}
+              >
+                <Minimize2 className="h-4 w-4 mr-1" />
+                Exit Fullscreen
+              </Button>
+            </div>
+            <iframe
+              src={htmlBlobUrl || "about:blank"}
+              className="w-full border-0"
+              style={{ height: "calc(100vh - 49px)" }}
+              sandbox="allow-same-origin"
+              title={document.title}
+            />
+          </div>
+        )}
+
+        <div className={cn(
+          "grid gap-6",
+          isHtmlDocument ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"
+        )}>
+          {/* Document Viewer */}
+          <div className={isHtmlDocument ? "" : "lg:col-span-2"}>
+            {isHtmlDocument ? (
+              /* HTML Viewer - sandboxed iframe */
+              <Card>
+                <div className="flex items-center justify-between px-4 py-2 border-b">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Globe className="h-4 w-4 text-indigo-400" />
+                    HTML Document
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFullscreen(true)}
+                  >
+                    <Maximize2 className="h-4 w-4 mr-1" />
+                    Fullscreen
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+                <CardContent className="p-0">
+                  <iframe
+                    src={htmlBlobUrl || "about:blank"}
+                    className="w-full border-0 rounded-b-lg"
+                    style={{ height: "80vh" }}
+                    sandbox="allow-same-origin"
+                    title={document.title}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              /* PDF Viewer placeholder */
+              <Card>
+                <CardContent className="p-0">
+                  <div className="aspect-[8.5/11] bg-muted/50 rounded-lg flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium">PDF Viewer</p>
+                      <p className="text-sm">
+                        Document preview will be displayed here
+                      </p>
+                      <p className="text-xs mt-2">
+                        (react-pdf integration pending)
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}

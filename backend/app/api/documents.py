@@ -113,12 +113,16 @@ async def upload_document(
     - description: Optional description
     """
     # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    allowed_extensions = {'.pdf': 'pdf', '.html': 'html', '.htm': 'html'}
+    file_ext = os.path.splitext(file.filename.lower())[1] if file.filename else ''
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Only PDF and HTML files are allowed")
+
+    file_format = allowed_extensions[file_ext]
 
     # Generate unique filename
     file_id = str(uuid.uuid4())
-    safe_filename = f"{file_id}.pdf"
+    safe_filename = f"{file_id}.{file_format}"
     file_path = UPLOAD_DIR / safe_filename
 
     # Save file
@@ -187,10 +191,60 @@ async def download_document(
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found on disk")
 
+    # Determine MIME type and extension from stored file
+    ext = os.path.splitext(document.file_path)[1].lower()
+    if ext == '.html':
+        media_type = "text/html"
+        download_name = f"{document.title}.html"
+    else:
+        media_type = "application/pdf"
+        download_name = f"{document.title}.pdf"
+
     return FileResponse(
         path=file_path,
-        filename=f"{document.title}.pdf",
-        media_type="application/pdf"
+        filename=download_name,
+        media_type=media_type
+    )
+
+
+@router.get("/{document_id}/render")
+async def render_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_member)
+):
+    """Render an HTML document for inline viewing (iframe)."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.deleted_at.is_(None)
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if not document.file_path.endswith('.html'):
+        raise HTTPException(status_code=400, detail="Only HTML documents can be rendered")
+
+    file_path = UPLOAD_DIR / document.file_path
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    # Log access
+    db.add(DocumentAccessLog(
+        document_id=document_id,
+        member_id=current_user.id,
+        action="view"
+    ))
+    db.commit()
+
+    return FileResponse(
+        path=file_path,
+        media_type="text/html",
+        headers={
+            "Content-Security-Policy": "script-src 'none'",
+            "X-Content-Type-Options": "nosniff",
+        }
     )
 
 
@@ -314,12 +368,16 @@ async def upload_new_version(
         raise HTTPException(status_code=400, detail="Cannot upload new version to archived document")
 
     # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    allowed_extensions = {'.pdf': 'pdf', '.html': 'html', '.htm': 'html'}
+    file_ext = os.path.splitext(file.filename.lower())[1] if file.filename else ''
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Only PDF and HTML files are allowed")
+
+    file_format = allowed_extensions[file_ext]
 
     # Generate unique filename
     file_id = str(uuid.uuid4())
-    safe_filename = f"{file_id}.pdf"
+    safe_filename = f"{file_id}.{file_format}"
     file_path = UPLOAD_DIR / safe_filename
 
     # Save file

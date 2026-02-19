@@ -43,6 +43,7 @@ const documentTypes: Record<string, { label: string; color: string }> = {
   legal: { label: "Legal", color: "bg-red-500/20 text-red-400" },
   audit: { label: "Audit", color: "bg-orange-500/20 text-orange-400" },
   strategy: { label: "Strategy", color: "bg-cyan-500/20 text-cyan-400" },
+  whitepaper: { label: "White Paper", color: "bg-indigo-500/20 text-indigo-400" },
 };
 
 // Default style for unknown types
@@ -172,8 +173,12 @@ export default function DocumentsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Documents</h1>
-            <p className="text-muted-foreground mt-1">
+            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] mb-2 flex items-center gap-3">
+              <span>Document Library</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <h1 className="text-3xl font-light">Documents</h1>
+            <p className="text-muted-foreground mt-1 text-sm font-light">
               Board resolutions, minutes, and official documents
             </p>
           </div>

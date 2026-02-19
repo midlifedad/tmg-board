@@ -132,8 +132,9 @@ export default function IdeasPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Ideas</h1>
-            <p className="text-muted-foreground mt-1">
+            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] mb-2 flex items-center gap-3"><span>Idea Board</span><div className="flex-1 h-px bg-border" /></div>
+            <h1 className="text-3xl font-light">Ideas</h1>
+            <p className="text-sm font-light text-muted-foreground mt-1">
               Submit and discuss ideas for board consideration
             </p>
           </div>

@@ -195,7 +195,7 @@ interface PaginatedResponse<T> {
 export interface Document {
   id: number;
   title: string;
-  type: "resolution" | "minutes" | "consent" | "financial" | "legal";
+  type: "resolution" | "minutes" | "consent" | "financial" | "legal" | "whitepaper" | "strategy" | "audit";
   file_path: string;
   uploaded_by_id: number;
   docusign_envelope_id?: string | null;
@@ -317,6 +317,33 @@ export const documentsApi = {
     }
 
     return response.json();
+  },
+
+  /**
+   * Fetch the HTML content of a document for inline rendering.
+   * Returns a blob URL that can be used as an iframe src.
+   */
+  fetchHtmlContent: async (id: string): Promise<string> => {
+    const response = await fetch(`${API_BASE_URL}/documents/${id}/render`, {
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(response.status, "Failed to load HTML document");
+    }
+
+    const html = await response.text();
+    const blob = new Blob([html], { type: "text/html" });
+    return URL.createObjectURL(blob);
+  },
+
+  /**
+   * Check if a document is an HTML file based on its file_path
+   */
+  isHtmlDocument: (doc: Document): boolean => {
+    return doc.file_path?.endsWith('.html') || false;
   },
 
   /**
