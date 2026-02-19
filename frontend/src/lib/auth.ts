@@ -16,18 +16,30 @@ interface BackendUser {
 async function verifyAndGetUser(email: string): Promise<BackendUser | null> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/auth/user/${encodeURIComponent(email)}`
+      `${API_BASE_URL}/api/auth/verify`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }
     );
 
     if (!response.ok) {
-      if (response.status === 404) {
-        console.log(`User not found in backend: ${email}`);
-        return null;
-      }
       throw new Error(`Backend error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    if (!data.exists) {
+      console.log(`User not found in backend: ${email}`);
+      return null;
+    }
+
+    return {
+      id: String(data.id),
+      email: data.email,
+      name: data.name,
+      role: data.role,
+    };
   } catch (error) {
     console.error("Error verifying user with backend:", error);
     // In development, allow sign-in even if backend is down
