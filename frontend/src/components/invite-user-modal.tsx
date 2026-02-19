@@ -13,15 +13,16 @@ interface InviteUserModalProps {
 }
 
 const roles = [
-  { value: "member", label: "Member", description: "Standard board member" },
-  { value: "chair", label: "Chair", description: "Can manage meetings and moderate" },
+  { value: "shareholder", label: "Shareholder", description: "View reports and documents only" },
+  { value: "board", label: "Board", description: "Full access to board content and features" },
+  { value: "chair", label: "Chair", description: "Board chair with same access as board" },
   { value: "admin", label: "Admin", description: "Full administrative access" },
 ];
 
 export function InviteUserModal({ isOpen, onClose, onSuccess }: InviteUserModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("member");
+  const [role, setRole] = useState("board");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export function InviteUserModal({ isOpen, onClose, onSuccess }: InviteUserModalP
   const resetForm = () => {
     setName("");
     setEmail("");
-    setRole("member");
+    setRole("board");
     setMessage("");
     setError(null);
   };

@@ -12,10 +12,11 @@ import {
   Users,
   Settings,
   LogOut,
-  ChevronDown,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { isBoardOrAbove, isAdmin, type Role } from "@/lib/permissions";
 
 interface NavItem {
   label: string;
@@ -26,12 +27,13 @@ interface NavItem {
 interface NavGroup {
   label: string;
   items: NavItem[];
-  requiresAdmin?: boolean;
+  visibleTo: "all" | "board" | "admin";
 }
 
-const navGroups: NavGroup[] = [
+const boardNavGroups: NavGroup[] = [
   {
     label: "Main",
+    visibleTo: "board",
     items: [
       { label: "Dashboard", href: "/", icon: LayoutDashboard },
       { label: "Documents", href: "/documents", icon: FileText },
@@ -42,10 +44,20 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Admin",
-    requiresAdmin: true,
+    visibleTo: "admin",
     items: [
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Settings", href: "/admin/settings", icon: Settings },
+    ],
+  },
+];
+
+const shareholderNavGroups: NavGroup[] = [
+  {
+    label: "Shareholder",
+    visibleTo: "all",
+    items: [
+      { label: "Reports", href: "/reports", icon: BarChart3 },
     ],
   },
 ];
@@ -54,9 +66,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
-  // Get admin status from session role
-  const userRole = (session?.user as { role?: string })?.role;
-  const isAdmin = userRole === "admin" || userRole === "chair";
+  const userRole = (session?.user as { role?: Role })?.role;
+  const isBoardLevel = isBoardOrAbove(userRole);
+  const isAdminUser = isAdmin(userRole);
+
+  // Choose navigation based on role
+  const navGroups = isBoardLevel ? boardNavGroups : shareholderNavGroups;
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/login" });
@@ -77,7 +92,11 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-6">
         {navGroups
-          .filter((group) => !group.requiresAdmin || isAdmin)
+          .filter((group) => {
+            if (group.visibleTo === "admin") return isAdminUser;
+            if (group.visibleTo === "board") return isBoardLevel;
+            return true;
+          })
           .map((group) => (
             <div key={group.label}>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">

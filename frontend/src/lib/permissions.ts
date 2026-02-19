@@ -42,21 +42,37 @@ export type Permission =
   | "admin.manage_settings";
 
 // User roles
-export type Role = "member" | "chair" | "admin";
+export type Role = "admin" | "chair" | "board" | "shareholder";
 
-// Default permission matrix (will be replaced by backend data once available)
+// Default permission matrix
 const defaultPermissionMatrix: Record<Role, Permission[]> = {
-  member: [
+  shareholder: [
     "documents.view",
+  ],
+  board: [
+    // Board has full access to all features (same as chair for now)
+    "documents.view",
+    "documents.upload",
+    "documents.edit",
+    "documents.archive",
+    "documents.send_for_signature",
     "meetings.view",
+    "meetings.create",
+    "meetings.edit",
+    "meetings.manage_agenda",
+    "meetings.take_attendance",
     "decisions.view",
+    "decisions.create",
     "decisions.vote",
+    "decisions.close",
     "ideas.view",
     "ideas.submit",
     "ideas.comment",
+    "ideas.moderate",
+    "ideas.promote",
   ],
   chair: [
-    // All member permissions
+    // Chair has same permissions as board (identical for now)
     "documents.view",
     "documents.upload",
     "documents.edit",
@@ -199,8 +215,15 @@ export function getPermissionsForRole(role: Role): Permission[] {
 }
 
 /**
- * Check if user is admin or chair (common pattern)
+ * Check if user has board-level access (board, chair, or admin)
  */
-export function isAdminOrChair(role: Role | undefined): boolean {
-  return role === "admin" || role === "chair";
+export function isBoardOrAbove(role: Role | undefined): boolean {
+  return role === "board" || role === "chair" || role === "admin";
+}
+
+/**
+ * Check if user is admin
+ */
+export function isAdmin(role: Role | undefined): boolean {
+  return role === "admin";
 }

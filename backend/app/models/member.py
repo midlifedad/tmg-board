@@ -15,7 +15,7 @@ class BoardMember(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="member")  # admin/chair/member
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="board")  # admin/chair/board/shareholder
     google_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -39,8 +39,12 @@ class BoardMember(Base):
         return self.role == "admin"
 
     @property
+    def is_board(self) -> bool:
+        return self.role in ("board", "chair", "admin")
+
+    @property
     def is_chair(self) -> bool:
-        return self.role in ("chair", "admin")
+        return self.role in ("board", "chair", "admin")
 
     def __repr__(self) -> str:
         return f"<BoardMember {self.email} ({self.role})>"

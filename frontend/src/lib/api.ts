@@ -142,7 +142,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: "member" | "chair" | "admin";
+  role: "admin" | "chair" | "board" | "shareholder";
   google_id?: string;
   created_at: string;
 }
@@ -877,7 +877,7 @@ export interface BoardMember {
   id: number;
   name: string;
   email: string;
-  role: "member" | "chair" | "admin";
+  role: "admin" | "chair" | "board" | "shareholder";
   status?: "active" | "inactive";
   created_at: string;
   last_login_at?: string | null;
@@ -887,7 +887,7 @@ export interface Invitation {
   id: number;
   email: string;
   name: string;
-  role: "member" | "chair" | "admin";
+  role: "admin" | "chair" | "board" | "shareholder";
   invited_by_id: number;
   message?: string | null;
   expires_at: string;

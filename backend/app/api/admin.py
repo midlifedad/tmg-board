@@ -14,7 +14,7 @@ from app.db import get_db
 from app.models.member import BoardMember
 from app.models.admin import Invitation, Permission, RolePermission, Setting, UserSession
 from app.models.audit import AuditLog
-from app.api.auth import require_admin, require_member
+from app.api.auth import require_admin, require_board
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ router = APIRouter()
 class InviteUserRequest(BaseModel):
     email: EmailStr
     name: str
-    role: str = "member"
+    role: str = "board"
     message: Optional[str] = None
 
 
@@ -197,7 +197,7 @@ async def update_user(
         user.name = request.name
 
     if request.role and request.role != user.role:
-        if request.role not in ("admin", "chair", "member"):
+        if request.role not in ("admin", "chair", "board", "shareholder"):
             raise HTTPException(status_code=400, detail="Invalid role")
         changes["role"] = {"old": user.role, "new": request.role}
         user.role = request.role
@@ -404,7 +404,7 @@ async def list_roles(
     current_user: BoardMember = Depends(require_admin)
 ):
     """List all roles with user counts."""
-    roles = ["admin", "chair", "member"]
+    roles = ["admin", "chair", "board", "shareholder"]
     result = []
 
     for role in roles:
@@ -433,7 +433,7 @@ async def get_role(
     current_user: BoardMember = Depends(require_admin)
 ):
     """Get role details with permissions."""
-    if role_name not in ("admin", "chair", "member"):
+    if role_name not in ("admin", "chair", "board", "shareholder"):
         raise HTTPException(status_code=404, detail="Role not found")
 
     permissions = db.query(Permission).join(RolePermission).filter(

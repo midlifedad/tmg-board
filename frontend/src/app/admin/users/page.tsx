@@ -30,13 +30,14 @@ import { EditUserModal } from "@/components/edit-user-modal";
 const roleConfig: Record<string, { label: string; icon: typeof Shield; color: string }> = {
   admin: { label: "Admin", icon: ShieldAlert, color: "text-red-500" },
   chair: { label: "Chair", icon: ShieldCheck, color: "text-amber-500" },
-  member: { label: "Member", icon: Shield, color: "text-blue-500" },
+  board: { label: "Board", icon: Shield, color: "text-blue-500" },
+  shareholder: { label: "Shareholder", icon: Shield, color: "text-green-500" },
 };
 
 export default function AdminUsersPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { isAdminOrChair, isLoading: permissionsLoading } = usePermissions();
+  const { isAdmin, isLoading: permissionsLoading } = usePermissions();
 
   const [users, setUsers] = useState<BoardMember[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -50,10 +51,10 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     // Redirect if not admin/chair
-    if (!permissionsLoading && !isAdminOrChair) {
+    if (!permissionsLoading && !isAdmin) {
       router.push("/");
     }
-  }, [isAdminOrChair, permissionsLoading, router]);
+  }, [isAdmin, permissionsLoading, router]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,10 +80,10 @@ export default function AdminUsersPage() {
       }
     };
 
-    if (isAdminOrChair) {
+    if (isAdmin) {
       fetchData();
     }
-  }, [session?.user?.email, isAdminOrChair]);
+  }, [session?.user?.email, isAdmin]);
 
   const refetchData = async () => {
     try {
@@ -174,7 +175,7 @@ export default function AdminUsersPage() {
     );
   }
 
-  if (!isAdminOrChair) {
+  if (!isAdmin) {
     return null;
   }
 
@@ -196,7 +197,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -225,12 +226,25 @@ export default function AdminUsersPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Chairs</p>
+                  <p className="text-sm text-muted-foreground">Board Members</p>
                   <p className="text-2xl font-bold">
-                    {users.filter((u) => u.role === "chair").length}
+                    {users.filter((u) => ["board", "chair"].includes(u.role)).length}
                   </p>
                 </div>
-                <ShieldCheck className="h-8 w-8 text-amber-500/50" />
+                <Shield className="h-8 w-8 text-blue-500/50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Shareholders</p>
+                  <p className="text-2xl font-bold">
+                    {users.filter((u) => u.role === "shareholder").length}
+                  </p>
+                </div>
+                <Shield className="h-8 w-8 text-green-500/50" />
               </div>
             </CardContent>
           </Card>
@@ -306,7 +320,7 @@ export default function AdminUsersPage() {
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => {
-                      const role = roleConfig[user.role] || roleConfig.member;
+                      const role = roleConfig[user.role] || roleConfig.board;
                       const RoleIcon = role.icon;
 
                       return (
@@ -425,7 +439,7 @@ export default function AdminUsersPage() {
                   </thead>
                   <tbody>
                     {filteredInvitations.map((invite) => {
-                      const role = roleConfig[invite.role] || roleConfig.member;
+                      const role = roleConfig[invite.role] || roleConfig.board;
                       const RoleIcon = role.icon;
                       const isExpired = new Date(invite.expires_at) < new Date();
 

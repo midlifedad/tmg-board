@@ -17,7 +17,7 @@ class Invitation(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="member")
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="board")
     invited_by_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("board_members.id"), nullable=True)
     token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
