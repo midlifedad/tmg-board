@@ -32,8 +32,9 @@ function LoginContent() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">TMG Board Portal</CardTitle>
-          <CardDescription>
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] mb-3">Board Portal</div>
+          <CardTitle className="text-2xl font-serif font-light">TMG Board Portal</CardTitle>
+          <CardDescription className="text-sm font-light">
             Board management interface for The Many Group
           </CardDescription>
         </CardHeader>
@@ -55,7 +56,7 @@ function LoginContent() {
             Sign in with Google
           </Button>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
             Authorized board members only
           </p>
         </CardContent>
@@ -69,14 +70,15 @@ function LoginSkeleton() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">TMG Board Portal</CardTitle>
-          <CardDescription>
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] mb-3">Board Portal</div>
+          <CardTitle className="text-2xl font-serif font-light">TMG Board Portal</CardTitle>
+          <CardDescription className="text-sm font-light">
             Board management interface for The Many Group
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="h-11 bg-muted animate-pulse rounded-md" />
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
             Authorized board members only
           </p>
         </CardContent>

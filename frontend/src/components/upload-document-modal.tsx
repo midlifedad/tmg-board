@@ -20,6 +20,7 @@ const documentTypes = [
   { value: "legal", label: "Legal" },
   { value: "audit", label: "Audit" },
   { value: "strategy", label: "Strategy" },
+  { value: "whitepaper", label: "White Paper" },
 ];
 
 export function UploadDocumentModal({ isOpen, onClose, onSuccess }: UploadDocumentModalProps) {
@@ -47,9 +48,13 @@ export function UploadDocumentModal({ isOpen, onClose, onSuccess }: UploadDocume
     }
   };
 
+  const allowedTypes = ["application/pdf", "text/html"];
+  const allowedExtensions = [".pdf", ".html", ".htm"];
+
   const handleFileSelect = (selectedFile: File) => {
-    if (selectedFile.type !== "application/pdf") {
-      setError("Only PDF files are allowed");
+    const ext = selectedFile.name.toLowerCase().slice(selectedFile.name.lastIndexOf('.'));
+    if (!allowedTypes.includes(selectedFile.type) && !allowedExtensions.includes(ext)) {
+      setError("Only PDF and HTML files are allowed");
       return;
     }
     if (selectedFile.size > 50 * 1024 * 1024) {
@@ -60,7 +65,11 @@ export function UploadDocumentModal({ isOpen, onClose, onSuccess }: UploadDocume
     setError(null);
     // Auto-fill title from filename if empty
     if (!title) {
-      setTitle(selectedFile.name.replace(/\.pdf$/i, ""));
+      setTitle(selectedFile.name.replace(/\.(pdf|html|htm)$/i, ""));
+    }
+    // Auto-select whitepaper type for HTML files
+    if (allowedExtensions.includes(ext) && ext !== ".pdf" && type === "resolution") {
+      setType("whitepaper");
     }
   };
 
@@ -148,7 +157,7 @@ export function UploadDocumentModal({ isOpen, onClose, onSuccess }: UploadDocume
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,application/pdf"
+              accept=".pdf,.html,.htm,application/pdf,text/html"
               className="hidden"
               onChange={(e) => {
                 const selectedFile = e.target.files?.[0];
@@ -169,7 +178,7 @@ export function UploadDocumentModal({ isOpen, onClose, onSuccess }: UploadDocume
               <>
                 <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  Drag and drop a PDF, or click to browse
+                  Drag and drop a PDF or HTML file, or click to browse
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Max file size: 50MB

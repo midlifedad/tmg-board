@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, CheckSquare, Lightbulb, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   documentsApi,
   meetingsApi,
@@ -108,11 +109,15 @@ export default function DashboardPage() {
       <div className="space-y-8">
         {/* Welcome Header */}
         <div>
-          <h1 className="text-3xl font-bold">
-            Welcome, {session?.user?.name?.split(" ")[0] || "Board Member"}
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-gold mb-3 flex items-center gap-3">
+            <span>Board Portal</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <h1 className="text-4xl font-light">
+            Welcome, <em className="text-gold-light italic">{session?.user?.name?.split(" ")[0] || "Board Member"}</em>
           </h1>
-          <p className="text-muted-foreground mt-1">
-            TMG Board Portal Dashboard
+          <p className="text-muted-foreground mt-2 text-sm font-light">
+            The Many Group — Board Management Dashboard
           </p>
         </div>
 
@@ -155,8 +160,8 @@ export default function DashboardPage() {
         {/* Recent Documents */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Documents</CardTitle>
-            <Link href="/documents" className="text-sm text-muted-foreground hover:text-primary">
+            <CardTitle className="font-serif text-xl font-light">Recent Documents</CardTitle>
+            <Link href="/documents" className="font-mono text-[10px] tracking-wider uppercase text-gold hover:text-gold-light transition-colors">
               View all
             </Link>
           </CardHeader>
@@ -199,8 +204,8 @@ export default function DashboardPage() {
         {/* Upcoming Meetings */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Upcoming Meetings</CardTitle>
-            <Link href="/meetings" className="text-sm text-muted-foreground hover:text-primary">
+            <CardTitle className="font-serif text-xl font-light">Upcoming Meetings</CardTitle>
+            <Link href="/meetings" className="font-mono text-[10px] tracking-wider uppercase text-gold hover:text-gold-light transition-colors">
               View all
             </Link>
           </CardHeader>
@@ -246,15 +251,17 @@ interface KPICardProps {
 
 function KPICard({ title, value, subtitle, icon: Icon, color, href }: KPICardProps) {
   const content = (
-    <Card className={href ? "hover:bg-muted/20 transition-colors cursor-pointer" : ""}>
+    <Card className={cn("card-hover transition-all", href ? "cursor-pointer" : "")}>
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold mt-1">{value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+            <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground">{title}</p>
+            <p className="font-serif text-3xl font-light mt-2 text-foreground">{value}</p>
+            <p className="text-xs text-muted-foreground mt-1 font-light">{subtitle}</p>
           </div>
-          <Icon className={`h-5 w-5 ${color}`} />
+          <div className="w-9 h-9 rounded bg-gold/5 flex items-center justify-center">
+            <Icon className={`h-4 w-4 ${color}`} />
+          </div>
         </div>
       </CardContent>
     </Card>

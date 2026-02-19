@@ -78,19 +78,23 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-[264px] bg-card border-r border-border flex flex-col">
+    <aside className="fixed left-0 top-0 h-full w-[264px] bg-[#0a0a0f] border-r border-[#1e2030] flex flex-col">
       {/* Logo Header */}
-      <div className="h-14 flex items-center px-4 border-b border-border">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">
-            T
+      <div className="h-16 flex items-center px-5 border-b border-[#1e2030]">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-gold/10 border border-gold/30 flex items-center justify-center">
+            <span className="font-mono text-xs font-medium text-gold">T</span>
           </div>
-          <span className="font-semibold text-lg">TMG Board</span>
+          <div>
+            <span className="font-serif text-lg font-light tracking-tight text-[var(--paper)]">
+              TMG Board
+            </span>
+          </div>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+      <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-6">
         {navGroups
           .filter((group) => {
             if (group.visibleTo === "admin") return isAdminUser;
@@ -99,10 +103,11 @@ export function Sidebar() {
           })
           .map((group) => (
             <div key={group.label}>
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
-                {group.label}
+              <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--mist)] mb-3 px-3 flex items-center gap-2">
+                <span>{group.label}</span>
+                <div className="flex-1 h-px bg-[#1e2030]" />
               </div>
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const isActive =
                     pathname === item.href ||
@@ -114,14 +119,16 @@ export function Sidebar() {
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                          "flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-all",
                           isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-gold/10 text-gold border-l-2 border-gold ml-0 pl-2.5"
+                            : "text-[var(--mist)] hover:text-[var(--paper)] hover:bg-[#12121a]"
                         )}
                       >
-                        <Icon className="h-4 w-4" />
-                        {item.label}
+                        <Icon className={cn("h-4 w-4", isActive ? "text-gold" : "")} />
+                        <span className={cn(isActive ? "font-medium" : "font-light")}>
+                          {item.label}
+                        </span>
                       </Link>
                     </li>
                   );
@@ -132,7 +139,7 @@ export function Sidebar() {
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-[#1e2030]">
         <div className="flex items-center gap-3">
           {session?.user?.image ? (
             <img
@@ -141,24 +148,24 @@ export function Sidebar() {
               className="w-8 h-8 rounded-full"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-              <span className="text-sm font-medium">
+            <div className="w-8 h-8 rounded-full bg-[var(--steel)] flex items-center justify-center">
+              <span className="text-xs font-medium text-[var(--paper)]">
                 {session?.user?.name?.[0] || "?"}
               </span>
             </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium truncate">
+              <p className="text-sm font-medium truncate text-[var(--paper)]">
                 {session?.user?.name || "User"}
               </p>
               {userRole && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary capitalize">
+                <span className="font-mono text-[9px] tracking-wider px-1.5 py-0.5 rounded bg-gold/10 text-gold uppercase">
                   {userRole}
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-xs text-[var(--mist)] truncate">
               {session?.user?.email}
             </p>
           </div>
@@ -167,6 +174,7 @@ export function Sidebar() {
             size="icon"
             onClick={handleSignOut}
             title="Sign out"
+            className="text-[var(--mist)] hover:text-[var(--paper)]"
           >
             <LogOut className="h-4 w-4" />
           </Button>
