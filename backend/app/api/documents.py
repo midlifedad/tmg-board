@@ -177,6 +177,52 @@ async def create_document(
     )
 
 
+class UpdateDocumentRequest(BaseModel):
+    title: Optional[str] = None
+    type: Optional[str] = None
+    description: Optional[str] = None
+
+
+@router.patch("/{document_id}")
+async def update_document(
+    document_id: int,
+    request: UpdateDocumentRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_chair)
+):
+    """Update document metadata (Chair or Admin only)."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.deleted_at.is_(None)
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    update_data = request.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    for field, value in update_data.items():
+        setattr(document, field, value)
+
+    document.updated_at = datetime.utcnow()
+
+    db.add(AuditLog(
+        entity_type="document",
+        entity_id=document_id,
+        entity_name=document.title,
+        action="update",
+        changed_by_id=current_user.id,
+        changes=update_data
+    ))
+
+    db.commit()
+    db.refresh(document)
+
+    return document
+
+
 @router.get("/{document_id}/download")
 async def download_document(
     document_id: int,

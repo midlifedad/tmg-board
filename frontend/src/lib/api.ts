@@ -260,7 +260,7 @@ export const documentsApi = {
     category?: string;
     tags?: string[];
   }): Promise<Document> => {
-    return api.put(`/documents/${id}`, data);
+    return api.patch(`/documents/${id}`, data);
   },
 
   /**
@@ -286,8 +286,8 @@ export const documentsApi = {
    * Get document version history
    */
   getVersions: async (id: string): Promise<DocumentVersion[]> => {
-    const response = await api.get<PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions`);
-    return response.items || [];
+    const response = await api.get<DocumentVersion[] | PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions`);
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -648,7 +648,7 @@ export const decisionsApi = {
    * Extend deadline
    */
   extendDeadline: async (id: string, newDeadline: string): Promise<Decision> => {
-    return api.post(`/decisions/${id}/extend`, { deadline: newDeadline });
+    return api.post(`/decisions/${id}/extend`, { new_deadline: newDeadline });
   },
 
   /**
@@ -694,8 +694,8 @@ export const decisionsApi = {
   /**
    * Archive a decision
    */
-  archive: async (id: string): Promise<void> => {
-    return api.post(`/decisions/${id}/archive`);
+  archive: async (id: string, reason?: string): Promise<void> => {
+    return api.post(`/decisions/${id}/archive`, { reason: reason || null });
   },
 };
 
@@ -930,17 +930,15 @@ export interface Invitation {
 
 export interface AuditLogEntry {
   id: number;
-  user_id: number;
-  user_name?: string;
-  action: string;
   entity_type: string;
   entity_id: number;
   entity_name?: string;
-  old_value?: string | null;
-  new_value?: string | null;
+  action: string;
+  changed_by_id?: number;
+  changed_by_name?: string;
+  changed_at: string;
+  changes?: Record<string, unknown> | null;
   ip_address?: string | null;
-  user_agent?: string | null;
-  created_at: string;
 }
 
 export interface SystemSettings {
@@ -1049,7 +1047,7 @@ export const adminApi = {
     end_date?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ items: AuditLogEntry[]; total: number }> => {
+  }): Promise<AuditLogEntry[]> => {
     const searchParams = new URLSearchParams();
     if (params?.user_id) searchParams.set("user_id", params.user_id);
     if (params?.action) searchParams.set("action", params.action);
@@ -1060,7 +1058,8 @@ export const adminApi = {
     if (params?.offset) searchParams.set("offset", params.offset.toString());
 
     const query = searchParams.toString();
-    return api.get(`/admin/audit/${query ? `?${query}` : ""}`);
+    const response = await api.get<AuditLogEntry[] | { items: AuditLogEntry[] }>(`/admin/audit/${query ? `?${query}` : ""}`);
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -1103,7 +1102,7 @@ export const adminApi = {
    * Update settings
    */
   updateSettings: async (settings: Partial<SystemSettings>): Promise<SystemSettings> => {
-    return api.patch("/admin/settings", settings);
+    return api.patch("/admin/settings", { settings });
   },
 
   /**
