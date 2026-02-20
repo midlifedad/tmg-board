@@ -38,6 +38,7 @@ interface MeetingDetail {
   isVirtual: boolean;
   meetingLink: string;
   status: MeetingStatus;
+  description: string;
   createdBy: string;
   agenda: Array<{
     id: string;
@@ -112,6 +113,7 @@ export default function MeetingDetailPage({
         isVirtual: isVirtual,
         meetingLink: meetingData.meeting_link || "",
         status: meetingData.status,
+        description: meetingData.description || "",
         createdBy: `User ${meetingData.created_by_id}`,
         agenda: agendaData.map((item, index) => ({
           id: String(item.id),
@@ -296,6 +298,15 @@ export default function MeetingDetailPage({
             )}
           </div>
         </div>
+
+        {/* Description */}
+        {meeting.description && (
+          <Card>
+            <CardContent className="py-4">
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{meeting.description}</p>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Agenda */}

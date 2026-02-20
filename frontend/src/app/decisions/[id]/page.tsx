@@ -195,6 +195,16 @@ export default function DecisionDetailPage({
         setSubmittingVote(true);
         await decisionsApi.castVote(decision.id, selectedVote);
         setHasVoted(true);
+        // Refresh decision data to update vote results
+        const detailData = await decisionsApi.get(decision.id);
+        const decisionData = detailData.decision;
+        const votes = (decisionData as { votes?: Array<{ member_id: number; vote: string; cast_at: string }> }).votes?.map((v) => ({
+          userId: String(v.member_id),
+          userName: `User ${v.member_id}`,
+          vote: v.vote as VoteValue,
+          votedAt: v.cast_at,
+        })) || [];
+        setDecision((prev) => prev ? { ...prev, votes } : null);
       } catch (err) {
         console.error("Failed to cast vote:", err);
       } finally {
