@@ -126,13 +126,8 @@ export class ApiError extends Error {
 // Singleton instance
 export const api = new ApiClient(API_BASE_URL);
 
-// Set default user email for API authentication (dev/staging without real auth)
-// TODO: Replace with proper OAuth authentication
-if (typeof window !== "undefined") {
-  // Use env var if available, otherwise fallback to admin email for staging/dev
-  const defaultEmail = process.env.NEXT_PUBLIC_DEFAULT_USER_EMAIL || "admin@themany.com";
-  api.setUserEmail(defaultEmail);
-}
+// User email is set per-page from the session via api.setUserEmail(session.user.email)
+// No default — auth is handled by Google OAuth + backend verification
 
 // =============================================================================
 // Auth API
