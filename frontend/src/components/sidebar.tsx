@@ -70,8 +70,10 @@ export function Sidebar() {
   const isBoardLevel = isBoardOrAbove(userRole);
   const isAdminUser = isAdmin(userRole);
 
-  // Choose navigation based on role
-  const navGroups = isBoardLevel ? boardNavGroups : shareholderNavGroups;
+  // Board+ users see everything; shareholders see only their section
+  const navGroups = isBoardLevel
+    ? [...boardNavGroups, ...shareholderNavGroups]
+    : shareholderNavGroups;
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/login" });
