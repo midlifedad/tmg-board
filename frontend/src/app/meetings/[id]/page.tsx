@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/app-shell";
@@ -18,9 +18,13 @@ import {
   User,
   Link as LinkIcon,
   Loader2,
+  Pencil,
+  XCircle,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meetingsApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem } from "@/lib/api";
+import { EditMeetingModal } from "@/components/edit-meeting-modal";
 
 type MeetingStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
 
@@ -65,66 +69,122 @@ export default function MeetingDetailPage({
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [showAddAgenda, setShowAddAgenda] = useState(false);
+  const [newAgendaTitle, setNewAgendaTitle] = useState("");
+  const [newAgendaDuration, setNewAgendaDuration] = useState("");
+  const [newAgendaPresenter, setNewAgendaPresenter] = useState("");
+  const [addingAgenda, setAddingAgenda] = useState(false);
+  const [deletingAgendaId, setDeletingAgendaId] = useState<string | null>(null);
+
+  const fetchMeeting = useCallback(async () => {
+    try {
+      setLoading(true);
+      const email = session?.user?.email;
+      if (email) {
+        api.setUserEmail(email);
+      }
+      const [meetingData, agendaData] = await Promise.all([
+        meetingsApi.get(id),
+        meetingsApi.getAgenda(id),
+      ]);
+
+      const dateObj = new Date(meetingData.scheduled_date);
+      const time = dateObj.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const dateStr = dateObj.toISOString().split("T")[0];
+      const isVirtual = meetingData.meeting_link != null ||
+                       meetingData.location.toLowerCase().includes("virtual") ||
+                       meetingData.location.toLowerCase().includes("zoom");
+
+      setMeeting({
+        id: String(meetingData.id),
+        title: meetingData.title,
+        date: dateStr,
+        time: time,
+        duration: "2 hours",
+        location: meetingData.location,
+        isVirtual: isVirtual,
+        meetingLink: meetingData.meeting_link || "",
+        status: meetingData.status,
+        createdBy: `User ${meetingData.created_by_id}`,
+        agenda: agendaData.map((item, index) => ({
+          id: String(item.id),
+          order: item.order_index ?? index + 1,
+          title: item.title,
+          duration: item.duration_minutes ? `${item.duration_minutes} min` : "",
+          presenter: item.presenter || null,
+          relatedDecision: item.decision_id
+            ? { id: String(item.decision_id), title: "Related Decision" }
+            : undefined,
+        })),
+        documents: [],
+        recording: null,
+      });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load meeting");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, session?.user?.email]);
 
   useEffect(() => {
-    const fetchMeeting = async () => {
-      try {
-        setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
-        const [meetingData, agendaData] = await Promise.all([
-          meetingsApi.get(id),
-          meetingsApi.getAgenda(id),
-        ]);
-
-        // Parse date and time from scheduled_date
-        const dateObj = new Date(meetingData.scheduled_date);
-        const time = dateObj.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        });
-        const dateStr = dateObj.toISOString().split("T")[0];
-        const isVirtual = meetingData.meeting_link != null ||
-                         meetingData.location.toLowerCase().includes("virtual") ||
-                         meetingData.location.toLowerCase().includes("zoom");
-
-        setMeeting({
-          id: String(meetingData.id),
-          title: meetingData.title,
-          date: dateStr,
-          time: time,
-          duration: "2 hours", // TODO: Get from API if available
-          location: meetingData.location,
-          isVirtual: isVirtual,
-          meetingLink: meetingData.meeting_link || "",
-          status: meetingData.status,
-          createdBy: `User ${meetingData.created_by_id}`, // TODO: Fetch user name
-          agenda: agendaData.map((item, index) => ({
-            id: String(item.id),
-            order: item.order_index ?? index + 1,
-            title: item.title,
-            duration: item.duration_minutes ? `${item.duration_minutes} min` : "",
-            presenter: item.presenter || null,
-            relatedDecision: item.decision_id
-              ? { id: String(item.decision_id), title: "Related Decision" }
-              : undefined,
-          })),
-          documents: [], // TODO: Fetch related documents
-          recording: null, // TODO: Get from API if available
-        });
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load meeting");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMeeting();
-  }, [id, session?.user?.email]);
+  }, [fetchMeeting]);
+
+  const handleCancelMeeting = async () => {
+    if (!meeting) return;
+    setCancelling(true);
+    try {
+      await meetingsApi.cancel(meeting.id);
+      await fetchMeeting();
+      setShowCancelConfirm(false);
+    } catch (err) {
+      console.error("Failed to cancel meeting:", err);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleAddAgendaItem = async () => {
+    if (!meeting || !newAgendaTitle.trim()) return;
+    setAddingAgenda(true);
+    try {
+      await meetingsApi.addAgendaItem(meeting.id, {
+        title: newAgendaTitle.trim(),
+        duration_minutes: newAgendaDuration ? parseInt(newAgendaDuration) : undefined,
+        presenter: newAgendaPresenter.trim() || undefined,
+      });
+      setNewAgendaTitle("");
+      setNewAgendaDuration("");
+      setNewAgendaPresenter("");
+      setShowAddAgenda(false);
+      await fetchMeeting();
+    } catch (err) {
+      console.error("Failed to add agenda item:", err);
+    } finally {
+      setAddingAgenda(false);
+    }
+  };
+
+  const handleDeleteAgendaItem = async (itemId: string) => {
+    if (!meeting) return;
+    setDeletingAgendaId(itemId);
+    try {
+      await meetingsApi.deleteAgendaItem(meeting.id, parseInt(itemId));
+      await fetchMeeting();
+    } catch (err) {
+      console.error("Failed to delete agenda item:", err);
+    } finally {
+      setDeletingAgendaId(null);
+    }
+  };
 
   const userRole = (session?.user as { role?: string })?.role;
   const isChairOrAdmin = userRole === "admin" || userRole === "chair";
@@ -203,19 +263,38 @@ export default function MeetingDetailPage({
             </div>
           </div>
 
-          {meeting.status === "scheduled" && meeting.meetingLink && (
-            <Button asChild>
-              <a
-                href={meeting.meetingLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Video className="h-4 w-4 mr-2" />
-                Join Meeting
-                <ExternalLink className="h-3 w-3 ml-1" />
-              </a>
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isChairOrAdmin && meeting.status === "scheduled" && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setShowCancelConfirm(true)}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancel Meeting
+                </Button>
+              </>
+            )}
+            {meeting.status === "scheduled" && meeting.meetingLink && (
+              <Button asChild>
+                <a
+                  href={meeting.meetingLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Video className="h-4 w-4 mr-2" />
+                  Join Meeting
+                  <ExternalLink className="h-3 w-3 ml-1" />
+                </a>
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -225,17 +304,17 @@ export default function MeetingDetailPage({
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Agenda</CardTitle>
                 {isChairOrAdmin && meeting.status === "scheduled" && (
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => setShowAddAgenda(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Item
                   </Button>
                 )}
               </CardHeader>
               <CardContent className="space-y-1">
-                {meeting.agenda.map((item, index) => (
+                {meeting.agenda.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-start gap-4 p-3 rounded-md hover:bg-muted/50 transition-colors"
+                    className="flex items-start gap-4 p-3 rounded-md hover:bg-muted/50 transition-colors group"
                   >
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
                       {item.order}
@@ -278,8 +357,77 @@ export default function MeetingDetailPage({
                         </div>
                       )}
                     </div>
+                    {isChairOrAdmin && meeting.status === "scheduled" && (
+                      <button
+                        onClick={() => handleDeleteAgendaItem(item.id)}
+                        disabled={deletingAgendaId === item.id}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1"
+                      >
+                        {deletingAgendaId === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
                   </div>
                 ))}
+
+                {/* Inline Add Agenda Item Form */}
+                {showAddAgenda && (
+                  <div className="border rounded-md p-4 mt-3 space-y-3">
+                    <input
+                      type="text"
+                      value={newAgendaTitle}
+                      onChange={(e) => setNewAgendaTitle(e.target.value)}
+                      placeholder="Agenda item title"
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      autoFocus
+                    />
+                    <div className="flex gap-3">
+                      <input
+                        type="number"
+                        value={newAgendaDuration}
+                        onChange={(e) => setNewAgendaDuration(e.target.value)}
+                        placeholder="Duration (min)"
+                        className="w-32 h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <input
+                        type="text"
+                        value={newAgendaPresenter}
+                        onChange={(e) => setNewAgendaPresenter(e.target.value)}
+                        placeholder="Presenter (optional)"
+                        className="flex-1 h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddAgenda(false);
+                          setNewAgendaTitle("");
+                          setNewAgendaDuration("");
+                          setNewAgendaPresenter("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleAddAgendaItem}
+                        disabled={addingAgenda || !newAgendaTitle.trim()}
+                      >
+                        {addingAgenda ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : (
+                          <Plus className="h-4 w-4 mr-1" />
+                        )}
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -349,6 +497,60 @@ export default function MeetingDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => !cancelling && setShowCancelConfirm(false)}
+          />
+          <Card className="relative z-10 w-full max-w-sm mx-4 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg">Cancel Meeting</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to cancel &ldquo;{meeting.title}&rdquo;? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelConfirm(false)}
+                  disabled={cancelling}
+                >
+                  Keep Meeting
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleCancelMeeting}
+                  disabled={cancelling}
+                >
+                  {cancelling ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Cancel Meeting
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Meeting Modal */}
+      <EditMeetingModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => fetchMeeting()}
+        meeting={meeting ? {
+          id: meeting.id,
+          title: meeting.title,
+          scheduled_date: `${meeting.date}T${meeting.time}`,
+          location: meeting.isVirtual ? `Virtual - ${meeting.meetingLink}` : meeting.location,
+        } : null}
+      />
     </AppShell>
   );
 }

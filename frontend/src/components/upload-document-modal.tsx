@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, X, FileText, Loader2 } from "lucide-react";
@@ -24,6 +25,7 @@ const documentTypes = [
 ];
 
 export function UploadDocumentModal({ isOpen, onClose, onSuccess }: UploadDocumentModalProps) {
+  const { data: session } = useSession();
   const [title, setTitle] = useState("");
   const [type, setType] = useState("resolution");
   const [description, setDescription] = useState("");
@@ -103,7 +105,7 @@ export function UploadDocumentModal({ isOpen, onClose, onSuccess }: UploadDocume
       const response = await fetch("/api/proxy/documents/upload", {
         method: "POST",
         headers: {
-          "X-User-Email": "admin@themany.com", // TODO: Get from session
+          "X-User-Email": session?.user?.email || "",
         },
         body: formData,
       });
