@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     docusign_hmac_key: str = ""
 
     # S3 Storage
-    storage_type: str = "s3"  # s3 or local
+    storage_type: str = "local"  # local (Railway Volume) or s3
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
     aws_region: str = "us-west-2"
@@ -34,6 +34,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:3100",
         "https://tmgboard.themany.com",
+        "https://frontend-staging-458f.up.railway.app",
     ]
 
     class Config:
