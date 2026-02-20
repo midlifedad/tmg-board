@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/app-shell";
@@ -12,16 +12,21 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  MinusCircle,
   FileText,
   Users,
   ThumbsUp,
   ThumbsDown,
   Minus,
   Loader2,
+  Pencil,
+  Lock,
+  Unlock,
+  Archive,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { decisionsApi, api, type Decision as ApiDecision, type Vote as ApiVote } from "@/lib/api";
+import { EditDecisionModal } from "@/components/edit-decision-modal";
 
 type VoteValue = "yes" | "no" | "abstain";
 
@@ -64,57 +69,107 @@ export default function DecisionDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submittingVote, setSubmittingVote] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchDecision = useCallback(async () => {
+    try {
+      setLoading(true);
+      const email = session?.user?.email;
+      if (email) {
+        api.setUserEmail(email);
+      }
+      const detailData = await decisionsApi.get(id);
+      const decisionData = detailData.decision;
+
+      const votes = (decisionData as { votes?: Array<{ member_id: number; vote: string; cast_at: string }> }).votes?.map((v) => ({
+        userId: String(v.member_id),
+        userName: `User ${v.member_id}`,
+        vote: v.vote as VoteValue,
+        votedAt: v.cast_at,
+      })) || [];
+
+      if (detailData.user_vote) {
+        setHasVoted(true);
+        setSelectedVote(detailData.user_vote as VoteValue);
+      }
+
+      setDecision({
+        id: String(decisionData.id),
+        title: decisionData.title,
+        description: decisionData.description || "",
+        type: decisionData.type,
+        status: decisionData.status,
+        deadline: decisionData.deadline || null,
+        meetingId: decisionData.meeting_id ? String(decisionData.meeting_id) : null,
+        meetingTitle: null,
+        createdAt: decisionData.created_at,
+        createdBy: `User ${decisionData.created_by_id}`,
+        relatedDocuments: [],
+        votes: votes,
+      });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load decision");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, session?.user?.email]);
 
   useEffect(() => {
-    const fetchDecision = async () => {
-      try {
-        setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
-        // Get decision detail which includes decision, votes, and results
-        const detailData = await decisionsApi.get(id);
-        const decisionData = detailData.decision;
-
-        // Transform votes to include user names
-        const votes = (decisionData as { votes?: Array<{ member_id: number; vote: string; cast_at: string }> }).votes?.map((v) => ({
-          userId: String(v.member_id),
-          userName: `User ${v.member_id}`, // TODO: Get user name from API
-          vote: v.vote as VoteValue,
-          votedAt: v.cast_at,
-        })) || [];
-
-        // Check if current user has voted
-        if (detailData.user_vote) {
-          setHasVoted(true);
-          setSelectedVote(detailData.user_vote as VoteValue);
-        }
-
-        setDecision({
-          id: String(decisionData.id),
-          title: decisionData.title,
-          description: decisionData.description || "",
-          type: decisionData.type,
-          status: decisionData.status,
-          deadline: decisionData.deadline || null,
-          meetingId: decisionData.meeting_id ? String(decisionData.meeting_id) : null,
-          meetingTitle: null, // TODO: Fetch meeting title
-          createdAt: decisionData.created_at,
-          createdBy: `User ${decisionData.created_by_id}`, // TODO: Fetch user name
-          relatedDocuments: [], // TODO: Fetch related documents
-          votes: votes,
-        });
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load decision");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDecision();
-  }, [id, session?.user?.email]);
+  }, [fetchDecision]);
+
+  const handleCloseVoting = async () => {
+    if (!decision) return;
+    setActionLoading("close");
+    try {
+      await decisionsApi.close(decision.id);
+      await fetchDecision();
+    } catch (err) {
+      console.error("Failed to close voting:", err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReopenVoting = async () => {
+    if (!decision) return;
+    setActionLoading("reopen");
+    try {
+      await decisionsApi.reopen(decision.id);
+      await fetchDecision();
+    } catch (err) {
+      console.error("Failed to reopen voting:", err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!decision) return;
+    setActionLoading("archive");
+    try {
+      await decisionsApi.archive(decision.id);
+      window.location.href = "/decisions";
+    } catch (err) {
+      console.error("Failed to archive decision:", err);
+      setActionLoading(null);
+    }
+  };
+
+  const handleSendReminders = async () => {
+    if (!decision) return;
+    setActionLoading("remind");
+    try {
+      const result = await decisionsApi.sendReminders(decision.id);
+      alert(`Reminders sent to ${result.sent_count} pending voter(s).`);
+    } catch (err) {
+      console.error("Failed to send reminders:", err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const userRole = (session?.user as { role?: string })?.role;
   const isAdmin = userRole === "admin";
@@ -140,6 +195,16 @@ export default function DecisionDetailPage({
         setSubmittingVote(true);
         await decisionsApi.castVote(decision.id, selectedVote);
         setHasVoted(true);
+        // Refresh decision data to update vote results
+        const detailData = await decisionsApi.get(decision.id);
+        const decisionData = detailData.decision;
+        const votes = (decisionData as { votes?: Array<{ member_id: number; vote: string; cast_at: string }> }).votes?.map((v) => ({
+          userId: String(v.member_id),
+          userName: `User ${v.member_id}`,
+          vote: v.vote as VoteValue,
+          votedAt: v.cast_at,
+        })) || [];
+        setDecision((prev) => prev ? { ...prev, votes } : null);
       } catch (err) {
         console.error("Failed to cast vote:", err);
       } finally {
@@ -184,36 +249,109 @@ export default function DecisionDetailPage({
         </Link>
 
         {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{decision.title}</h1>
-            <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 capitalize">
-              {decision.type}
-            </span>
-            <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 capitalize">
-              {decision.status}
-            </span>
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{decision.title}</h1>
+              <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 capitalize">
+                {decision.type}
+              </span>
+              <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 capitalize">
+                {decision.status}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              {decision.deadline && (
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  Deadline: {new Date(decision.deadline).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </div>
+              )}
+              {decision.meetingTitle && (
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <Link href={`/meetings/${decision.meetingId}`} className="hover:text-primary">
+                    {decision.meetingTitle}
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            {decision.deadline && (
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
-                Deadline: {new Date(decision.deadline).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </div>
-            )}
-            {decision.meetingTitle && (
-              <div className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4" />
-                <Link href={`/meetings/${decision.meetingId}`} className="hover:text-primary">
-                  {decision.meetingTitle}
-                </Link>
-              </div>
-            )}
-          </div>
+
+          {/* Admin Actions */}
+          {isAdmin && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {decision.status !== "closed" && (
+                <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+              {decision.status === "open" && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSendReminders}
+                    disabled={actionLoading === "remind"}
+                  >
+                    {actionLoading === "remind" ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Bell className="h-4 w-4 mr-2" />
+                    )}
+                    Send Reminders
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCloseVoting}
+                    disabled={actionLoading === "close"}
+                  >
+                    {actionLoading === "close" ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Lock className="h-4 w-4 mr-2" />
+                    )}
+                    Close Voting
+                  </Button>
+                </>
+              )}
+              {decision.status === "closed" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReopenVoting}
+                  disabled={actionLoading === "reopen"}
+                >
+                  {actionLoading === "reopen" ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Unlock className="h-4 w-4 mr-2" />
+                  )}
+                  Reopen
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={handleArchive}
+                disabled={actionLoading === "archive"}
+              >
+                {actionLoading === "archive" ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Archive className="h-4 w-4 mr-2" />
+                )}
+                Archive
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -398,6 +536,21 @@ export default function DecisionDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Edit Decision Modal */}
+      <EditDecisionModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => fetchDecision()}
+        decision={decision ? {
+          id: decision.id,
+          title: decision.title,
+          description: decision.description,
+          type: decision.type,
+          deadline: decision.deadline,
+          status: decision.status,
+        } : null}
+      />
     </AppShell>
   );
 }

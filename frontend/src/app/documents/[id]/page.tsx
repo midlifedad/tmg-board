@@ -326,7 +326,14 @@ export default function DocumentDetailPage({
                 New Version
               </Button>
             )}
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Download via proxy - open in new tab for browser to handle
+                const downloadUrl = `/api/proxy/documents/${id}/download`;
+                window.open(downloadUrl, "_blank");
+              }}
+            >
               <Download className="h-4 w-4 mr-2" />
               Download {isHtmlDocument ? "HTML" : "PDF"}
             </Button>
@@ -528,6 +535,9 @@ export default function DocumentDetailPage({
                             variant="ghost"
                             size="sm"
                             className="h-6 px-2 text-xs mt-1"
+                            onClick={() => {
+                              window.open(`/api/proxy/documents/${id}/versions/${version.id}/download`, "_blank");
+                            }}
                           >
                             <Download className="h-3 w-3 mr-1" />
                             Download

@@ -427,6 +427,8 @@ export const meetingsApi = {
     title: string;
     scheduled_date: string;
     location: string;
+    description?: string;
+    meeting_link?: string;
   }): Promise<Meeting> => {
     return api.post("/meetings", data);
   },
@@ -446,6 +448,8 @@ export const meetingsApi = {
     title?: string;
     scheduled_date?: string;
     location?: string;
+    description?: string;
+    meeting_link?: string;
   }): Promise<Meeting> => {
     return api.put(`/meetings/${id}`, data);
   },

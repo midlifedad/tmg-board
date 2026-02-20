@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,7 +13,6 @@ import {
   Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { documentsApi, api, type Document as ApiDocument } from "@/lib/api";
 
 export default function ReportsPage() {
@@ -64,12 +64,10 @@ export default function ReportsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <BarChart3 className="h-8 w-8" />
-            Reports
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            View annual reports and shareholder documents
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] mb-2 flex items-center gap-3"><span>Shareholder Resources</span><div className="flex-1 h-px bg-border" /></div>
+          <h1 className="text-3xl font-light">Reports & Documents</h1>
+          <p className="text-sm font-light text-muted-foreground mt-1">
+            Published reports, financial documents, and shareholder resources
           </p>
         </div>
 
@@ -104,7 +102,12 @@ export default function ReportsPage() {
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">{doc.title}</p>
+                        <Link
+                          href={`/documents/${doc.id}`}
+                          className="font-medium hover:text-primary transition-colors"
+                        >
+                          {doc.title}
+                        </Link>
                         <div className="flex items-center gap-3 mt-1">
                           {doc.type && (
                             <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground capitalize">
@@ -122,12 +125,23 @@ export default function ReportsPage() {
                         </div>
                       </div>
                     </div>
-                    {doc.file_path && (
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/documents/${doc.id}`}>View</Link>
                       </Button>
-                    )}
+                      {doc.file_path && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            window.open(`/api/proxy/documents/${doc.id}/download`, "_blank");
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
