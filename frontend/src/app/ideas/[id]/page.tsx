@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/app-shell";
@@ -14,9 +14,15 @@ import {
   ArrowUpRight,
   Send,
   Loader2,
+  Pencil,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ideasApi, api, type Idea as ApiIdea, type Comment as ApiComment } from "@/lib/api";
+import { EditIdeaModal } from "@/components/edit-idea-modal";
 
 type IdeaStatus = "new" | "under_review" | "approved" | "rejected" | "promoted";
 
@@ -56,44 +62,73 @@ export default function IdeaDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [statusLoading, setStatusLoading] = useState<string | null>(null);
+
+  const fetchIdea = useCallback(async () => {
+    try {
+      setLoading(true);
+      const email = session?.user?.email;
+      if (email) {
+        api.setUserEmail(email);
+      }
+      const [ideaData, commentsData] = await Promise.all([
+        ideasApi.get(id),
+        ideasApi.getComments(id),
+      ]);
+      setIdea({
+        id: String(ideaData.id),
+        title: ideaData.title,
+        description: ideaData.description || "",
+        submittedBy: `User ${ideaData.submitted_by_id}`,
+        submittedAt: ideaData.created_at,
+        status: ideaData.status,
+        comments: commentsData.map((c) => ({
+          id: String(c.id),
+          userId: String(c.user_id),
+          userName: c.user_name || `User ${c.user_id}`,
+          content: c.content,
+          createdAt: c.created_at,
+        })),
+      });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load idea");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, session?.user?.email]);
 
   useEffect(() => {
-    const fetchIdea = async () => {
-      try {
-        setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
-        const [ideaData, commentsData] = await Promise.all([
-          ideasApi.get(id),
-          ideasApi.getComments(id),
-        ]);
-        setIdea({
-          id: String(ideaData.id),
-          title: ideaData.title,
-          description: ideaData.description || "",
-          submittedBy: `User ${ideaData.submitted_by_id}`, // TODO: Fetch user name
-          submittedAt: ideaData.created_at,
-          status: ideaData.status,
-          comments: commentsData.map((c) => ({
-            id: String(c.id),
-            userId: String(c.user_id),
-            userName: c.user_name || `User ${c.user_id}`,
-            content: c.content,
-            createdAt: c.created_at,
-          })),
-        });
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load idea");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchIdea();
-  }, [id, session?.user?.email]);
+  }, [fetchIdea]);
+
+  const handleDelete = async () => {
+    if (!idea) return;
+    setDeleting(true);
+    try {
+      await ideasApi.delete(idea.id);
+      window.location.href = "/ideas";
+    } catch (err) {
+      console.error("Failed to delete idea:", err);
+      setDeleting(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: ApiIdea["status"]) => {
+    if (!idea) return;
+    setStatusLoading(newStatus);
+    try {
+      await ideasApi.updateStatus(idea.id, newStatus);
+      setIdea({ ...idea, status: newStatus });
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    } finally {
+      setStatusLoading(null);
+    }
+  };
 
   const userRole = (session?.user as { role?: string })?.role;
   const isChairOrAdmin = userRole === "admin" || userRole === "chair";
@@ -197,12 +232,77 @@ export default function IdeaDetailPage({
             </div>
           </div>
 
-          {isChairOrAdmin && idea.status !== "promoted" && idea.status !== "rejected" && (
-            <Button onClick={handlePromote}>
-              <ArrowUpRight className="h-4 w-4 mr-2" />
-              Promote to Decision
-            </Button>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {isChairOrAdmin && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                {idea.status === "new" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStatusChange("under_review")}
+                    disabled={statusLoading === "under_review"}
+                  >
+                    {statusLoading === "under_review" ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Eye className="h-4 w-4 mr-2" />
+                    )}
+                    Review
+                  </Button>
+                )}
+                {(idea.status === "under_review" || idea.status === "new") && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStatusChange("approved")}
+                      disabled={statusLoading === "approved"}
+                    >
+                      {statusLoading === "approved" ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleStatusChange("rejected")}
+                      disabled={statusLoading === "rejected"}
+                    >
+                      {statusLoading === "rejected" ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <XCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Reject
+                    </Button>
+                  </>
+                )}
+                {idea.status !== "promoted" && idea.status !== "rejected" && (
+                  <Button size="sm" onClick={handlePromote}>
+                    <ArrowUpRight className="h-4 w-4 mr-2" />
+                    Promote to Decision
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -330,6 +430,59 @@ export default function IdeaDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => !deleting && setShowDeleteConfirm(false)}
+          />
+          <Card className="relative z-10 w-full max-w-sm mx-4 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg">Delete Idea</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete &ldquo;{idea.title}&rdquo;? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Idea Modal */}
+      <EditIdeaModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => fetchIdea()}
+        idea={idea ? {
+          id: idea.id,
+          title: idea.title,
+          description: idea.description,
+        } : null}
+      />
     </AppShell>
   );
 }
