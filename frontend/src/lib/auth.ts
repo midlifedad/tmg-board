@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3010";
 
@@ -65,6 +66,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         params: {
           prompt: "select_account",
         },
+      },
+    }),
+    Credentials({
+      id: "credentials",
+      name: "Email & Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const secret = process.env.CREDENTIALS_SECRET;
+        if (!secret || credentials?.password !== secret) {
+          return null;
+        }
+        const email = credentials?.email as string;
+        if (!email) return null;
+
+        const backendUser = await verifyAndGetUser(email);
+        if (!backendUser) return null;
+
+        return {
+          id: backendUser.id,
+          email: backendUser.email,
+          name: backendUser.name,
+        };
       },
     }),
   ],
