@@ -90,6 +90,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: backendUser.id,
           email: backendUser.email,
           name: backendUser.name,
+          role: backendUser.role,
         };
       },
     }),
@@ -118,13 +119,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user, trigger }) {
-      // On initial sign-in, fetch user data from backend
+      // On initial sign-in, set user data from backend
       if (user?.email) {
-        const backendUser = await verifyAndGetUser(user.email);
-        if (backendUser) {
-          token.userId = backendUser.id;
-          token.role = backendUser.role;
-          token.email = backendUser.email;
+        // Credentials provider already includes role; Google OAuth needs a fetch
+        const role = (user as { role?: string }).role;
+        if (role) {
+          token.userId = user.id;
+          token.role = role;
+          token.email = user.email;
+        } else {
+          const backendUser = await verifyAndGetUser(user.email);
+          if (backendUser) {
+            token.userId = backendUser.id;
+            token.role = backendUser.role;
+            token.email = backendUser.email;
+          }
         }
       }
 
