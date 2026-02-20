@@ -260,14 +260,14 @@ export const documentsApi = {
     category?: string;
     tags?: string[];
   }): Promise<Document> => {
-    return api.put(`/documents/${id}`, data);
+    return api.patch(`/documents/${id}`, data);
   },
 
   /**
    * Send document for signature via DocuSign
    */
   sendForSignature: async (id: string): Promise<{ envelope_id: string }> => {
-    return api.post(`/documents/${id}/sign`);
+    return api.post(`/documents/${id}/send-for-signature`);
   },
 
   /**
@@ -279,15 +279,15 @@ export const documentsApi = {
     status: string;
     signers: Array<{ email: string; name: string; signed_at?: string }>;
   }> => {
-    return api.get(`/documents/${id}/status`);
+    return api.get(`/documents/${id}/signing-status`);
   },
 
   /**
    * Get document version history
    */
   getVersions: async (id: string): Promise<DocumentVersion[]> => {
-    const response = await api.get<PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions`);
-    return response.items || [];
+    const response = await api.get<DocumentVersion[] | PaginatedResponse<DocumentVersion>>(`/documents/${id}/versions`);
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -451,14 +451,14 @@ export const meetingsApi = {
     description?: string;
     meeting_link?: string;
   }): Promise<Meeting> => {
-    return api.put(`/meetings/${id}`, data);
+    return api.patch(`/meetings/${id}`, data);
   },
 
   /**
-   * Cancel meeting
+   * Cancel meeting (backend uses DELETE to set status to cancelled)
    */
   cancel: async (id: string): Promise<void> => {
-    return api.post(`/meetings/${id}/cancel`);
+    return api.delete(`/meetings/${id}`);
   },
 
   /**
@@ -503,7 +503,7 @@ export const meetingsApi = {
       presenter?: string;
     }
   ): Promise<AgendaItem> => {
-    return api.put(`/meetings/${meetingId}/agenda/${itemId}`, data);
+    return api.patch(`/meetings/${meetingId}/agenda/${itemId}`, data);
   },
 
   /**
@@ -549,7 +549,7 @@ export const meetingsApi = {
     userId: number,
     status: "present" | "absent" | "excused"
   ): Promise<void> => {
-    return api.put(`/meetings/${meetingId}/attendance/${userId}`, { status });
+    return api.patch(`/meetings/${meetingId}/attendance/${userId}`, { status });
   },
 };
 
@@ -648,7 +648,7 @@ export const decisionsApi = {
    * Extend deadline
    */
   extendDeadline: async (id: string, newDeadline: string): Promise<Decision> => {
-    return api.post(`/decisions/${id}/extend-deadline`, { deadline: newDeadline });
+    return api.post(`/decisions/${id}/extend`, { new_deadline: newDeadline });
   },
 
   /**
@@ -667,7 +667,14 @@ export const decisionsApi = {
     type?: "vote" | "consent" | "resolution";
     deadline?: string | null;
   }): Promise<Decision> => {
-    return api.put(`/decisions/${id}`, data);
+    return api.patch(`/decisions/${id}`, data);
+  },
+
+  /**
+   * Open voting on a decision
+   */
+  open: async (id: string): Promise<Decision> => {
+    return api.post(`/decisions/${id}/open`);
   },
 
   /**
@@ -687,8 +694,8 @@ export const decisionsApi = {
   /**
    * Archive a decision
    */
-  archive: async (id: string): Promise<void> => {
-    return api.post(`/decisions/${id}/archive`);
+  archive: async (id: string, reason?: string): Promise<void> => {
+    return api.post(`/decisions/${id}/archive`, { reason: reason || null });
   },
 };
 
@@ -799,14 +806,14 @@ export const ideasApi = {
     title?: string;
     description?: string | null;
   }): Promise<Idea> => {
-    return api.put(`/ideas/${id}`, data);
+    return api.patch(`/ideas/${id}`, data);
   },
 
   /**
    * Update idea status (moderate)
    */
   updateStatus: async (id: string, status: Idea["status"]): Promise<Idea> => {
-    return api.put(`/ideas/${id}/status`, { status });
+    return api.post(`/ideas/${id}/status`, { status });
   },
 
   /**
@@ -820,7 +827,7 @@ export const ideasApi = {
    * Update idea status with reason
    */
   updateStatusWithReason: async (id: string, status: Idea["status"], reason?: string): Promise<Idea> => {
-    return api.put(`/ideas/${id}/status`, { status, reason });
+    return api.post(`/ideas/${id}/status`, { status, reason });
   },
 
   /**
@@ -841,22 +848,22 @@ export const ideasApi = {
   /**
    * Toggle reaction on a comment
    */
-  toggleReaction: async (commentId: number, reactionType: ReactionType): Promise<void> => {
-    return api.post(`/comments/${commentId}/react`, { reaction_type: reactionType });
+  toggleReaction: async (ideaId: string, commentId: number, reactionType: ReactionType): Promise<void> => {
+    return api.post(`/ideas/${ideaId}/comments/${commentId}/react`, { reaction_type: reactionType });
   },
 
   /**
    * Pin/unpin a comment
    */
-  togglePinComment: async (commentId: number): Promise<Comment> => {
-    return api.post(`/comments/${commentId}/pin`);
+  togglePinComment: async (ideaId: string, commentId: number): Promise<Comment> => {
+    return api.post(`/ideas/${ideaId}/comments/${commentId}/pin`);
   },
 
   /**
    * Edit a comment
    */
-  editComment: async (commentId: number, content: string): Promise<Comment> => {
-    return api.put(`/comments/${commentId}`, { content });
+  editComment: async (ideaId: string, commentId: number, content: string): Promise<Comment> => {
+    return api.patch(`/ideas/${ideaId}/comments/${commentId}`, { content });
   },
 };
 
@@ -869,29 +876,29 @@ export const categoriesApi = {
    * List all categories
    */
   list: async (): Promise<IdeaCategory[]> => {
-    const response = await api.get<PaginatedResponse<IdeaCategory>>("/categories");
-    return response.items || [];
+    const response = await api.get<IdeaCategory[] | PaginatedResponse<IdeaCategory>>("/ideas/categories");
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
    * Create a category
    */
   create: async (data: { name: string; color: string; description?: string }): Promise<IdeaCategory> => {
-    return api.post("/categories", data);
+    return api.post("/ideas/categories", data);
   },
 
   /**
    * Update a category
    */
   update: async (id: number, data: { name?: string; color?: string; description?: string }): Promise<IdeaCategory> => {
-    return api.put(`/categories/${id}`, data);
+    return api.patch(`/ideas/categories/${id}`, data);
   },
 
   /**
    * Delete a category
    */
   delete: async (id: number): Promise<void> => {
-    return api.delete(`/categories/${id}`);
+    return api.delete(`/ideas/categories/${id}`);
   },
 };
 
@@ -923,17 +930,15 @@ export interface Invitation {
 
 export interface AuditLogEntry {
   id: number;
-  user_id: number;
-  user_name?: string;
-  action: string;
   entity_type: string;
   entity_id: number;
   entity_name?: string;
-  old_value?: string | null;
-  new_value?: string | null;
+  action: string;
+  changed_by_id?: number;
+  changed_by_name?: string;
+  changed_at: string;
+  changes?: Record<string, unknown> | null;
   ip_address?: string | null;
-  user_agent?: string | null;
-  created_at: string;
 }
 
 export interface SystemSettings {
@@ -954,8 +959,8 @@ export const adminApi = {
    * List all users (admin only)
    */
   listUsers: async (): Promise<BoardMember[]> => {
-    const response = await api.get<PaginatedResponse<BoardMember>>("/admin/users");
-    return response.items || [];
+    const response = await api.get<BoardMember[] | PaginatedResponse<BoardMember>>("/admin/users");
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -997,8 +1002,8 @@ export const adminApi = {
    * List pending invitations
    */
   listInvitations: async (): Promise<Invitation[]> => {
-    const response = await api.get<PaginatedResponse<Invitation>>("/admin/invites");
-    return response.items || [];
+    const response = await api.get<Invitation[] | PaginatedResponse<Invitation>>("/admin/invites");
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -1042,7 +1047,7 @@ export const adminApi = {
     end_date?: string;
     limit?: number;
     offset?: number;
-  }): Promise<{ items: AuditLogEntry[]; total: number }> => {
+  }): Promise<AuditLogEntry[]> => {
     const searchParams = new URLSearchParams();
     if (params?.user_id) searchParams.set("user_id", params.user_id);
     if (params?.action) searchParams.set("action", params.action);
@@ -1053,7 +1058,8 @@ export const adminApi = {
     if (params?.offset) searchParams.set("offset", params.offset.toString());
 
     const query = searchParams.toString();
-    return api.get(`/admin/audit/${query ? `?${query}` : ""}`);
+    const response = await api.get<AuditLogEntry[] | { items: AuditLogEntry[] }>(`/admin/audit/${query ? `?${query}` : ""}`);
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -1096,7 +1102,7 @@ export const adminApi = {
    * Update settings
    */
   updateSettings: async (settings: Partial<SystemSettings>): Promise<SystemSettings> => {
-    return api.put("/admin/settings", settings);
+    return api.patch("/admin/settings", { settings });
   },
 
   /**

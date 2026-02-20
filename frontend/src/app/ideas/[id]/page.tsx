@@ -113,7 +113,9 @@ export default function IdeaDetailPage({
       window.location.href = "/ideas";
     } catch (err) {
       console.error("Failed to delete idea:", err);
+    } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 

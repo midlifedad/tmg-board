@@ -28,6 +28,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 async def list_documents(
     type: Optional[str] = Query(None, description="Filter by document type"),
     status: Optional[str] = Query(None, description="Filter by signing status"),
+    archived: Optional[bool] = Query(None, description="Filter by archived status (false=exclude archived, true=only archived)"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
@@ -35,6 +36,11 @@ async def list_documents(
 ):
     """List documents with optional filtering."""
     query = db.query(Document).filter(Document.deleted_at.is_(None))
+
+    if archived is False:
+        query = query.filter(Document.archived_at.is_(None))
+    elif archived is True:
+        query = query.filter(Document.archived_at.isnot(None))
 
     if type:
         query = query.filter(Document.type == type)
@@ -169,6 +175,52 @@ async def create_document(
         db=db,
         current_user=current_user
     )
+
+
+class UpdateDocumentRequest(BaseModel):
+    title: Optional[str] = None
+    type: Optional[str] = None
+    description: Optional[str] = None
+
+
+@router.patch("/{document_id}")
+async def update_document(
+    document_id: int,
+    request: UpdateDocumentRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_chair)
+):
+    """Update document metadata (Chair or Admin only)."""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.deleted_at.is_(None)
+    ).first()
+
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    update_data = request.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    for field, value in update_data.items():
+        setattr(document, field, value)
+
+    document.updated_at = datetime.utcnow()
+
+    db.add(AuditLog(
+        entity_type="document",
+        entity_id=document_id,
+        entity_name=document.title,
+        action="update",
+        changed_by_id=current_user.id,
+        changes=update_data
+    ))
+
+    db.commit()
+    db.refresh(document)
+
+    return document
 
 
 @router.get("/{document_id}/download")

@@ -23,6 +23,7 @@ import {
   Unlock,
   Archive,
   Bell,
+  PlayCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { decisionsApi, api, type Decision as ApiDecision, type Vote as ApiVote } from "@/lib/api";
@@ -119,6 +120,19 @@ export default function DecisionDetailPage({
   useEffect(() => {
     fetchDecision();
   }, [fetchDecision]);
+
+  const handleOpenVoting = async () => {
+    if (!decision) return;
+    setActionLoading("open");
+    try {
+      await decisionsApi.open(decision.id);
+      await fetchDecision();
+    } catch (err) {
+      console.error("Failed to open voting:", err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleCloseVoting = async () => {
     if (!decision) return;
@@ -289,6 +303,20 @@ export default function DecisionDetailPage({
                 <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
+                </Button>
+              )}
+              {decision.status === "pending" && (
+                <Button
+                  size="sm"
+                  onClick={handleOpenVoting}
+                  disabled={actionLoading === "open"}
+                >
+                  {actionLoading === "open" ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <PlayCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Open Voting
                 </Button>
               )}
               {decision.status === "open" && (

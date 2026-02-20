@@ -146,11 +146,11 @@ export default function MeetingDetailPage({
     try {
       await meetingsApi.cancel(meeting.id);
       await fetchMeeting();
-      setShowCancelConfirm(false);
     } catch (err) {
       console.error("Failed to cancel meeting:", err);
     } finally {
       setCancelling(false);
+      setShowCancelConfirm(false);
     }
   };
 

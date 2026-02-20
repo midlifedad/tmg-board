@@ -100,7 +100,7 @@ export default function AdminSettingsPage() {
         end_date: auditFilters.end_date || undefined,
         limit: 50,
       });
-      setAuditLog(data.items || []);
+      setAuditLog(data);
     } catch (err) {
       console.error("Failed to fetch audit log:", err);
       setAuditLog([]);
@@ -589,10 +589,10 @@ export default function AdminSettingsPage() {
                             className="border-b last:border-0 hover:bg-muted/20 transition-colors"
                           >
                             <td className="p-4 text-sm text-muted-foreground">
-                              {new Date(entry.created_at).toLocaleString()}
+                              {new Date(entry.changed_at).toLocaleString()}
                             </td>
                             <td className="p-4 text-sm">
-                              {entry.user_name || `User #${entry.user_id}`}
+                              {entry.changed_by_name || `User #${entry.changed_by_id}`}
                             </td>
                             <td className="p-4">
                               <span

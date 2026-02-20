@@ -59,7 +59,7 @@ export function CommentThread({
 
   const handleReaction = async (commentId: number, reactionType: ReactionType) => {
     try {
-      await ideasApi.toggleReaction(commentId, reactionType);
+      await ideasApi.toggleReaction(ideaId, commentId, reactionType);
       // Update local state
       onCommentsChange(
         comments.map((c) => {
@@ -86,7 +86,7 @@ export function CommentThread({
 
   const handlePin = async (commentId: number) => {
     try {
-      await ideasApi.togglePinComment(commentId);
+      await ideasApi.togglePinComment(ideaId, commentId);
       onCommentsChange(
         comments.map((c) =>
           c.id === commentId ? { ...c, is_pinned: !c.is_pinned } : c
@@ -117,7 +117,7 @@ export function CommentThread({
     if (!editContent.trim()) return;
     setSubmitting(true);
     try {
-      const updated = await ideasApi.editComment(commentId, editContent.trim());
+      const updated = await ideasApi.editComment(ideaId, commentId, editContent.trim());
       onCommentsChange(comments.map((c) => (c.id === commentId ? updated : c)));
       setEditingId(null);
       setEditContent("");
