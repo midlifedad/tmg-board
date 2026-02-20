@@ -28,6 +28,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 async def list_documents(
     type: Optional[str] = Query(None, description="Filter by document type"),
     status: Optional[str] = Query(None, description="Filter by signing status"),
+    archived: Optional[bool] = Query(None, description="Filter by archived status (false=exclude archived, true=only archived)"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
@@ -35,6 +36,11 @@ async def list_documents(
 ):
     """List documents with optional filtering."""
     query = db.query(Document).filter(Document.deleted_at.is_(None))
+
+    if archived is False:
+        query = query.filter(Document.archived_at.is_(None))
+    elif archived is True:
+        query = query.filter(Document.archived_at.isnot(None))
 
     if type:
         query = query.filter(Document.type == type)

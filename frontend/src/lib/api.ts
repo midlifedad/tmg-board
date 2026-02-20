@@ -671,6 +671,13 @@ export const decisionsApi = {
   },
 
   /**
+   * Open voting on a decision
+   */
+  open: async (id: string): Promise<Decision> => {
+    return api.post(`/decisions/${id}/open`);
+  },
+
+  /**
    * Close voting on a decision
    */
   close: async (id: string): Promise<Decision> => {
@@ -869,8 +876,8 @@ export const categoriesApi = {
    * List all categories
    */
   list: async (): Promise<IdeaCategory[]> => {
-    const response = await api.get<PaginatedResponse<IdeaCategory>>("/ideas/categories");
-    return response.items || [];
+    const response = await api.get<IdeaCategory[] | PaginatedResponse<IdeaCategory>>("/ideas/categories");
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -954,8 +961,8 @@ export const adminApi = {
    * List all users (admin only)
    */
   listUsers: async (): Promise<BoardMember[]> => {
-    const response = await api.get<PaginatedResponse<BoardMember>>("/admin/users");
-    return response.items || [];
+    const response = await api.get<BoardMember[] | PaginatedResponse<BoardMember>>("/admin/users");
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -997,8 +1004,8 @@ export const adminApi = {
    * List pending invitations
    */
   listInvitations: async (): Promise<Invitation[]> => {
-    const response = await api.get<PaginatedResponse<Invitation>>("/admin/invites");
-    return response.items || [];
+    const response = await api.get<Invitation[] | PaginatedResponse<Invitation>>("/admin/invites");
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
