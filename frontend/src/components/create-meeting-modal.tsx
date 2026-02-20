@@ -72,6 +72,8 @@ export function CreateMeetingModal({ isOpen, onClose, onSuccess }: CreateMeeting
         location: locationType === "virtual"
           ? `Virtual - ${meetingLink.trim()}`
           : location.trim(),
+        description: description.trim() || undefined,
+        meeting_link: locationType === "virtual" ? meetingLink.trim() : undefined,
       });
 
       resetForm();
