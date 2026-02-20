@@ -30,7 +30,7 @@ export default function ReportsPage() {
           api.setUserEmail(email);
         }
 
-        const data = await documentsApi.list();
+        const data = await documentsApi.list({ archived: false });
         // Filter to report-type documents shareholders can see
         const reportDocs = Array.isArray(data)
           ? data

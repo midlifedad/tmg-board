@@ -75,7 +75,7 @@ export default function DocumentsPage() {
         if (email) {
           api.setUserEmail(email);
         }
-        const data = await documentsApi.list();
+        const data = await documentsApi.list({ archived: false });
         // Transform API response to match component interface
         const transformed: Document[] = data.map((doc) => {
           // Map signing_status to our status type
@@ -111,7 +111,7 @@ export default function DocumentsPage() {
 
   const refetchDocuments = async () => {
     try {
-      const data = await documentsApi.list();
+      const data = await documentsApi.list({ archived: false });
       const transformed: Document[] = data.map((doc) => {
         let status: SigningStatusType = "draft";
         if (doc.signing_status === "completed") status = "signed";
