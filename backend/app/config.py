@@ -35,6 +35,7 @@ class Settings(BaseSettings):
         "http://localhost:3100",
         "https://tmgboard.themany.com",
         "https://frontend-staging-458f.up.railway.app",
+        "https://frontend-production-1469.up.railway.app",
     ]
 
     class Config:
