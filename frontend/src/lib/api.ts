@@ -520,25 +520,25 @@ export const meetingsApi = {
     meetingId: string,
     items: Array<{ id: number; order_index: number }>
   ): Promise<void> => {
-    return api.post(`/meetings/${meetingId}/agenda/reorder`, { items });
+    return api.patch(`/meetings/${meetingId}/agenda/reorder`, { item_ids: items.map(i => i.id) });
   },
 
   /**
    * Get attendance
    */
   getAttendance: async (meetingId: string): Promise<Array<{
-    user_id: number;
-    user_name: string;
+    meeting_id: number;
+    member_id: number;
+    member_name: string;
     status: "present" | "absent" | "excused";
-    checked_in_at?: string;
+    joined_at?: string;
+    left_at?: string;
   }>> => {
-    const response = await api.get<PaginatedResponse<{
-      user_id: number;
-      user_name: string;
-      status: "present" | "absent" | "excused";
-      checked_in_at?: string;
-    }>>(`/meetings/${meetingId}/attendance`);
-    return response.items || [];
+    const response = await api.get<
+      Array<{ meeting_id: number; member_id: number; member_name: string; status: "present" | "absent" | "excused"; joined_at?: string; left_at?: string }>
+      | PaginatedResponse<{ meeting_id: number; member_id: number; member_name: string; status: "present" | "absent" | "excused"; joined_at?: string; left_at?: string }>
+    >(`/meetings/${meetingId}/attendance`);
+    return Array.isArray(response) ? response : response.items || [];
   },
 
   /**
@@ -746,7 +746,8 @@ export interface CommentReaction {
 export interface Comment {
   id: number;
   idea_id: number;
-  user_id: number;
+  author_id: number;
+  user_id?: number; // alias for author_id (legacy)
   user_name?: string;
   content: string;
   parent_id?: number | null;

@@ -147,7 +147,7 @@ export default function IdeaDetailPage({
             ...idea.comments,
             {
               id: String(comment.id),
-              userId: String(comment.user_id),
+              userId: String(comment.author_id ?? comment.user_id),
               userName: comment.user_name || session?.user?.name || "You",
               content: comment.content,
               createdAt: comment.created_at,

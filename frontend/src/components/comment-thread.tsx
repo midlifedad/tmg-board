@@ -138,7 +138,7 @@ export function CommentThread({
     const replies = getReplies(comment.id);
     const isEditing = editingId === comment.id;
     const isReplying = replyingTo === comment.id;
-    const canEdit = comment.user_id === currentUserId;
+    const canEdit = (comment.author_id ?? comment.user_id) === currentUserId;
 
     return (
       <div key={comment.id} className={cn("space-y-2", depth > 0 && "ml-6 pl-4 border-l border-border/50")}>
@@ -149,7 +149,7 @@ export function CommentThread({
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{comment.user_name || `User ${comment.user_id}`}</span>
+              <span className="text-sm font-medium">{comment.user_name || `User ${comment.author_id ?? comment.user_id}`}</span>
               <span className="text-xs text-muted-foreground">
                 {formatDate(comment.created_at)}
               </span>
