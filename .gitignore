@@ -1,0 +1,5 @@
+# Sync credentials
+.env.sync
+
+# Uploads
+uploads/
