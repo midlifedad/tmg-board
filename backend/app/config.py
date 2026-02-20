@@ -36,6 +36,7 @@ class Settings(BaseSettings):
         "https://tmgboard.themany.com",
         "https://frontend-staging-458f.up.railway.app",
         "https://frontend-production-1469.up.railway.app",
+        "https://tmgboard.up.railway.app",
     ]
 
     class Config:
