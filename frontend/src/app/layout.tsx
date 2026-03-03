@@ -23,8 +23,8 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "TMG Board Portal",
-  description: "Board management interface for The Many Group",
+  title: "Board Portal",
+  description: "Board management portal",
 };
 
 export default function RootLayout({

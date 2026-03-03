@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { adminApi, api, type SystemSettings, type AuditLogEntry } from "@/lib/api";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useBranding } from "@/contexts/branding-context";
 import { permissionCategories } from "@/lib/permissions";
 
 type SettingsTab = "general" | "permissions" | "audit";
@@ -32,6 +33,7 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const { isAdmin, isLoading: permissionsLoading } = usePermissions();
+  const { refresh: refreshBranding } = useBranding();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,8 @@ export default function AdminSettingsPage() {
 
   // General Settings
   const [settings, setSettings] = useState<SystemSettings>({
-    organization_name: "The Many Group",
+    app_name: "Board Portal",
+    organization_name: "",
     organization_logo_url: null,
     default_meeting_duration: 60,
     voting_reminder_days: 3,
@@ -129,6 +132,9 @@ export default function AdminSettingsPage() {
 
       // Save other settings
       await adminApi.updateSettings(settings);
+
+      // Refresh branding so sidebar/title update immediately
+      await refreshBranding();
 
       setSuccess("Settings saved successfully");
       setTimeout(() => setSuccess(null), 3000);
@@ -245,9 +251,28 @@ export default function AdminSettingsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Portal Name */}
+                <div>
+                  <label className="text-sm font-medium">Portal Name</label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Shown in the sidebar, login page, and browser tab
+                  </p>
+                  <input
+                    type="text"
+                    value={settings.app_name}
+                    onChange={(e) =>
+                      setSettings({ ...settings, app_name: e.target.value })
+                    }
+                    className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
                 {/* Organization Name */}
                 <div>
                   <label className="text-sm font-medium">Organization Name</label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Your company or organization name
+                  </p>
                   <input
                     type="text"
                     value={settings.organization_name}

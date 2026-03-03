@@ -456,6 +456,22 @@ async def list_permissions(
 
 
 # =============================================================================
+# Branding (public, no auth required)
+# =============================================================================
+
+@router.get("/branding")
+async def get_branding(db: Session = Depends(get_db)):
+    """Get public branding settings. No auth required."""
+    keys = ["app_name", "organization_name", "organization_logo_url"]
+    settings = db.query(Setting).filter(Setting.key.in_(keys)).all()
+    result = {s.key: s.value for s in settings}
+    result.setdefault("app_name", "Board Portal")
+    result.setdefault("organization_name", "")
+    result.setdefault("organization_logo_url", None)
+    return result
+
+
+# =============================================================================
 # Settings Endpoints
 # =============================================================================
 
