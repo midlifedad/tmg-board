@@ -18,6 +18,7 @@ import {
   type Decision,
   type Idea,
 } from "@/lib/api";
+import { useBranding } from "@/contexts/branding-context";
 
 interface DashboardData {
   documents: Document[];
@@ -28,6 +29,7 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const { branding } = useBranding();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -117,7 +119,7 @@ export default function DashboardPage() {
             Welcome, <em className="text-gold-light italic">{session?.user?.name?.split(" ")[0] || "Board Member"}</em>
           </h1>
           <p className="text-muted-foreground mt-2 text-sm font-light">
-            The Many Group — Board Management Dashboard
+            {branding.organization_name ? `${branding.organization_name} — ` : ""}{branding.app_name} Dashboard
           </p>
         </div>
 

@@ -130,6 +130,22 @@ export const api = new ApiClient(API_BASE_URL);
 // No default — auth is handled by Google OAuth + backend verification
 
 // =============================================================================
+// Branding API (public, no auth required)
+// =============================================================================
+
+export interface BrandingSettings {
+  app_name: string;
+  organization_name: string;
+  organization_logo_url?: string | null;
+}
+
+export const brandingApi = {
+  getBranding: async (): Promise<BrandingSettings> => {
+    return api.get("/admin/branding");
+  },
+};
+
+// =============================================================================
 // Auth API
 // =============================================================================
 
@@ -943,6 +959,7 @@ export interface AuditLogEntry {
 }
 
 export interface SystemSettings {
+  app_name: string;
   organization_name: string;
   organization_logo_url?: string | null;
   default_meeting_duration: number;
@@ -1102,8 +1119,15 @@ export const adminApi = {
   /**
    * Update settings
    */
-  updateSettings: async (settings: Partial<SystemSettings>): Promise<SystemSettings> => {
-    return api.patch("/admin/settings", { settings });
+  updateSettings: async (settings: Partial<SystemSettings>): Promise<void> => {
+    // Convert to the {settings: {key: value}} format the backend expects
+    const payload: Record<string, string> = {};
+    for (const [key, value] of Object.entries(settings)) {
+      if (value !== undefined) {
+        payload[key] = String(value);
+      }
+    }
+    return api.patch("/admin/settings", { settings: payload });
   },
 
   /**

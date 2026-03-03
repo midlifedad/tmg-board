@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { isBoardOrAbove, isAdmin, type Role } from "@/lib/permissions";
+import { useBranding } from "@/contexts/branding-context";
 
 interface NavItem {
   label: string;
@@ -65,6 +66,7 @@ const shareholderNavGroups: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { branding } = useBranding();
 
   const userRole = (session?.user as { role?: Role })?.role;
   const isBoardLevel = isBoardOrAbove(userRole);
@@ -85,11 +87,11 @@ export function Sidebar() {
       <div className="h-16 flex items-center px-5 border-b border-[#1e2030]">
         <Link href="/" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded bg-gold/10 border border-gold/30 flex items-center justify-center">
-            <span className="font-mono text-xs font-medium text-gold">T</span>
+            <span className="font-mono text-xs font-medium text-gold">{branding.app_name?.[0]?.toUpperCase() || "B"}</span>
           </div>
           <div>
             <span className="font-serif text-lg font-light tracking-tight text-[var(--paper)]">
-              TMG Board
+              {branding.app_name}
             </span>
           </div>
         </Link>

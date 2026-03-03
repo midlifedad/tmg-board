@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     # Seed board members and permissions if empty
     from app.db.session import SessionLocal
     from app.models.member import BoardMember
-    from app.models.admin import Permission, RolePermission
+    from app.models.admin import Permission, RolePermission, Setting
 
     db = SessionLocal()
     try:
@@ -92,6 +92,13 @@ async def lifespan(app: FastAPI):
                 db.add(RolePermission(role="shareholder", permission_id=perm_map[code]))
 
             db.commit()
+
+        # Seed branding settings if not present
+        if not db.query(Setting).filter(Setting.key == "app_name").first():
+            db.add(Setting(key="app_name", value="Board Portal"))
+        if not db.query(Setting).filter(Setting.key == "organization_name").first():
+            db.add(Setting(key="organization_name", value=""))
+        db.commit()
     finally:
         db.close()
 

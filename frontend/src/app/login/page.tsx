@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import { useBranding } from "@/contexts/branding-context";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -16,6 +17,7 @@ export default function LoginPage() {
 function LoginContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const { branding } = useBranding();
 
   const handleGoogleSignIn = () => {
     signIn("google", { callbackUrl: "/" });
@@ -31,17 +33,17 @@ function LoginContent() {
           {/* Logo mark */}
           <div className="flex justify-center mb-10">
             <div className="w-14 h-14 rounded border border-[var(--gold)]/30 bg-[var(--gold)]/5 flex items-center justify-center">
-              <span className="font-mono text-xl font-medium text-[var(--gold)]">T</span>
+              <span className="font-mono text-xl font-medium text-[var(--gold)]">{branding.app_name?.[0]?.toUpperCase() || "B"}</span>
             </div>
           </div>
 
           {/* Title block */}
           <div className="text-center mb-10">
             <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[var(--gold)] mb-4">
-              Board Portal
+              {branding.app_name}
             </div>
             <h1 className="font-serif text-4xl font-light text-[var(--paper)] tracking-tight">
-              The Many Group
+              {branding.organization_name || branding.app_name}
             </h1>
             <div className="mx-auto mt-4 w-16 h-px bg-[var(--gold)] opacity-40" />
           </div>
@@ -93,16 +95,14 @@ function LoginSkeleton() {
         <div className="w-full max-w-sm">
           <div className="flex justify-center mb-10">
             <div className="w-14 h-14 rounded border border-[var(--gold)]/30 bg-[var(--gold)]/5 flex items-center justify-center">
-              <span className="font-mono text-xl font-medium text-[var(--gold)]">T</span>
+              <span className="font-mono text-xl font-medium text-[var(--gold)]">B</span>
             </div>
           </div>
           <div className="text-center mb-10">
             <div className="font-mono text-[10px] tracking-[0.3em] uppercase text-[var(--gold)] mb-4">
               Board Portal
             </div>
-            <h1 className="font-serif text-4xl font-light text-[var(--paper)] tracking-tight">
-              The Many Group
-            </h1>
+            <div className="h-10 w-48 mx-auto bg-[var(--steel)] rounded animate-pulse" />
             <div className="mx-auto mt-4 w-16 h-px bg-[var(--gold)] opacity-40" />
           </div>
           <div className="bg-[var(--ink-light)] border border-[var(--rule)] rounded-md p-8">
