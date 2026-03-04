@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 ## Current Position
 
 Phase: 01 of 05 (Agent Infrastructure & Streaming UX)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-04 — Roadmap created, ready to begin Phase 01 planning
+Plan: 1 of 4 in current phase
+Status: Executing
+Last activity: 2026-03-04 — Completed 01-01 (Backend foundation: models, schemas, tests, seed data)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 5%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -26,15 +26,15 @@ Progress: [░░░░░░░░░░] 0%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 1
+- Average duration: 7min
+- Total execution time: 7min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01 | 1 | 7min | 7min |
 
 ## Accumulated Context
 
@@ -47,11 +47,19 @@ Progress: [░░░░░░░░░░] 0%
 - **Remove recording_url** — replace with transcript paste/upload (Phase 03)
 - **Agents are embedded** — inline on existing pages, not a standalone chat UI
 
+### Key Decisions (01-01)
+- **Extracted _seed_agents()** — standalone function for testability outside lifespan
+- **JSON column for allowed_tool_names** — simpler than junction table for small tool lists
+- **Created backend .venv** — required for isolated test execution
+
 ### Key Files
 - `frontend/src/components/sidebar.tsx` — Left navigation
 - `frontend/src/lib/api.ts` — API client
 - `backend/app/api/` — All API routes
 - `backend/app/models/` — All SQLAlchemy models
+- `backend/app/models/agent.py` — AgentConfig and AgentUsageLog models
+- `backend/app/schemas/agent.py` — Agent Pydantic schemas
+- `backend/tests/conftest.py` — Shared test fixtures
 - `backend/app/models/decision.py` — Decisions (has resolution type, used in Phase 04)
 - `backend/app/models/meeting.py` — Meetings (has recording_url to remove in Phase 03)
 - `.planning/phases/01-agent-infrastructure/01-RESEARCH.md` — Agentic layer research (HIGH confidence)
@@ -62,5 +70,5 @@ None
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Roadmap created — next step is `/gsd:plan-phase 01`
+Stopped at: Completed 01-01-PLAN.md — next is 01-02-PLAN.md (agent runner service)
 Resume file: None
