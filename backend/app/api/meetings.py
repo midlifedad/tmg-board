@@ -46,6 +46,7 @@ class UpdateMeetingRequest(BaseModel):
 class CreateAgendaItemRequest(BaseModel):
     title: str
     description: Optional[str] = None
+    item_type: Optional[str] = "information"  # information, discussion, decision_required, consent_agenda
     duration_minutes: Optional[int] = None
     presenter_id: Optional[int] = None
     decision_id: Optional[int] = None
@@ -54,6 +55,7 @@ class CreateAgendaItemRequest(BaseModel):
 class UpdateAgendaItemRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    item_type: Optional[str] = None  # information, discussion, decision_required, consent_agenda
     duration_minutes: Optional[int] = None
     presenter_id: Optional[int] = None
     decision_id: Optional[int] = None
@@ -105,8 +107,27 @@ async def list_meetings(
     total = query.count()
     meetings = query.order_by(Meeting.scheduled_date.desc()).offset(offset).limit(limit).all()
 
+    result_items = []
+    for meeting in meetings:
+        item_dict = {
+            "id": meeting.id,
+            "title": meeting.title,
+            "description": meeting.description,
+            "scheduled_date": meeting.scheduled_date.isoformat() if meeting.scheduled_date else None,
+            "duration_minutes": meeting.duration_minutes,
+            "location": meeting.location,
+            "meeting_link": meeting.meeting_link,
+            "status": meeting.status,
+            "created_by_id": meeting.created_by_id,
+            "created_at": meeting.created_at.isoformat() if meeting.created_at else None,
+            "agenda_items_count": len(meeting.agenda_items),
+            "has_minutes": meeting.status == "completed",
+            "decisions_count": sum(1 for item in meeting.agenda_items if item.decision_id is not None),
+        }
+        result_items.append(item_dict)
+
     return {
-        "items": meetings,
+        "items": result_items,
         "total": total,
         "limit": limit,
         "offset": offset
@@ -357,7 +378,27 @@ async def get_agenda(
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
-    return meeting.agenda_items
+    items = db.query(AgendaItem).filter(
+        AgendaItem.meeting_id == meeting_id
+    ).order_by(AgendaItem.order_index).all()
+
+    result = []
+    for item in items:
+        item_dict = {
+            "id": item.id,
+            "meeting_id": item.meeting_id,
+            "title": item.title,
+            "description": item.description,
+            "duration_minutes": item.duration_minutes,
+            "order_index": item.order_index,
+            "item_type": item.item_type,
+            "presenter_id": item.presenter_id,
+            "presenter": item.presenter.name if item.presenter else None,
+            "decision_id": item.decision_id,
+            "created_at": item.created_at.isoformat() if item.created_at else None,
+        }
+        result.append(item_dict)
+    return result
 
 
 @router.post("/{meeting_id}/agenda")
@@ -388,6 +429,7 @@ async def add_agenda_item(
         meeting_id=meeting_id,
         title=request.title,
         description=request.description,
+        item_type=request.item_type,
         duration_minutes=request.duration_minutes,
         presenter_id=request.presenter_id,
         decision_id=request.decision_id,
@@ -471,6 +513,8 @@ async def update_agenda_item(
         item.title = request.title
     if request.description is not None:
         item.description = request.description
+    if request.item_type is not None:
+        item.item_type = request.item_type
     if request.duration_minutes is not None:
         item.duration_minutes = request.duration_minutes
     if request.presenter_id is not None:

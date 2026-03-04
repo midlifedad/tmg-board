@@ -63,6 +63,7 @@ class AgendaItem(Base):
     meeting_id: Mapped[int] = mapped_column(Integer, ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    item_type: Mapped[str] = mapped_column(String(30), default="information", nullable=False, server_default="information")
     duration_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     presenter_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("board_members.id"), nullable=True)
     order_index: Mapped[int] = mapped_column(Integer, nullable=False)

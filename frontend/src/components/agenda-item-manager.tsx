@@ -79,7 +79,6 @@ export function AgendaItemManager({
         title: title.trim(),
         description: description.trim() || undefined,
         duration_minutes: duration,
-        presenter: presenter.trim() || undefined,
       });
 
       onItemsChange([...items, newItem]);
@@ -109,7 +108,6 @@ export function AgendaItemManager({
         title: title.trim(),
         description: description.trim() || undefined,
         duration_minutes: duration,
-        presenter: presenter.trim() || undefined,
       });
 
       onItemsChange(items.map((item) => (item.id === editingId ? updated : item)));

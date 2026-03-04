@@ -407,6 +407,9 @@ export interface Meeting {
   description?: string | null;
   created_by_id: number;
   created_at: string;
+  agenda_items_count?: number;
+  has_minutes?: boolean;
+  decisions_count?: number;
 }
 
 export interface AgendaItem {
@@ -414,11 +417,14 @@ export interface AgendaItem {
   meeting_id: number;
   title: string;
   description?: string | null;
+  item_type?: "information" | "discussion" | "decision_required" | "consent_agenda";
   duration_minutes: number;
   order_index: number;
+  presenter_id?: number | null;
   presenter?: string | null;
   status: "pending" | "in_progress" | "completed" | "skipped";
   decision_id?: number | null;
+  created_at?: string | null;
 }
 
 export const meetingsApi = {
@@ -501,8 +507,9 @@ export const meetingsApi = {
     data: {
       title: string;
       description?: string;
+      item_type?: "information" | "discussion" | "decision_required" | "consent_agenda";
       duration_minutes?: number;
-      presenter?: string;
+      presenter_id?: number;
     }
   ): Promise<AgendaItem> => {
     return api.post(`/meetings/${meetingId}/agenda`, data);
@@ -517,8 +524,9 @@ export const meetingsApi = {
     data: {
       title?: string;
       description?: string;
+      item_type?: "information" | "discussion" | "decision_required" | "consent_agenda";
       duration_minutes?: number;
-      presenter?: string;
+      presenter_id?: number;
     }
   ): Promise<AgendaItem> => {
     return api.patch(`/meetings/${meetingId}/agenda/${itemId}`, data);
