@@ -74,12 +74,11 @@ export default function DecisionDetailPage({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchDecision = useCallback(async () => {
+    const email = session?.user?.email;
+    if (!email) return;
     try {
       setLoading(true);
-      const email = session?.user?.email;
-      if (email) {
-        api.setUserEmail(email);
-      }
+      api.setUserEmail(email);
       const detailData = await decisionsApi.get(id);
       const decisionData = detailData.decision;
 

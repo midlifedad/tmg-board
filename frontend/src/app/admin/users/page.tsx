@@ -57,13 +57,13 @@ export default function AdminUsersPage() {
   }, [isAdmin, permissionsLoading, router]);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
 
         const [usersData, invitationsData] = await Promise.all([
           adminApi.listUsers().catch(() => []),

@@ -45,13 +45,13 @@ export default function MeetingsPage() {
   const [ianaZone, setIanaZone] = useState("America/Los_Angeles");
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchMeetings = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
 
         // Fetch user's effective timezone
         try {
