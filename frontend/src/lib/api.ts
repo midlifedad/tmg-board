@@ -400,6 +400,7 @@ export interface Meeting {
   id: number;
   title: string;
   scheduled_date: string;
+  duration_minutes?: number | null;
   location: string;
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
   meeting_link?: string | null;
@@ -442,6 +443,7 @@ export const meetingsApi = {
   create: async (data: {
     title: string;
     scheduled_date: string;
+    duration_minutes?: number;
     location: string;
     description?: string;
     meeting_link?: string;
@@ -453,8 +455,7 @@ export const meetingsApi = {
    * Get meeting agenda
    */
   getAgenda: async (meetingId: string): Promise<AgendaItem[]> => {
-    const response = await api.get<PaginatedResponse<AgendaItem>>(`/meetings/${meetingId}/agenda`);
-    return response.items || [];
+    return api.get<AgendaItem[]>(`/meetings/${meetingId}/agenda`);
   },
 
   /**
@@ -463,6 +464,7 @@ export const meetingsApi = {
   update: async (id: string, data: {
     title?: string;
     scheduled_date?: string;
+    duration_minutes?: number;
     location?: string;
     description?: string;
     meeting_link?: string;
