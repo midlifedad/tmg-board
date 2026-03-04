@@ -4,10 +4,68 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin
+from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agents
 from app.db.session import engine, Base
 
 settings = get_settings()
+
+
+def _seed_agents(db):
+    """Seed built-in agent configurations if none exist.
+
+    Extracted as a standalone function so tests can call it directly
+    without running the full lifespan.
+    """
+    from app.models.agent import AgentConfig
+
+    if db.query(AgentConfig).count() == 0:
+        seed_agents = [
+            AgentConfig(
+                name="Meeting Setup",
+                slug="meeting-setup",
+                description="Helps create structured meeting agendas from descriptions",
+                system_prompt=(
+                    "You are a meeting setup assistant for The Many Group board. "
+                    "You help create structured meeting agendas from descriptions. "
+                    "[Detailed prompt to be added in Phase 02]"
+                ),
+                model="anthropic/claude-sonnet-4-5-20250929",
+                temperature=0.3,
+                max_iterations=5,
+                allowed_tool_names=["create_agenda_item", "get_meeting", "list_members"],
+            ),
+            AgentConfig(
+                name="Minutes Generator",
+                slug="minutes-generator",
+                description="Creates formatted meeting minutes from transcripts",
+                system_prompt=(
+                    "You are a minutes generator for The Many Group board. "
+                    "You create formatted meeting minutes from transcripts. "
+                    "[Detailed prompt to be added in Phase 03]"
+                ),
+                model="anthropic/claude-sonnet-4-5-20250929",
+                temperature=0.2,
+                max_iterations=3,
+                allowed_tool_names=["get_meeting", "get_agenda", "get_attendance"],
+            ),
+            AgentConfig(
+                name="Resolution Writer",
+                slug="resolution-writer",
+                description="Drafts formal board resolution documents",
+                system_prompt=(
+                    "You are a resolution writer for The Many Group board. "
+                    "You draft formal board resolution documents. "
+                    "[Detailed prompt to be added in Phase 04]"
+                ),
+                model="anthropic/claude-sonnet-4-5-20250929",
+                temperature=0.3,
+                max_iterations=3,
+                allowed_tool_names=["create_resolution", "get_decision"],
+            ),
+        ]
+        for agent in seed_agents:
+            db.add(agent)
+        db.commit()
 
 
 @asynccontextmanager
@@ -99,6 +157,9 @@ async def lifespan(app: FastAPI):
         if not db.query(Setting).filter(Setting.key == "organization_name").first():
             db.add(Setting(key="organization_name", value=""))
         db.commit()
+
+        # Seed built-in agent configurations
+        _seed_agents(db)
     finally:
         db.close()
 
@@ -132,6 +193,7 @@ app.include_router(meetings.router, prefix="/api/meetings", tags=["meetings"])
 app.include_router(decisions.router, prefix="/api/decisions", tags=["decisions"])
 app.include_router(ideas.router, prefix="/api/ideas", tags=["ideas"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 
 
 @app.get("/api/health")
