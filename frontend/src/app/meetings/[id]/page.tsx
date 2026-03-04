@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem } from "@/lib/api";
+import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption } from "@/lib/api";
 import { EditMeetingModal } from "@/components/edit-meeting-modal";
 import { getTimezoneAbbr } from "@/lib/timezone";
 
@@ -52,6 +52,7 @@ interface MeetingDetail {
     duration: string;
     durationMinutes: number;
     presenter: string | null;
+    presenterId: number | null;
     itemType: "information" | "discussion" | "decision_required" | "consent_agenda";
     timeSlot: string;
     relatedDecision?: { id: string; title: string };
@@ -97,7 +98,7 @@ export default function MeetingDetailPage({
   const [showAddAgenda, setShowAddAgenda] = useState(false);
   const [newAgendaTitle, setNewAgendaTitle] = useState("");
   const [newAgendaDuration, setNewAgendaDuration] = useState("");
-  const [newAgendaPresenter, setNewAgendaPresenter] = useState("");
+  const [newAgendaPresenterId, setNewAgendaPresenterId] = useState("");
   const [newAgendaType, setNewAgendaType] = useState("information");
   const [addingAgenda, setAddingAgenda] = useState(false);
   const [deletingAgendaId, setDeletingAgendaId] = useState<string | null>(null);
@@ -107,8 +108,9 @@ export default function MeetingDetailPage({
   const [editTitle, setEditTitle] = useState("");
   const [editDuration, setEditDuration] = useState("");
   const [editType, setEditType] = useState<string>("information");
-  const [editPresenter, setEditPresenter] = useState("");
+  const [editPresenterId, setEditPresenterId] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [members, setMembers] = useState<MemberOption[]>([]);
 
   // Drag-to-reorder state
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
@@ -125,10 +127,12 @@ export default function MeetingDetailPage({
       setLoading(true);
       api.setUserEmail(email);
       // Fetch timezone in parallel with meeting data
-      const [meetingData, agendaData] = await Promise.all([
+      const [meetingData, agendaData, membersData] = await Promise.all([
         meetingsApi.get(id),
         meetingsApi.getAgenda(id),
+        meetingsApi.listMembers(),
       ]);
+      setMembers(membersData);
 
       try {
         const me = await authApi.getCurrentUser();
@@ -172,6 +176,7 @@ export default function MeetingDetailPage({
           duration: item.duration_minutes ? `${item.duration_minutes} min` : "",
           durationMinutes: item.duration_minutes || 0,
           presenter: item.presenter || null,
+          presenterId: item.presenter_id || null,
           itemType: (item.item_type || "information") as "information" | "discussion" | "decision_required" | "consent_agenda",
           timeSlot: itemDuration > 0 ? `${formatTime(slotStart)}-${formatTime(slotEnd)}` : "",
           relatedDecision: item.decision_id
@@ -235,10 +240,11 @@ export default function MeetingDetailPage({
         title: newAgendaTitle.trim(),
         duration_minutes: newAgendaDuration ? parseInt(newAgendaDuration) : undefined,
         item_type: newAgendaType as "information" | "discussion" | "decision_required" | "consent_agenda",
+        presenter_id: newAgendaPresenterId ? parseInt(newAgendaPresenterId) : undefined,
       });
       setNewAgendaTitle("");
       setNewAgendaDuration("");
-      setNewAgendaPresenter("");
+      setNewAgendaPresenterId("");
       setNewAgendaType("information");
       setShowAddAgenda(false);
       await fetchMeeting();
@@ -268,7 +274,7 @@ export default function MeetingDetailPage({
     setEditTitle(item.title);
     setEditDuration(String(item.durationMinutes || ""));
     setEditType(item.itemType);
-    setEditPresenter(item.presenter || "");
+    setEditPresenterId(item.presenterId ? String(item.presenterId) : "");
   };
 
   const handleCancelEdit = () => {
@@ -276,7 +282,7 @@ export default function MeetingDetailPage({
     setEditTitle("");
     setEditDuration("");
     setEditType("information");
-    setEditPresenter("");
+    setEditPresenterId("");
   };
 
   const handleSaveEdit = async () => {
@@ -287,6 +293,7 @@ export default function MeetingDetailPage({
         title: editTitle.trim(),
         duration_minutes: editDuration ? parseInt(editDuration) : undefined,
         item_type: editType as "information" | "discussion" | "decision_required" | "consent_agenda",
+        presenter_id: editPresenterId ? parseInt(editPresenterId) : undefined,
       });
       setEditingItemId(null);
       await fetchMeeting();
@@ -575,13 +582,16 @@ export default function MeetingDetailPage({
                               <option value="decision_required">Decision Required</option>
                               <option value="consent_agenda">Consent Agenda</option>
                             </select>
-                            <input
-                              type="text"
-                              value={editPresenter}
-                              onChange={(e) => setEditPresenter(e.target.value)}
-                              placeholder="Presenter (display only)"
-                              className="flex-1 min-w-[140px] h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                            />
+                            <select
+                              value={editPresenterId}
+                              onChange={(e) => setEditPresenterId(e.target.value)}
+                              className="flex-1 min-w-[140px] h-9 px-2 rounded-md border bg-background text-sm"
+                            >
+                              <option value="">No presenter</option>
+                              {members.map((m) => (
+                                <option key={m.id} value={String(m.id)}>{m.name}</option>
+                              ))}
+                            </select>
                           </div>
                           <div className="flex justify-end gap-2">
                             <Button
@@ -741,13 +751,16 @@ export default function MeetingDetailPage({
                         <option value="decision_required">Decision Required</option>
                         <option value="consent_agenda">Consent Agenda</option>
                       </select>
-                      <input
-                        type="text"
-                        value={newAgendaPresenter}
-                        onChange={(e) => setNewAgendaPresenter(e.target.value)}
-                        placeholder="Presenter (optional)"
-                        className="flex-1 min-w-[140px] h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
+                      <select
+                        value={newAgendaPresenterId}
+                        onChange={(e) => setNewAgendaPresenterId(e.target.value)}
+                        className="flex-1 min-w-[140px] h-9 px-2 rounded-md border bg-background text-sm"
+                      >
+                        <option value="">Presenter (optional)</option>
+                        {members.map((m) => (
+                          <option key={m.id} value={String(m.id)}>{m.name}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button
@@ -758,7 +771,7 @@ export default function MeetingDetailPage({
                           setShowAddAgenda(false);
                           setNewAgendaTitle("");
                           setNewAgendaDuration("");
-                          setNewAgendaPresenter("");
+                          setNewAgendaPresenterId("");
                           setNewAgendaType("information");
                         }}
                       >

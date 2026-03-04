@@ -436,7 +436,19 @@ export interface AgendaItem {
   created_at?: string | null;
 }
 
+export interface MemberOption {
+  id: number;
+  name: string;
+}
+
 export const meetingsApi = {
+  /**
+   * List active board members (for presenter dropdowns)
+   */
+  listMembers: async (): Promise<MemberOption[]> => {
+    return api.get<MemberOption[]>("/meetings/members");
+  },
+
   /**
    * List all meetings
    */

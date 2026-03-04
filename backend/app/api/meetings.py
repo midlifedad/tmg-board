@@ -83,6 +83,18 @@ class UpdateAttendanceRequest(BaseModel):
 # Meeting CRUD
 # =============================================================================
 
+@router.get("/members")
+async def list_members(
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_member)
+):
+    """List active board members (id and name only) for presenter dropdowns."""
+    members = db.query(BoardMember).filter(
+        BoardMember.deleted_at.is_(None)
+    ).order_by(BoardMember.name).all()
+    return [{"id": m.id, "name": m.name} for m in members]
+
+
 @router.get("")
 async def list_meetings(
     status: Optional[str] = Query(None, description="Filter by status"),
