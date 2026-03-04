@@ -14,6 +14,7 @@ interface EditMeetingModalProps {
     id: string;
     title: string;
     scheduled_date: string;
+    duration_minutes?: number | null;
     location: string | null;
   } | null;
 }
@@ -22,6 +23,7 @@ export function EditMeetingModal({ isOpen, onClose, onSuccess, meeting }: EditMe
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("10:00");
+  const [duration, setDuration] = useState("60");
   const [locationType, setLocationType] = useState<"in-person" | "virtual">("in-person");
   const [location, setLocation] = useState("");
   const [meetingLink, setMeetingLink] = useState("");
@@ -31,9 +33,12 @@ export function EditMeetingModal({ isOpen, onClose, onSuccess, meeting }: EditMe
   useEffect(() => {
     if (meeting) {
       setTitle(meeting.title);
-      const dateObj = new Date(meeting.scheduled_date);
-      setDate(dateObj.toISOString().split("T")[0]);
-      setTime(dateObj.toTimeString().slice(0, 5));
+      // Extract date and time from the scheduled_date string directly
+      // to avoid UTC conversion issues
+      const parts = meeting.scheduled_date.split("T");
+      setDate(parts[0]);
+      setTime(parts[1]?.slice(0, 5) || "10:00");
+      setDuration(String(meeting.duration_minutes || 60));
 
       // Determine location type from location string
       if (meeting.location?.startsWith("Virtual - ")) {
@@ -79,11 +84,12 @@ export function EditMeetingModal({ isOpen, onClose, onSuccess, meeting }: EditMe
     setError(null);
 
     try {
-      const scheduledDate = new Date(`${date}T${time}`).toISOString();
+      const scheduledDate = `${date}T${time}:00`;
 
       await meetingsApi.update(meeting.id, {
         title: title.trim(),
         scheduled_date: scheduledDate,
+        duration_minutes: parseInt(duration) || 60,
         location: locationType === "virtual"
           ? `Virtual - ${meetingLink.trim()}`
           : location.trim(),
@@ -134,8 +140,8 @@ export function EditMeetingModal({ isOpen, onClose, onSuccess, meeting }: EditMe
               />
             </div>
 
-            {/* Date and Time */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Date, Time, Duration */}
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium">Date *</label>
                 <input
@@ -152,6 +158,19 @@ export function EditMeetingModal({ isOpen, onClose, onSuccess, meeting }: EditMe
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
+                  className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={submitting}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Duration (min)</label>
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  min="15"
+                  step="15"
+                  placeholder="60"
                   className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   disabled={submitting}
                 />

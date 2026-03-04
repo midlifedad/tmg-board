@@ -34,6 +34,7 @@ interface MeetingDetail {
   date: string;
   time: string;
   duration: string;
+  durationMinutes?: number | null;
   location: string;
   isVirtual: boolean;
   meetingLink: string;
@@ -92,13 +93,10 @@ export default function MeetingDetailPage({
         meetingsApi.getAgenda(id),
       ]);
 
-      const dateObj = new Date(meetingData.scheduled_date);
-      const time = dateObj.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      const dateStr = dateObj.toISOString().split("T")[0];
+      // Extract date and time from the raw string to avoid UTC conversion shifts
+      const parts = meetingData.scheduled_date.split("T");
+      const dateStr = parts[0];
+      const time = parts[1]?.slice(0, 5) || "00:00";
       const isVirtual = meetingData.meeting_link != null ||
                        meetingData.location.toLowerCase().includes("virtual") ||
                        meetingData.location.toLowerCase().includes("zoom");
@@ -108,7 +106,12 @@ export default function MeetingDetailPage({
         title: meetingData.title,
         date: dateStr,
         time: time,
-        duration: "2 hours",
+        duration: meetingData.duration_minutes
+          ? meetingData.duration_minutes >= 60
+            ? `${Math.floor(meetingData.duration_minutes / 60)}h${meetingData.duration_minutes % 60 ? ` ${meetingData.duration_minutes % 60}m` : ""}`
+            : `${meetingData.duration_minutes} min`
+          : "Not set",
+        durationMinutes: meetingData.duration_minutes,
         location: meetingData.location,
         isVirtual: isVirtual,
         meetingLink: meetingData.meeting_link || "",
@@ -473,7 +476,16 @@ export default function MeetingDetailPage({
                 <CardContent>
                   <Button variant="outline" className="w-full" asChild>
                     <a
-                      href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(meeting.title)}&dates=${meeting.date.replace(/-/g, "")}T${meeting.time.replace(":", "")}00/${meeting.date.replace(/-/g, "")}T${(parseInt(meeting.time.split(":")[0]) + 2).toString().padStart(2, "0")}${meeting.time.split(":")[1]}00&location=${encodeURIComponent(meeting.location)}`}
+                      href={(() => {
+                        const dur = meeting.durationMinutes || 60;
+                        const startH = parseInt(meeting.time.split(":")[0]);
+                        const startM = parseInt(meeting.time.split(":")[1]);
+                        const endTotalM = startH * 60 + startM + dur;
+                        const endH = Math.floor(endTotalM / 60) % 24;
+                        const endM = endTotalM % 60;
+                        const dateCompact = meeting.date.replace(/-/g, "");
+                        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(meeting.title)}&dates=${dateCompact}T${meeting.time.replace(":", "")}00/${dateCompact}T${String(endH).padStart(2, "0")}${String(endM).padStart(2, "0")}00&location=${encodeURIComponent(meeting.location)}`;
+                      })()}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -559,6 +571,7 @@ export default function MeetingDetailPage({
           id: meeting.id,
           title: meeting.title,
           scheduled_date: `${meeting.date}T${meeting.time}`,
+          duration_minutes: meeting.durationMinutes,
           location: meeting.isVirtual ? `Virtual - ${meeting.meetingLink}` : meeting.location,
         } : null}
       />

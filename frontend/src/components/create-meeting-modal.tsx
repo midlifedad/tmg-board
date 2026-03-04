@@ -19,6 +19,7 @@ export function CreateMeetingModal({ isOpen, onClose, onSuccess }: CreateMeeting
   const [locationType, setLocationType] = useState<"in-person" | "virtual">("in-person");
   const [location, setLocation] = useState("");
   const [meetingLink, setMeetingLink] = useState("");
+  const [duration, setDuration] = useState("60");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function CreateMeetingModal({ isOpen, onClose, onSuccess }: CreateMeeting
     setTitle("");
     setDate("");
     setTime("10:00");
+    setDuration("60");
     setLocationType("in-person");
     setLocation("");
     setMeetingLink("");
@@ -63,12 +65,12 @@ export function CreateMeetingModal({ isOpen, onClose, onSuccess }: CreateMeeting
     setError(null);
 
     try {
-      // Combine date and time into ISO string
-      const scheduledDate = new Date(`${date}T${time}`).toISOString();
+      const scheduledDate = `${date}T${time}:00`;
 
       await meetingsApi.create({
         title: title.trim(),
         scheduled_date: scheduledDate,
+        duration_minutes: parseInt(duration) || 60,
         location: locationType === "virtual"
           ? `Virtual - ${meetingLink.trim()}`
           : location.trim(),
@@ -122,8 +124,8 @@ export function CreateMeetingModal({ isOpen, onClose, onSuccess }: CreateMeeting
               />
             </div>
 
-            {/* Date and Time */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Date, Time, Duration */}
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium">Date *</label>
                 <input
@@ -141,6 +143,19 @@ export function CreateMeetingModal({ isOpen, onClose, onSuccess }: CreateMeeting
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
+                  className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={submitting}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Duration (min)</label>
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  min="15"
+                  step="15"
+                  placeholder="60"
                   className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   disabled={submitting}
                 />
