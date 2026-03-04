@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -26,9 +26,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 interface PdfViewerProps {
   url: string;
   title?: string;
+  userEmail?: string;
 }
 
-export function PdfViewer({ url, title }: PdfViewerProps) {
+export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -36,6 +38,32 @@ export function PdfViewer({ url, title }: PdfViewerProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchPdf() {
+      try {
+        const headers: Record<string, string> = {};
+        if (userEmail) {
+          headers["X-User-Email"] = userEmail;
+        }
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+          throw new Error(`Failed to load PDF (${response.status})`);
+        }
+        const buffer = await response.arrayBuffer();
+        if (!cancelled) {
+          setPdfData(buffer);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : "Failed to load PDF");
+        }
+      }
+    }
+    fetchPdf();
+    return () => { cancelled = true; };
+  }, [url, userEmail]);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages }: { numPages: number }) => {
@@ -147,20 +175,24 @@ export function PdfViewer({ url, title }: PdfViewerProps) {
       className="overflow-auto flex justify-center bg-muted/30"
       style={{ height: isFullscreen ? "calc(100vh - 48px)" : "80vh" }}
     >
+      {loadError ? (
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <FileText className="h-16 w-16 mb-4 opacity-50" />
+          <p className="text-lg font-medium">Unable to load PDF</p>
+          <p className="text-sm mt-1">{loadError}</p>
+        </div>
+      ) : !pdfData ? (
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
       <Document
-        file={url}
+        file={{ data: pdfData }}
         onLoadSuccess={onDocumentLoadSuccess}
         onLoadError={onDocumentLoadError}
         loading={
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        }
-        error={
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <FileText className="h-16 w-16 mb-4 opacity-50" />
-            <p className="text-lg font-medium">Unable to load PDF</p>
-            <p className="text-sm mt-1">{loadError || "An error occurred"}</p>
           </div>
         }
       >
@@ -171,6 +203,7 @@ export function PdfViewer({ url, title }: PdfViewerProps) {
           renderAnnotationLayer={true}
         />
       </Document>
+      )}
     </div>
   );
 
