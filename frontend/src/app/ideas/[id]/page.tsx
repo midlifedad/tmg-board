@@ -68,12 +68,11 @@ export default function IdeaDetailPage({
   const [statusLoading, setStatusLoading] = useState<string | null>(null);
 
   const fetchIdea = useCallback(async () => {
+    const email = session?.user?.email;
+    if (!email) return;
     try {
       setLoading(true);
-      const email = session?.user?.email;
-      if (email) {
-        api.setUserEmail(email);
-      }
+      api.setUserEmail(email);
       const [ideaData, commentsData] = await Promise.all([
         ideasApi.get(id),
         ideasApi.getComments(id),

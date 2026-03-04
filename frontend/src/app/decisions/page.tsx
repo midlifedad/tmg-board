@@ -67,13 +67,13 @@ export default function DecisionsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchDecisions = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
         const data = await decisionsApi.list();
         // Transform decisions - fetch details for each to get results
         const transformed: Decision[] = await Promise.all(

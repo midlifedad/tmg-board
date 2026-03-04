@@ -34,13 +34,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
 
         const [documents, meetings, decisions, ideas] = await Promise.all([
           documentsApi.list(),

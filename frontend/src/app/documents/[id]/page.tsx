@@ -114,13 +114,13 @@ export default function DocumentDetailPage({
   }, []);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchDocument = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
         const docData = await documentsApi.get(id);
 
         // Check if this is an HTML document

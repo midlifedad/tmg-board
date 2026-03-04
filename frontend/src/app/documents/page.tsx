@@ -68,13 +68,13 @@ export default function DocumentsPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchDocuments = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
         const data = await documentsApi.list({ archived: false });
         // Transform API response to match component interface
         const transformed: Document[] = data.map((doc) => {

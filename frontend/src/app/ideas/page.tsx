@@ -47,13 +47,13 @@ export default function IdeasPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchIdeas = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
         const data = await ideasApi.list();
         // Transform API response to match component interface
         const transformed: Idea[] = data.map((idea) => ({

@@ -119,12 +119,11 @@ export default function MeetingDetailPage({
   const [ianaZone, setIanaZone] = useState("America/Los_Angeles");
 
   const fetchMeeting = useCallback(async () => {
+    const email = session?.user?.email;
+    if (!email) return;
     try {
       setLoading(true);
-      const email = session?.user?.email;
-      if (email) {
-        api.setUserEmail(email);
-      }
+      api.setUserEmail(email);
       // Fetch timezone in parallel with meeting data
       const [meetingData, agendaData] = await Promise.all([
         meetingsApi.get(id),

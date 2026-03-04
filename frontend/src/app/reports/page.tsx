@@ -22,13 +22,13 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchReports = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
 
         const data = await documentsApi.list({ archived: false });
         // Filter to report-type documents shareholders can see
@@ -44,9 +44,7 @@ export default function ReportsPage() {
       }
     };
 
-    if (session?.user?.email) {
-      fetchReports();
-    }
+    fetchReports();
   }, [session?.user?.email]);
 
   if (loading) {

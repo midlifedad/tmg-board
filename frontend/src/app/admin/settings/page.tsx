@@ -72,13 +72,13 @@ export default function AdminSettingsPage() {
   }, [isAdmin, permissionsLoading, router]);
 
   useEffect(() => {
+    const email = session?.user?.email;
+    if (!email) return;
+
     const fetchSettings = async () => {
       try {
         setLoading(true);
-        const email = session?.user?.email;
-        if (email) {
-          api.setUserEmail(email);
-        }
+        api.setUserEmail(email);
 
         const data = await adminApi.getSettings().catch(() => settings);
         setSettings(data);
