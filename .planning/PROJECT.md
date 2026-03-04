@@ -40,12 +40,13 @@ Board members can efficiently conduct governance — schedule meetings, track de
 <!-- v2.0 scope — see REQUIREMENTS.md for formal REQ-IDs -->
 
 - [ ] AI agent infrastructure (LiteLLM, agent loop, SSE streaming, tool system)
-- [ ] Meeting transcript paste/upload
-- [ ] AI-driven minutes generation from transcript
+- [ ] Meeting creation overhaul with agent-assisted paste-to-populate
+- [ ] Meeting templates with regulatory item support
+- [ ] Meeting transcript paste/upload → AI minutes generation
 - [ ] Board resolution digital signatures
-- [ ] Agent frontend (listing, chat, per-agent tool access)
-- [ ] Built-in agents (Agenda Creator, Minutes Generator, Resolution Writer)
-- [ ] Admin agent management (CRUD, tool shed, prompt editing, usage stats)
+- [ ] Embedded agent UX on existing pages (not standalone chat)
+- [ ] Built-in agents (Meeting Setup, Minutes Generator, Resolution Writer)
+- [ ] Admin agent management under Admin section (CRUD, tool shed, prompts, usage)
 
 ### Out of Scope
 

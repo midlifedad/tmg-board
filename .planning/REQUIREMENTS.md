@@ -83,45 +83,43 @@ Deferred to next milestone. Needs domain research first.
 
 ## Traceability
 
-Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AGENT-01 | — | Pending |
-| AGENT-02 | — | Pending |
-| AGENT-03 | — | Pending |
-| AGENT-04 | — | Pending |
-| MEET-01 | — | Pending |
-| MEET-02 | — | Pending |
-| MEET-03 | — | Pending |
-| MEET-04 | — | Pending |
-| MEET-05 | — | Pending |
-| TRANS-01 | — | Pending |
-| TRANS-02 | — | Pending |
-| TRANS-03 | — | Pending |
-| TRANS-04 | — | Pending |
-| TRANS-05 | — | Pending |
-| RES-01 | — | Pending |
-| RES-02 | — | Pending |
-| RES-03 | — | Pending |
-| RES-04 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
-| UX-03 | — | Pending |
-| UX-04 | — | Pending |
-| BUILT-01 | — | Pending |
-| BUILT-02 | — | Pending |
-| BUILT-03 | — | Pending |
-| ADMIN-01 | — | Pending |
-| ADMIN-02 | — | Pending |
-| ADMIN-03 | — | Pending |
-| ADMIN-04 | — | Pending |
+| AGENT-01 | Phase 01 | Pending |
+| AGENT-02 | Phase 01 | Pending |
+| AGENT-03 | Phase 01 | Pending |
+| AGENT-04 | Phase 01 | Pending |
+| UX-02 | Phase 01 | Pending |
+| UX-03 | Phase 01 | Pending |
+| UX-04 | Phase 01 | Pending |
+| MEET-01 | Phase 02 | Pending |
+| MEET-02 | Phase 02 | Pending |
+| MEET-03 | Phase 02 | Pending |
+| MEET-04 | Phase 02 | Pending |
+| MEET-05 | Phase 02 | Pending |
+| UX-01 | Phase 02 | Pending |
+| BUILT-01 | Phase 02 | Pending |
+| TRANS-01 | Phase 03 | Pending |
+| TRANS-02 | Phase 03 | Pending |
+| TRANS-03 | Phase 03 | Pending |
+| TRANS-04 | Phase 03 | Pending |
+| TRANS-05 | Phase 03 | Pending |
+| BUILT-02 | Phase 03 | Pending |
+| RES-01 | Phase 04 | Pending |
+| RES-02 | Phase 04 | Pending |
+| RES-03 | Phase 04 | Pending |
+| RES-04 | Phase 04 | Pending |
+| BUILT-03 | Phase 04 | Pending |
+| ADMIN-01 | Phase 05 | Pending |
+| ADMIN-02 | Phase 05 | Pending |
+| ADMIN-03 | Phase 05 | Pending |
+| ADMIN-04 | Phase 05 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 ⚠️
+- Mapped to phases: 29
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-04 after initial definition*
+*Last updated: 2026-03-04 — traceability filled after roadmap creation*
