@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -30,7 +30,7 @@ interface PdfViewerProps {
 }
 
 export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -42,8 +42,9 @@ export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
   useEffect(() => {
     if (!userEmail) return;
     let cancelled = false;
+    let blobUrl: string | null = null;
     setLoadError(null);
-    setPdfData(null);
+    setPdfBlobUrl(null);
     async function fetchPdf() {
       try {
         const response = await fetch(url, {
@@ -54,7 +55,9 @@ export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
         }
         const buffer = await response.arrayBuffer();
         if (!cancelled) {
-          setPdfData(buffer);
+          const blob = new Blob([buffer], { type: "application/pdf" });
+          blobUrl = URL.createObjectURL(blob);
+          setPdfBlobUrl(blobUrl);
         }
       } catch (err) {
         if (!cancelled) {
@@ -63,8 +66,13 @@ export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
       }
     }
     fetchPdf();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
   }, [url, userEmail]);
+
+  const file = useMemo(() => pdfBlobUrl, [pdfBlobUrl]);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages }: { numPages: number }) => {
@@ -182,13 +190,13 @@ export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
           <p className="text-lg font-medium">Unable to load PDF</p>
           <p className="text-sm mt-1">{loadError}</p>
         </div>
-      ) : !pdfData ? (
+      ) : !file ? (
         <div className="flex items-center justify-center h-full">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
       <Document
-        file={{ data: pdfData.slice(0) }}
+        file={file}
         onLoadSuccess={onDocumentLoadSuccess}
         onLoadError={onDocumentLoadError}
         loading={
