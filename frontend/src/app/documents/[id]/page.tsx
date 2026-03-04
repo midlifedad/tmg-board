@@ -33,6 +33,7 @@ import { documentsApi, api, type Document as ApiDocument, type DocumentVersion }
 import { usePermissions } from "@/hooks/use-permissions";
 import { EditDocumentModal } from "@/components/edit-document-modal";
 import { UploadVersionModal } from "@/components/upload-version-modal";
+import { PdfViewer } from "@/components/pdf-viewer";
 
 interface DocumentDetail {
   id: string;
@@ -432,23 +433,11 @@ export default function DocumentDetailPage({
                 </CardContent>
               </Card>
             ) : (
-              /* PDF Viewer placeholder */
-              <Card>
-                <CardContent className="p-0">
-                  <div className="aspect-[8.5/11] bg-muted/50 rounded-lg flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg font-medium">PDF Viewer</p>
-                      <p className="text-sm">
-                        Document preview will be displayed here
-                      </p>
-                      <p className="text-xs mt-2">
-                        (react-pdf integration pending)
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              /* PDF Viewer */
+              <PdfViewer
+                url={`/api/proxy/documents/${id}/download`}
+                title={document.title}
+              />
             )}
           </div>
 
