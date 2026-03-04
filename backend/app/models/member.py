@@ -17,6 +17,7 @@ class BoardMember(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="board")  # admin/chair/board/shareholder
     google_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    timezone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # IANA timezone, null = use org default
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Soft delete

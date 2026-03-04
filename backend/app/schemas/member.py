@@ -26,6 +26,7 @@ class BoardMemberResponse(BoardMemberBase):
     """Schema for board member response."""
     id: int
     google_id: Optional[str] = None
+    timezone: Optional[str] = None
     created_at: datetime
     is_active: bool
 

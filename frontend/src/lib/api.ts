@@ -155,6 +155,8 @@ export interface User {
   name: string;
   role: "admin" | "chair" | "board" | "shareholder";
   google_id?: string;
+  timezone?: string | null;
+  effective_timezone?: string;
   created_at: string;
 }
 
@@ -178,6 +180,13 @@ export const authApi = {
    */
   getCurrentUser: async (): Promise<User> => {
     return api.get("/auth/me");
+  },
+
+  /**
+   * Update current user's timezone
+   */
+  updateTimezone: async (timezone: string): Promise<void> => {
+    return api.patch("/auth/me/timezone", { timezone });
   },
 
   /**
@@ -973,6 +982,7 @@ export interface SystemSettings {
   organization_name: string;
   organization_logo_url?: string | null;
   default_meeting_duration: number;
+  default_timezone: string;
   voting_reminder_days: number;
   signature_reminder_days: number;
   [key: string]: string | number | boolean | null | undefined;
