@@ -25,8 +25,9 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { meetingsApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem } from "@/lib/api";
+import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem } from "@/lib/api";
 import { EditMeetingModal } from "@/components/edit-meeting-modal";
+import { getTimezoneAbbr } from "@/lib/timezone";
 
 type MeetingStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
 
@@ -113,6 +114,10 @@ export default function MeetingDetailPage({
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
 
+  // Timezone
+  const [tzAbbr, setTzAbbr] = useState("PT");
+  const [ianaZone, setIanaZone] = useState("America/Los_Angeles");
+
   const fetchMeeting = useCallback(async () => {
     try {
       setLoading(true);
@@ -120,10 +125,20 @@ export default function MeetingDetailPage({
       if (email) {
         api.setUserEmail(email);
       }
+      // Fetch timezone in parallel with meeting data
       const [meetingData, agendaData] = await Promise.all([
         meetingsApi.get(id),
         meetingsApi.getAgenda(id),
       ]);
+
+      try {
+        const me = await authApi.getCurrentUser();
+        const tz = me.effective_timezone || "America/Los_Angeles";
+        setIanaZone(tz);
+        setTzAbbr(getTimezoneAbbr(tz));
+      } catch {
+        // Fall back to default
+      }
 
       // Extract date and time from the raw string to avoid UTC conversion shifts
       const parts = meetingData.scheduled_date.split("T");
@@ -350,8 +365,8 @@ export default function MeetingDetailPage({
       "VERSION:2.0",
       "PRODID:-//TMG Board//EN",
       "BEGIN:VEVENT",
-      `DTSTART:${startDate}`,
-      `DTEND:${endDate}`,
+      `DTSTART;TZID=${ianaZone}:${startDate}`,
+      `DTEND;TZID=${ianaZone}:${endDate}`,
       `SUMMARY:${mtg.title}`,
       `LOCATION:${mtg.location}`,
       mtg.description ? `DESCRIPTION:${mtg.description.replace(/\n/g, "\\n")}` : "",
@@ -381,7 +396,7 @@ export default function MeetingDetailPage({
     const endH = Math.floor(endTotalM / 60) % 24;
     const endM = endTotalM % 60;
     const dateCompact = meeting.date.replace(/-/g, "");
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(meeting.title)}&dates=${dateCompact}T${meeting.time.replace(":", "")}00/${dateCompact}T${String(endH).padStart(2, "0")}${String(endM).padStart(2, "0")}00&location=${encodeURIComponent(meeting.location)}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(meeting.title)}&dates=${dateCompact}T${meeting.time.replace(":", "")}00/${dateCompact}T${String(endH).padStart(2, "0")}${String(endM).padStart(2, "0")}00&location=${encodeURIComponent(meeting.location)}&ctz=${encodeURIComponent(ianaZone)}`;
   })();
 
   if (loading) {
@@ -445,7 +460,7 @@ export default function MeetingDetailPage({
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
-                {meeting.time} ({meeting.duration})
+                {meeting.time} {tzAbbr} ({meeting.duration})
               </div>
               <div className="flex items-center gap-1.5">
                 {meeting.isVirtual ? (

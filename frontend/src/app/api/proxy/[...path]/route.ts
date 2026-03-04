@@ -55,7 +55,18 @@ async function proxyRequest(req: NextRequest, path: string[]) {
       responseHeaders.set(key, value);
     });
 
-    const responseBody = await response.text();
+    // Use arrayBuffer for binary responses (PDFs, images, etc.)
+    // to avoid UTF-8 text decoding corruption
+    const respContentType = response.headers.get("content-type") || "";
+    const isBinary =
+      respContentType.includes("application/pdf") ||
+      respContentType.includes("application/octet-stream") ||
+      respContentType.includes("application/zip") ||
+      respContentType.includes("image/");
+
+    const responseBody = isBinary
+      ? await response.arrayBuffer()
+      : await response.text();
 
     return new NextResponse(responseBody, {
       status: response.status,

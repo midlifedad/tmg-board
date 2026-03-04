@@ -16,8 +16,9 @@ import {
   CheckCircle2,
   Scale,
 } from "lucide-react";
-import { meetingsApi, api, type Meeting as ApiMeeting } from "@/lib/api";
+import { meetingsApi, authApi, api, type Meeting as ApiMeeting } from "@/lib/api";
 import { CreateMeetingModal } from "@/components/create-meeting-modal";
+import { getTimezoneAbbr } from "@/lib/timezone";
 
 interface Meeting {
   id: string;
@@ -40,6 +41,8 @@ export default function MeetingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [tzAbbr, setTzAbbr] = useState("PT");
+  const [ianaZone, setIanaZone] = useState("America/Los_Angeles");
 
   useEffect(() => {
     const fetchMeetings = async () => {
@@ -49,6 +52,17 @@ export default function MeetingsPage() {
         if (email) {
           api.setUserEmail(email);
         }
+
+        // Fetch user's effective timezone
+        try {
+          const me = await authApi.getCurrentUser();
+          const tz = me.effective_timezone || "America/Los_Angeles";
+          setIanaZone(tz);
+          setTzAbbr(getTimezoneAbbr(tz));
+        } catch {
+          // Fall back to default
+        }
+
         const data = await meetingsApi.list();
         const transformed: Meeting[] = data.map((meeting) => {
           // Extract date and time from the raw string to avoid UTC conversion shifts
@@ -212,7 +226,7 @@ export default function MeetingsPage() {
             {upcomingMeetings.length > 0 ? (
               <div className="space-y-3">
                 {upcomingMeetings.map((meeting) => (
-                  <UpcomingMeetingCard key={meeting.id} meeting={meeting} />
+                  <UpcomingMeetingCard key={meeting.id} meeting={meeting} tzAbbr={tzAbbr} />
                 ))}
               </div>
             ) : (
@@ -277,13 +291,14 @@ function getDayOfMonth(dateStr: string): string {
 
 interface UpcomingMeetingCardProps {
   meeting: Meeting;
+  tzAbbr: string;
 }
 
-function UpcomingMeetingCard({ meeting }: UpcomingMeetingCardProps) {
+function UpcomingMeetingCard({ meeting, tzAbbr }: UpcomingMeetingCardProps) {
   const dateDisplay = formatMeetingDate(meeting.date);
   const timeAndDuration = meeting.duration
-    ? `${dateDisplay} at ${meeting.time} (${meeting.duration})`
-    : `${dateDisplay} at ${meeting.time}`;
+    ? `${dateDisplay} at ${meeting.time} ${tzAbbr} (${meeting.duration})`
+    : `${dateDisplay} at ${meeting.time} ${tzAbbr}`;
 
   return (
     <Card className="hover:bg-muted/30 transition-colors">

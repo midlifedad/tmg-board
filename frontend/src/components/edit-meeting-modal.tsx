@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Calendar, Loader2, MapPin, Video, Link as LinkIcon } from "lucide-react";
-import { meetingsApi } from "@/lib/api";
+import { meetingsApi, authApi } from "@/lib/api";
+import { getTimezoneAbbr } from "@/lib/timezone";
 
 interface EditMeetingModalProps {
   isOpen: boolean;
@@ -29,6 +30,16 @@ export function EditMeetingModal({ isOpen, onClose, onSuccess, meeting }: EditMe
   const [meetingLink, setMeetingLink] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tzAbbr, setTzAbbr] = useState("PT");
+
+  useEffect(() => {
+    if (isOpen) {
+      authApi.getCurrentUser().then((me) => {
+        const tz = me.effective_timezone || "America/Los_Angeles";
+        setTzAbbr(getTimezoneAbbr(tz));
+      }).catch(() => {});
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (meeting) {
@@ -141,40 +152,43 @@ export function EditMeetingModal({ isOpen, onClose, onSuccess, meeting }: EditMe
             </div>
 
             {/* Date, Time, Duration */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium">Date *</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  disabled={submitting}
-                />
+            <div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Date *</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    disabled={submitting}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Time *</label>
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    disabled={submitting}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Duration (min)</label>
+                  <input
+                    type="number"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    min="15"
+                    step="15"
+                    placeholder="60"
+                    className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    disabled={submitting}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Time *</label>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  disabled={submitting}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Duration (min)</label>
-                <input
-                  type="number"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  min="15"
-                  step="15"
-                  placeholder="60"
-                  className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  disabled={submitting}
-                />
-              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">All times in {tzAbbr}</p>
             </div>
 
             {/* Location Type */}

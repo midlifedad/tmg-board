@@ -26,6 +26,7 @@ import { adminApi, api, type SystemSettings, type AuditLogEntry } from "@/lib/ap
 import { usePermissions } from "@/hooks/use-permissions";
 import { useBranding } from "@/contexts/branding-context";
 import { permissionCategories } from "@/lib/permissions";
+import { COMMON_TIMEZONES } from "@/lib/timezone";
 
 type SettingsTab = "general" | "permissions" | "audit";
 
@@ -47,6 +48,7 @@ export default function AdminSettingsPage() {
     organization_name: "",
     organization_logo_url: null,
     default_meeting_duration: 60,
+    default_timezone: "America/Los_Angeles",
     voting_reminder_days: 3,
     signature_reminder_days: 7,
   });
@@ -346,7 +348,7 @@ export default function AdminSettingsPage() {
                   Meeting Defaults
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">Default Duration (minutes)</label>
                   <input
@@ -363,6 +365,28 @@ export default function AdminSettingsPage() {
                     step={15}
                     className="w-32 mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                   />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Default Timezone</label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Used for meeting times when a member has no personal preference set
+                  </p>
+                  <select
+                    value={settings.default_timezone || "America/Los_Angeles"}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        default_timezone: e.target.value,
+                      })
+                    }
+                    className="w-64 mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {COMMON_TIMEZONES.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </CardContent>
             </Card>

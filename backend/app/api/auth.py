@@ -247,12 +247,71 @@ async def get_user_by_email(
     return member
 
 
-@router.get("/me", response_model=BoardMemberResponse)
+@router.get("/me")
 async def get_current_user_info(
-    current_user: BoardMember = Depends(require_member)
+    current_user: BoardMember = Depends(require_member),
+    db: Session = Depends(get_db)
 ):
-    """Get current authenticated user's info."""
-    return current_user
+    """Get current authenticated user's info with effective timezone."""
+    from app.models.admin import Setting
+
+    # Determine effective timezone: user preference > org default > America/Los_Angeles
+    effective_timezone = current_user.timezone
+    if not effective_timezone:
+        setting = db.query(Setting).filter(Setting.key == "default_timezone").first()
+        effective_timezone = setting.value if setting else "America/Los_Angeles"
+
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "role": current_user.role,
+        "google_id": current_user.google_id,
+        "timezone": current_user.timezone,
+        "effective_timezone": effective_timezone,
+        "created_at": current_user.created_at,
+        "is_active": current_user.is_active,
+    }
+
+
+class UpdateTimezoneRequest(BaseModel):
+    timezone: str
+
+
+# Common IANA timezones for validation
+VALID_TIMEZONES = {
+    "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+    "America/Anchorage", "Pacific/Honolulu", "America/Phoenix",
+    "America/Toronto", "America/Vancouver", "America/Edmonton",
+    "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Copenhagen",
+    "Europe/Amsterdam", "Europe/Zurich", "Europe/Stockholm", "Europe/Oslo",
+    "Europe/Helsinki", "Europe/Madrid", "Europe/Rome", "Europe/Vienna",
+    "Europe/Brussels", "Europe/Dublin", "Europe/Lisbon", "Europe/Warsaw",
+    "Europe/Prague", "Europe/Budapest", "Europe/Bucharest", "Europe/Athens",
+    "Europe/Moscow", "Europe/Istanbul",
+    "Asia/Tokyo", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Singapore",
+    "Asia/Seoul", "Asia/Kolkata", "Asia/Dubai", "Asia/Bangkok",
+    "Australia/Sydney", "Australia/Melbourne", "Australia/Perth",
+    "Pacific/Auckland", "Africa/Johannesburg", "Africa/Lagos",
+    "America/Sao_Paulo", "America/Mexico_City", "America/Argentina/Buenos_Aires",
+    "UTC",
+}
+
+
+@router.patch("/me/timezone")
+async def update_my_timezone(
+    request: UpdateTimezoneRequest,
+    current_user: BoardMember = Depends(require_authenticated),
+    db: Session = Depends(get_db)
+):
+    """Update current user's timezone preference."""
+    if request.timezone not in VALID_TIMEZONES:
+        raise HTTPException(status_code=400, detail=f"Invalid timezone: {request.timezone}")
+
+    current_user.timezone = request.timezone
+    db.commit()
+
+    return {"status": "updated", "timezone": request.timezone}
 
 
 @router.post("/logout")
