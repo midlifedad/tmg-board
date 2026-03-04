@@ -31,7 +31,12 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
   3. When the agent calls a tool, the UI shows which tool is executing and the result inline
   4. The same agent invocation works when the underlying model is swapped to Anthropic, Gemini, or Groq without frontend changes
   5. Tool actions performed by the agent (e.g., creating an agenda item) take effect in the live app and respect the invoking user's role permissions
-**Plans**: TBD
+**Plans:** 4 plans
+Plans:
+- [ ] 01-01-PLAN.md — Backend foundation: models, schemas, dependencies, config, test infrastructure, seed data
+- [ ] 01-02-PLAN.md — Agent runner service: LiteLLM integration, tool registry, tool implementations, agent loop
+- [ ] 01-03-PLAN.md — SSE streaming: FastAPI endpoint, proxy fix, SSE event protocol, integration tests
+- [ ] 01-04-PLAN.md — Frontend: useAgentStream hook, AgentResponsePanel, ToolCallIndicator, visual checkpoint
 
 ### Phase 02: Meeting Creation Overhaul & Meeting Setup Agent
 **Goal**: Users can create meetings by pasting a description for agent-assisted population or filling fields manually, and admins can define reusable templates with regulatory items
@@ -85,7 +90,7 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 01. Agent Infrastructure & Streaming UX | 0/TBD | Not started | - |
+| 01. Agent Infrastructure & Streaming UX | 0/4 | Planning complete | - |
 | 02. Meeting Creation Overhaul & Meeting Setup Agent | 0/TBD | Not started | - |
 | 03. Transcripts & Minutes Generator | 0/TBD | Not started | - |
 | 04. Board Resolutions & Resolution Writer | 0/TBD | Not started | - |
