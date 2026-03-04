@@ -10,7 +10,7 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 ### Agent Infrastructure
 
 - [x] **AGENT-01**: System can route user requests to configured agents with system prompt, model, and allowed tools
-- [ ] **AGENT-02**: Agent tools call the board's own REST API with the user's auth context (preserving permissions)
+- [x] **AGENT-02**: Agent tools call the board's own REST API with the user's auth context (preserving permissions)
 - [ ] **AGENT-03**: Agent responses stream to the frontend via SSE
 - [x] **AGENT-04**: System supports multiple LLM providers (Anthropic, Gemini, Groq) via LiteLLM
 
@@ -86,7 +86,7 @@ Deferred to next milestone. Needs domain research first.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | AGENT-01 | Phase 01 | Complete |
-| AGENT-02 | Phase 01 | Pending |
+| AGENT-02 | Phase 01 | Complete |
 | AGENT-03 | Phase 01 | Pending |
 | AGENT-04 | Phase 01 | Complete |
 | UX-02 | Phase 01 | Pending |
