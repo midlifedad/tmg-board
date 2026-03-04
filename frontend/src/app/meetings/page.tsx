@@ -5,21 +5,17 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Calendar,
   Plus,
-  List,
-  Grid3X3,
   MapPin,
   Clock,
   Video,
   FileText,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
+  CheckCircle2,
+  Scale,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { meetingsApi, api, type Meeting as ApiMeeting } from "@/lib/api";
 import { CreateMeetingModal } from "@/components/create-meeting-modal";
 
@@ -28,23 +24,18 @@ interface Meeting {
   title: string;
   date: string;
   time: string;
+  duration: string;
+  durationMinutes: number | null;
   location: string;
   isVirtual: boolean;
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
-  hasMinutes?: boolean;
+  agendaItemsCount: number;
+  hasMinutes: boolean;
+  decisionsCount: number;
 }
-
-const statusColors = {
-  scheduled: "bg-blue-500/20 text-blue-400",
-  in_progress: "bg-green-500/20 text-green-400",
-  completed: "bg-muted text-muted-foreground",
-  cancelled: "bg-red-500/20 text-red-400",
-};
 
 export default function MeetingsPage() {
   const { data: session } = useSession();
-  const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 0, 1)); // January 2026
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,34 +50,46 @@ export default function MeetingsPage() {
           api.setUserEmail(email);
         }
         const data = await meetingsApi.list();
-        // Transform API response to match component interface
         const transformed: Meeting[] = data.map((meeting) => {
-          // Parse date and time from scheduled_date
-          const dateObj = new Date(meeting.scheduled_date);
-          const time = dateObj.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          });
-          const dateStr = dateObj.toISOString().split("T")[0];
-          const isVirtual = meeting.meeting_link != null ||
-                           meeting.location.toLowerCase().includes("virtual") ||
-                           meeting.location.toLowerCase().includes("zoom");
+          // Extract date and time from the raw string to avoid UTC conversion shifts
+          const parts = meeting.scheduled_date.split("T");
+          const dateStr = parts[0];
+          const time = parts[1]?.slice(0, 5) || "00:00";
+          const isVirtual =
+            meeting.meeting_link != null ||
+            meeting.location.toLowerCase().includes("virtual") ||
+            meeting.location.toLowerCase().includes("zoom");
           return {
             id: String(meeting.id),
             title: meeting.title,
             date: dateStr,
             time: time,
+            duration: meeting.duration_minutes
+              ? meeting.duration_minutes >= 60
+                ? `${Math.floor(meeting.duration_minutes / 60)}h${meeting.duration_minutes % 60 ? ` ${meeting.duration_minutes % 60}m` : ""}`
+                : `${meeting.duration_minutes} min`
+              : "",
+            durationMinutes: meeting.duration_minutes ?? null,
             location: meeting.location,
             isVirtual: isVirtual,
             status: meeting.status,
-            hasMinutes: meeting.status === "completed",
+            agendaItemsCount:
+              (meeting as ApiMeeting & { agenda_items_count?: number })
+                .agenda_items_count ?? 0,
+            hasMinutes:
+              (meeting as ApiMeeting & { has_minutes?: boolean })
+                .has_minutes ?? false,
+            decisionsCount:
+              (meeting as ApiMeeting & { decisions_count?: number })
+                .decisions_count ?? 0,
           };
         });
         setMeetings(transformed);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load meetings");
+        setError(
+          err instanceof Error ? err.message : "Failed to load meetings"
+        );
       } finally {
         setLoading(false);
       }
@@ -96,31 +99,43 @@ export default function MeetingsPage() {
   }, [session?.user?.email]);
 
   const userRole = (session?.user as { role?: string })?.role;
-  const isChairOrAdmin = userRole === "admin" || userRole === "chair" || !session;
+  const isChairOrAdmin =
+    userRole === "admin" || userRole === "chair" || !session;
 
   const refetchMeetings = async () => {
     try {
       const data = await meetingsApi.list();
       const transformed: Meeting[] = data.map((meeting) => {
-        const dateObj = new Date(meeting.scheduled_date);
-        const time = dateObj.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        });
-        const dateStr = dateObj.toISOString().split("T")[0];
-        const isVirtual = meeting.meeting_link != null ||
-                         meeting.location.toLowerCase().includes("virtual") ||
-                         meeting.location.toLowerCase().includes("zoom");
+        const parts = meeting.scheduled_date.split("T");
+        const dateStr = parts[0];
+        const time = parts[1]?.slice(0, 5) || "00:00";
+        const isVirtual =
+          meeting.meeting_link != null ||
+          meeting.location.toLowerCase().includes("virtual") ||
+          meeting.location.toLowerCase().includes("zoom");
         return {
           id: String(meeting.id),
           title: meeting.title,
           date: dateStr,
           time: time,
+          duration: meeting.duration_minutes
+            ? meeting.duration_minutes >= 60
+              ? `${Math.floor(meeting.duration_minutes / 60)}h${meeting.duration_minutes % 60 ? ` ${meeting.duration_minutes % 60}m` : ""}`
+              : `${meeting.duration_minutes} min`
+            : "",
+          durationMinutes: meeting.duration_minutes ?? null,
           location: meeting.location,
           isVirtual: isVirtual,
           status: meeting.status,
-          hasMinutes: meeting.status === "completed",
+          agendaItemsCount:
+            (meeting as ApiMeeting & { agenda_items_count?: number })
+              .agenda_items_count ?? 0,
+          hasMinutes:
+            (meeting as ApiMeeting & { has_minutes?: boolean }).has_minutes ??
+            false,
+          decisionsCount:
+            (meeting as ApiMeeting & { decisions_count?: number })
+              .decisions_count ?? 0,
         };
       });
       setMeetings(transformed);
@@ -129,34 +144,16 @@ export default function MeetingsPage() {
     }
   };
 
-  const upcomingMeetings = meetings.filter(
-    (m) => m.status === "scheduled" && new Date(m.date) >= new Date()
-  );
-  const pastMeetings = meetings.filter((m) => m.status === "completed");
-
-  // Calendar helpers
-  const daysInMonth = new Date(
-    currentMonth.getFullYear(),
-    currentMonth.getMonth() + 1,
-    0
-  ).getDate();
-  const firstDayOfMonth = new Date(
-    currentMonth.getFullYear(),
-    currentMonth.getMonth(),
-    1
-  ).getDay();
-
-  const monthMeetings = meetings.filter((m) => {
-    const meetingDate = new Date(m.date);
-    return (
-      meetingDate.getMonth() === currentMonth.getMonth() &&
-      meetingDate.getFullYear() === currentMonth.getFullYear()
+  const upcomingMeetings = meetings
+    .filter((m) => m.status === "scheduled" || m.status === "in_progress")
+    .sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
-  });
-
-  const getMeetingForDay = (day: number) => {
-    return monthMeetings.find((m) => new Date(m.date).getDate() === day);
-  };
+  const pastMeetings = meetings
+    .filter((m) => m.status === "completed")
+    .sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
   if (loading) {
     return (
@@ -185,40 +182,18 @@ export default function MeetingsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] mb-2 flex items-center gap-3"><span>Calendar & Scheduling</span><div className="flex-1 h-px bg-border" /></div>
+            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] mb-2 flex items-center gap-3">
+              <span>Meetings</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
             <h1 className="text-3xl font-light">Meetings</h1>
-            <p className="text-sm font-light text-muted-foreground mt-1">
-              Board meetings, agendas, and minutes
-            </p>
           </div>
           <div className="flex items-center gap-2">
-            {/* View Toggle */}
-            <div className="flex items-center border rounded-md">
-              <button
-                onClick={() => setViewMode("calendar")}
-                className={cn(
-                  "p-2 transition-colors",
-                  viewMode === "calendar"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "p-2 transition-colors",
-                  viewMode === "list"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )}
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
             {isChairOrAdmin && (
-              <Button onClick={() => setShowCreateModal(true)}>
+              <Button
+                onClick={() => setShowCreateModal(true)}
+                className="min-h-[44px]"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Schedule Meeting
               </Button>
@@ -226,129 +201,44 @@ export default function MeetingsPage() {
           </div>
         </div>
 
-        {viewMode === "calendar" ? (
-          /* Calendar View */
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>
-                {currentMonth.toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setCurrentMonth(
-                      new Date(
-                        currentMonth.getFullYear(),
-                        currentMonth.getMonth() - 1
-                      )
-                    )
-                  }
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    setCurrentMonth(
-                      new Date(
-                        currentMonth.getFullYear(),
-                        currentMonth.getMonth() + 1
-                      )
-                    )
-                  }
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Day headers */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                  <div
-                    key={day}
-                    className="text-center text-xs font-medium text-muted-foreground py-2"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1">
-                {/* Empty cells for days before month starts */}
-                {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                  <div key={`empty-${i}`} className="aspect-square" />
-                ))}
-                {/* Days of month */}
-                {Array.from({ length: daysInMonth }).map((_, i) => {
-                  const day = i + 1;
-                  const meeting = getMeetingForDay(day);
-                  const isToday =
-                    day === new Date().getDate() &&
-                    currentMonth.getMonth() === new Date().getMonth() &&
-                    currentMonth.getFullYear() === new Date().getFullYear();
-
-                  return (
-                    <div
-                      key={day}
-                      className={cn(
-                        "aspect-square p-1 border rounded-md",
-                        isToday && "border-primary",
-                        meeting && "bg-primary/10"
-                      )}
-                    >
-                      <div className="text-xs text-right mb-1">{day}</div>
-                      {meeting && (
-                        <Link href={`/meetings/${meeting.id}`}>
-                          <div className="text-[10px] bg-primary text-primary-foreground rounded px-1 py-0.5 truncate">
-                            {meeting.title}
-                          </div>
-                        </Link>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          /* List View */
-          <div className="space-y-6">
-            {/* Upcoming Meetings */}
-            <div>
-              <h2 className="text-lg font-semibold mb-4">Upcoming Meetings</h2>
-              {upcomingMeetings.length > 0 ? (
-                <div className="space-y-3">
-                  {upcomingMeetings.map((meeting) => (
-                    <MeetingCard key={meeting.id} meeting={meeting} />
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No upcoming meetings scheduled.
-                  </CardContent>
-                </Card>
-              )}
+        {/* List View */}
+        <div className="space-y-8">
+          {/* Upcoming Meetings */}
+          <div>
+            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] flex items-center gap-3 mb-4">
+              <span>Upcoming Meetings</span>
+              <div className="flex-1 h-px bg-border" />
             </div>
+            {upcomingMeetings.length > 0 ? (
+              <div className="space-y-3">
+                {upcomingMeetings.map((meeting) => (
+                  <UpcomingMeetingCard key={meeting.id} meeting={meeting} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  No upcoming meetings scheduled.
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-            {/* Past Meetings */}
+          {/* Past Meetings */}
+          {pastMeetings.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">Past Meetings</h2>
+              <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--gold)] flex items-center gap-3 mb-4">
+                <span>Past Meetings</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
               <div className="space-y-3">
                 {pastMeetings.map((meeting) => (
-                  <MeetingCard key={meeting.id} meeting={meeting} />
+                  <PastMeetingCard key={meeting.id} meeting={meeting} />
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Create Meeting Modal */}
@@ -361,73 +251,177 @@ export default function MeetingsPage() {
   );
 }
 
-interface MeetingCardProps {
-  meeting: {
-    id: string;
-    title: string;
-    date: string;
-    time: string;
-    location: string;
-    isVirtual: boolean;
-    status: "scheduled" | "in_progress" | "completed" | "cancelled";
-    hasMinutes?: boolean;
-  };
+function formatMeetingDate(dateStr: string): string {
+  // Parse the date string (YYYY-MM-DD) without timezone shifts
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 }
 
-function MeetingCard({ meeting }: MeetingCardProps) {
+function getMonthAbbrev(dateStr: string): string {
+  const [year, month] = dateStr.split("-").map(Number);
+  const date = new Date(year, month - 1, 1);
+  return date.toLocaleDateString("en-US", { month: "short" });
+}
+
+function getDayOfMonth(dateStr: string): string {
+  const [, , day] = dateStr.split("-");
+  return String(parseInt(day, 10));
+}
+
+// ---------- Upcoming Meeting Card ----------
+
+interface UpcomingMeetingCardProps {
+  meeting: Meeting;
+}
+
+function UpcomingMeetingCard({ meeting }: UpcomingMeetingCardProps) {
+  const dateDisplay = formatMeetingDate(meeting.date);
+  const timeAndDuration = meeting.duration
+    ? `${dateDisplay} at ${meeting.time} (${meeting.duration})`
+    : `${dateDisplay} at ${meeting.time}`;
+
   return (
-    <Card className="hover:bg-muted/20 transition-colors">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex-shrink-0 w-12 h-12 bg-primary/20 rounded-lg flex flex-col items-center justify-center">
-              <span className="text-xs text-primary font-medium">
-                {new Date(meeting.date).toLocaleDateString("en-US", {
-                  month: "short",
-                })}
+    <Card className="hover:bg-muted/30 transition-colors">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            {/* Date badge */}
+            <div className="flex-shrink-0 w-14 h-14 bg-[var(--gold)]/10 border border-[var(--gold)]/20 rounded-lg flex flex-col items-center justify-center">
+              <span className="text-[10px] font-mono uppercase text-[var(--gold)]">
+                {getMonthAbbrev(meeting.date)}
               </span>
-              <span className="text-lg font-bold text-primary">
-                {new Date(meeting.date).getDate()}
+              <span className="text-lg font-bold text-[var(--gold)]">
+                {getDayOfMonth(meeting.date)}
               </span>
             </div>
-            <div>
+
+            <div className="space-y-2">
+              {/* Title */}
               <Link
                 href={`/meetings/${meeting.id}`}
-                className="font-medium hover:text-primary transition-colors"
+                className="text-base font-medium hover:text-[var(--gold)] transition-colors"
               >
                 {meeting.title}
               </Link>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {meeting.time}
-                </div>
-                <div className="flex items-center gap-1">
-                  {meeting.isVirtual ? (
-                    <Video className="h-3 w-3" />
-                  ) : (
-                    <MapPin className="h-3 w-3" />
-                  )}
-                  {meeting.location}
-                </div>
+
+              {/* Date + time + duration */}
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>{timeAndDuration}</span>
+              </div>
+
+              {/* Location */}
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                {meeting.isVirtual ? (
+                  <Video className="h-3.5 w-3.5 flex-shrink-0" />
+                ) : (
+                  <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                )}
+                <span>{meeting.location}</span>
+              </div>
+
+              {/* Preparation indicators */}
+              <div className="flex items-center gap-4 pt-1">
+                {meeting.agendaItemsCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>
+                      {meeting.agendaItemsCount} agenda item
+                      {meeting.agendaItemsCount !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {meeting.status === "completed" && meeting.hasMinutes && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/documents?type=minutes`}>
-                  <FileText className="h-3 w-3 mr-1" />
-                  Minutes
-                </Link>
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/meetings/${meeting.id}`}>
-                {meeting.status === "scheduled" ? "View Agenda" : "View"}
+
+          {/* Action button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="min-h-[44px] min-w-[44px] flex-shrink-0"
+          >
+            <Link href={`/meetings/${meeting.id}`}>View Agenda</Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------- Past Meeting Card ----------
+
+interface PastMeetingCardProps {
+  meeting: Meeting;
+}
+
+function PastMeetingCard({ meeting }: PastMeetingCardProps) {
+  const dateDisplay = formatMeetingDate(meeting.date);
+
+  return (
+    <Card className="hover:bg-muted/30 transition-colors">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            {/* Date badge */}
+            <div className="flex-shrink-0 w-14 h-14 bg-muted/50 border border-border rounded-lg flex flex-col items-center justify-center">
+              <span className="text-[10px] font-mono uppercase text-muted-foreground">
+                {getMonthAbbrev(meeting.date)}
+              </span>
+              <span className="text-lg font-bold text-muted-foreground">
+                {getDayOfMonth(meeting.date)}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {/* Title */}
+              <Link
+                href={`/meetings/${meeting.id}`}
+                className="text-base font-medium hover:text-[var(--gold)] transition-colors"
+              >
+                {meeting.title}
               </Link>
-            </Button>
+
+              {/* Date */}
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>{dateDisplay}</span>
+              </div>
+
+              {/* Outcome indicators */}
+              <div className="flex items-center gap-3 pt-1">
+                {meeting.hasMinutes && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-[var(--gold)]/10 text-[var(--gold)] border border-[var(--gold)]/20">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Minutes Available
+                  </span>
+                )}
+                {meeting.decisionsCount > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-[var(--gold)]/10 text-[var(--gold)] border border-[var(--gold)]/20">
+                    <Scale className="h-3 w-3" />
+                    {meeting.decisionsCount} decision
+                    {meeting.decisionsCount !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Action button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="min-h-[44px] min-w-[44px] flex-shrink-0"
+          >
+            <Link href={`/meetings/${meeting.id}`}>View</Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
