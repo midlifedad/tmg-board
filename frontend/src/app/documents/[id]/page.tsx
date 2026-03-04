@@ -437,6 +437,7 @@ export default function DocumentDetailPage({
               <PdfViewer
                 url={`/api/proxy/documents/${id}/download`}
                 title={document.title}
+                userEmail={userEmail || undefined}
               />
             )}
           </div>
