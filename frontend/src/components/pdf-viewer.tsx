@@ -40,14 +40,15 @@ export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!userEmail) return;
     let cancelled = false;
+    setLoadError(null);
+    setPdfData(null);
     async function fetchPdf() {
       try {
-        const headers: Record<string, string> = {};
-        if (userEmail) {
-          headers["X-User-Email"] = userEmail;
-        }
-        const response = await fetch(url, { headers });
+        const response = await fetch(url, {
+          headers: { "X-User-Email": userEmail! },
+        });
         if (!response.ok) {
           throw new Error(`Failed to load PDF (${response.status})`);
         }
@@ -187,7 +188,7 @@ export function PdfViewer({ url, title, userEmail }: PdfViewerProps) {
         </div>
       ) : (
       <Document
-        file={{ data: pdfData }}
+        file={{ data: pdfData.slice(0) }}
         onLoadSuccess={onDocumentLoadSuccess}
         onLoadError={onDocumentLoadError}
         loading={
