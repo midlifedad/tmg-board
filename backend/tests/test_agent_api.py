@@ -90,7 +90,7 @@ def _make_tool_call_response(tool_name="get_meeting", tool_call_id="call_123", a
 
 
 @pytest.mark.asyncio
-async def test_list_agents(client, db_session):
+async def test_list_agents(client, db_session, seed_user):
     """GET /api/agents returns only active agents."""
     # Seed 1 active + 1 inactive agent
     active = AgentConfig(
