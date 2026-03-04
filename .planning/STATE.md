@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agentic Layer & Board Enhancements
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-03-04T20:52:36.247Z"
-last_activity: 2026-03-04 — Completed 01-02 (Agent runner service, tool registry, meeting tools)
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-03-04T20:59:32.777Z"
+last_activity: 2026-03-04 — Completed 01-03 (Agent SSE API & proxy streaming)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State — TMG Board
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 ## Current Position
 
 Phase: 01 of 05 (Agent Infrastructure & Streaming UX)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: Executing
-Last activity: 2026-03-04 — Completed 01-02 (Agent runner service, tool registry, meeting tools)
+Last activity: 2026-03-04 — Completed 01-03 (Agent SSE API & proxy streaming)
 
-Progress: [█████░░░░░] 50%
+Progress: [████████░░] 75%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -42,15 +42,15 @@ Progress: [█████░░░░░] 50%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 5.5min
-- Total execution time: 11min
+- Total plans completed: 3
+- Average duration: 5min
+- Total execution time: 15min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 2 | 11min | 5.5min |
+| 01 | 3 | 15min | 5min |
 
 ## Accumulated Context
 
@@ -58,7 +58,7 @@ Progress: [█████░░░░░] 50%
 - **Multi-model via LiteLLM** — unified API for Anthropic, Gemini, Groq
 - **Custom lightweight agent loop** — ~100 lines, no LangChain/CrewAI
 - **Tools call board REST API** — preserves auth, validation, audit logging
-- **FastAPI native SSE** (v0.135+) — no sse-starlette dependency
+- **Starlette StreamingResponse for SSE** — Python 3.9 can't use FastAPI >=0.135.0, manual SSE format identical
 - **Digital signatures are lightweight** — name + timestamp + IP, not DocuSign
 - **Remove recording_url** — replace with transcript paste/upload (Phase 03)
 - **Agents are embedded** — inline on existing pages, not a standalone chat UI
@@ -74,6 +74,11 @@ Progress: [█████░░░░░] 50%
 - **Tool auto-registration on import** — register_tool() at module level, import at bottom of __init__.py
 - **Python 3.9 compat** — `from __future__ import annotations` for union type syntax
 
+### Key Decisions (01-03)
+- **StreamingResponse for SSE** — Python 3.9 prevents FastAPI >=0.135.0; Starlette StreamingResponse with manual SSE format is wire-compatible
+- **Route path '' not '/'** — matches redirect_slashes=False convention
+- **Usage logging inside async generator** — after all events yielded, captures accurate token/duration data
+
 ### Key Files
 - `frontend/src/components/sidebar.tsx` — Left navigation
 - `frontend/src/lib/api.ts` — API client
@@ -88,6 +93,8 @@ Progress: [█████░░░░░] 50%
 - `backend/app/tools/meetings.py` — Meeting tools (create_agenda_item, get_meeting, list_meetings)
 - `backend/app/models/decision.py` — Decisions (has resolution type, used in Phase 04)
 - `backend/app/models/meeting.py` — Meetings (has recording_url to remove in Phase 03)
+- `backend/app/api/agents.py` — Agent API: list, detail, SSE run endpoint
+- `backend/tests/test_agent_api.py` — 10 integration tests for agent API
 - `.planning/phases/01-agent-infrastructure/01-RESEARCH.md` — Agentic layer research (HIGH confidence)
 
 ### Blockers
@@ -95,6 +102,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-03-04T20:52:36.245Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-03-04T20:59:32.775Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
