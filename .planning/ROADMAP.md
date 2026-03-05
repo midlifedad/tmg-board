@@ -79,7 +79,11 @@ Plans:
   3. Resolution detail shows a signature status panel: who has signed and who has not
   4. Chair or admin can export a signed resolution (PDF or printable view)
   5. Resolution Writer agent drafts a resolution document from a brief description and links it to the relevant decision
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 04-01-PLAN.md — Backend: ResolutionSignature model, migration, schemas, resolutions API with sign/signatures endpoints, tests
+- [ ] 04-02-PLAN.md — Resolution Writer Agent: Production system prompt, four agent tools, seed data upgrade
+- [ ] 04-03-PLAN.md — Frontend: Sidebar entry, resolutions list/detail pages, signature panel, print export, Resolution Writer component
 
 ### Phase 05: Admin Agent Management
 **Goal**: Admins can create, configure, and monitor all board agents from within the existing Admin section without touching code or deployments
@@ -101,5 +105,5 @@ Plans:
 | 01. Agent Infrastructure & Streaming UX | 4/4 | Complete    | 2026-03-05 |
 | 02. Meeting Creation Overhaul & Meeting Setup Agent | 3/3 | Complete    | 2026-03-05 |
 | 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
-| 04. Board Resolutions & Resolution Writer | 0/TBD | Not started | - |
+| 04. Board Resolutions & Resolution Writer | 0/3 | Not started | - |
 | 05. Admin Agent Management | 0/TBD | Not started | - |
