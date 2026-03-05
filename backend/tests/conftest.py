@@ -85,6 +85,45 @@ def seed_user(db_session):
 
 
 @pytest.fixture
+def seed_template(db_session, seed_user):
+    """Create a test MeetingTemplate with 2 TemplateAgendaItems (one regulatory)."""
+    from app.models.template import MeetingTemplate, TemplateAgendaItem
+
+    template = MeetingTemplate(
+        name="Board Meeting",
+        description="Standard board meeting template",
+        default_duration_minutes=90,
+        default_location="Conference Room A",
+        created_by_id=seed_user.id,
+    )
+    db_session.add(template)
+    db_session.commit()
+
+    item1 = TemplateAgendaItem(
+        template_id=template.id,
+        title="Call to Order",
+        description="Opening the meeting",
+        item_type="information",
+        duration_minutes=5,
+        order_index=0,
+        is_regulatory=False,
+    )
+    item2 = TemplateAgendaItem(
+        template_id=template.id,
+        title="Financial Report",
+        description="Quarterly financial review",
+        item_type="information",
+        duration_minutes=15,
+        order_index=1,
+        is_regulatory=True,
+    )
+    db_session.add_all([item1, item2])
+    db_session.commit()
+    db_session.refresh(template)
+    return template
+
+
+@pytest.fixture
 def mock_litellm():
     """Mock litellm.acompletion for testing agent invocations."""
     mock_response = AsyncMock()

@@ -6,6 +6,7 @@ from app.models.idea import Idea, Comment, IdeaCategory, IdeaHistory, CommentRea
 from app.models.audit import AuditLog, DocumentAccessLog
 from app.models.admin import Invitation, Permission, RolePermission, Setting, UserSession
 from app.models.agent import AgentConfig, AgentUsageLog
+from app.models.template import MeetingTemplate, TemplateAgendaItem
 
 __all__ = [
     "BoardMember",
@@ -31,4 +32,6 @@ __all__ = [
     "UserSession",
     "AgentConfig",
     "AgentUsageLog",
+    "MeetingTemplate",
+    "TemplateAgendaItem",
 ]
