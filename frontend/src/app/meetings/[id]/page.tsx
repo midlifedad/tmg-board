@@ -25,8 +25,10 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption } from "@/lib/api";
+import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption, type Transcript } from "@/lib/api";
 import { EditMeetingModal } from "@/components/edit-meeting-modal";
+import { TranscriptSection } from "@/components/transcript-section";
+import { MinutesGenerator } from "@/components/minutes-generator";
 import { getTimezoneAbbr } from "@/lib/timezone";
 
 type MeetingStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
@@ -58,7 +60,6 @@ interface MeetingDetail {
     relatedDecision?: { id: string; title: string };
   }>;
   documents: Array<{ id: string; title: string; type: string }>;
-  recording: string | null;
 }
 
 const statusColors = {
@@ -102,6 +103,9 @@ export default function MeetingDetailPage({
   const [newAgendaType, setNewAgendaType] = useState("information");
   const [addingAgenda, setAddingAgenda] = useState(false);
   const [deletingAgendaId, setDeletingAgendaId] = useState<string | null>(null);
+
+  // Transcript state
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
 
   // Inline editing state
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -185,6 +189,10 @@ export default function MeetingDetailPage({
         };
       });
 
+      // Fetch transcript (gracefully returns null on 404)
+      const transcriptData = await meetingsApi.getTranscript(String(meetingData.id));
+      setTranscript(transcriptData);
+
       setMeeting({
         id: String(meetingData.id),
         title: meetingData.title,
@@ -204,7 +212,6 @@ export default function MeetingDetailPage({
         createdBy: `User ${meetingData.created_by_id}`,
         agenda: agendaWithSlots,
         documents: [],
-        recording: null,
       });
       setError(null);
     } catch (err) {
@@ -826,26 +833,26 @@ export default function MeetingDetailPage({
               </Card>
             )}
 
-            {/* Recording */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Recording</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {meeting.recording ? (
-                  <Button variant="outline" className="w-full min-h-[44px]">
-                    <Video className="h-4 w-4 mr-2" />
-                    Watch Recording
-                  </Button>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-2">
-                    {meeting.status === "completed"
-                      ? "No recording available"
-                      : "Recording will be available after the meeting"}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            {/* Transcript Section (completed meetings only) */}
+            {meeting.status === "completed" && (
+              <TranscriptSection
+                meetingId={meeting.id}
+                meetingStatus={meeting.status}
+                isChairOrAdmin={isChairOrAdmin}
+                transcript={transcript}
+                onTranscriptChanged={() => fetchMeeting()}
+              />
+            )}
+
+            {/* Minutes Generator (completed meetings with transcript, chair/admin only) */}
+            {meeting.status === "completed" && transcript && isChairOrAdmin && (
+              <MinutesGenerator
+                meetingId={meeting.id}
+                meetingTitle={meeting.title}
+                userEmail={session?.user?.email || ""}
+                hasTranscript={!!transcript}
+              />
+            )}
           </div>
         </div>
       </div>
