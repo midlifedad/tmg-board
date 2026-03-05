@@ -15,7 +15,7 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
 
 - [x] **Phase 01: Agent Infrastructure & Streaming UX** - Build the AI engine: LiteLLM, agent loop, SSE streaming, and embedded response UI patterns (completed 2026-03-05)
 - [x] **Phase 02: Meeting Creation Overhaul & Meeting Setup Agent** - Rework meeting creation with paste-to-populate and templates, powered by the first built-in agent (completed 2026-03-05)
-- [ ] **Phase 03: Transcripts & Minutes Generator** - Transcript paste/upload for completed meetings and AI-driven minutes generation
+- [x] **Phase 03: Transcripts & Minutes Generator** - Transcript paste/upload for completed meetings and AI-driven minutes generation (completed 2026-03-05)
 - [ ] **Phase 04: Board Resolutions & Resolution Writer** - Digital signature workflow and AI-assisted resolution drafting
 - [ ] **Phase 05: Admin Agent Management** - CRUD, tool assignment, prompt editing, and usage stats under the Admin section
 
@@ -63,11 +63,11 @@ Plans:
   3. Any board member can view the stored transcript for a meeting they have access to
   4. Minutes Generator agent produces a formatted minutes document from the meeting's transcript, visible inline on the meeting page
   5. The recording URL field is absent from all meeting forms and views (removed, not just hidden)
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 03-01-PLAN.md — Backend: MeetingTranscript/MeetingDocument models, migration, transcript CRUD API, recording_url removal
-- [ ] 03-02-PLAN.md — Minutes Generator Agent: Production system prompt, agent tools, seed data update
-- [ ] 03-03-PLAN.md — Frontend: Transcript section, minutes generator button, recording card removal
+- [x] 03-01-PLAN.md — Backend: MeetingTranscript/MeetingDocument models, migration, transcript CRUD API, recording_url removal
+- [x] 03-02-PLAN.md — Minutes Generator Agent: Production system prompt, agent tools, seed data update
+- [x] 03-03-PLAN.md — Frontend: Transcript section, minutes generator button, recording card removal
 
 ### Phase 04: Board Resolutions & Resolution Writer
 **Goal**: Board members can view and digitally sign resolutions, chairs and admins can export signed resolutions, and the Resolution Writer agent can draft resolution documents
@@ -100,6 +100,6 @@ Plans:
 |-------|----------------|--------|-----------|
 | 01. Agent Infrastructure & Streaming UX | 4/4 | Complete    | 2026-03-05 |
 | 02. Meeting Creation Overhaul & Meeting Setup Agent | 3/3 | Complete    | 2026-03-05 |
-| 03. Transcripts & Minutes Generator | 0/3 | Not started | - |
+| 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
 | 04. Board Resolutions & Resolution Writer | 0/TBD | Not started | - |
 | 05. Admin Agent Management | 0/TBD | Not started | - |

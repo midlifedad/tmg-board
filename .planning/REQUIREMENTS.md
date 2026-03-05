@@ -24,11 +24,11 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 ### Meeting Transcripts & Minutes
 
-- [ ] **TRANS-01**: Chair/admin can paste transcript text for a completed meeting
-- [ ] **TRANS-02**: Chair/admin can upload a transcript file (.txt) for a meeting
-- [ ] **TRANS-03**: Any board member can view a meeting's transcript
-- [ ] **TRANS-04**: Minutes Generator agent can produce minutes document from a transcript
-- [ ] **TRANS-05**: Recording URL field is removed from meetings model
+- [x] **TRANS-01**: Chair/admin can paste transcript text for a completed meeting
+- [x] **TRANS-02**: Chair/admin can upload a transcript file (.txt) for a meeting
+- [x] **TRANS-03**: Any board member can view a meeting's transcript
+- [x] **TRANS-04**: Minutes Generator agent can produce minutes document from a transcript
+- [x] **TRANS-05**: Recording URL field is removed from meetings model
 
 ### Board Resolutions & Signatures
 
@@ -47,7 +47,7 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 ### Built-in Agents
 
 - [x] **BUILT-01**: Meeting Setup agent can parse a pasted description into structured meeting with agenda items
-- [ ] **BUILT-02**: Minutes Generator agent can create minutes document from meeting transcript
+- [x] **BUILT-02**: Minutes Generator agent can create minutes document from meeting transcript
 - [ ] **BUILT-03**: Resolution Writer agent can draft resolution documents and link them to decisions
 
 ### Admin Agent Management
@@ -99,12 +99,12 @@ Deferred to next milestone. Needs domain research first.
 | MEET-05 | Phase 02 | Complete |
 | UX-01 | Phase 02 | Complete |
 | BUILT-01 | Phase 02 | Complete |
-| TRANS-01 | Phase 03 | Pending |
-| TRANS-02 | Phase 03 | Pending |
-| TRANS-03 | Phase 03 | Pending |
-| TRANS-04 | Phase 03 | Pending |
-| TRANS-05 | Phase 03 | Pending |
-| BUILT-02 | Phase 03 | Pending |
+| TRANS-01 | Phase 03 | Complete |
+| TRANS-02 | Phase 03 | Complete |
+| TRANS-03 | Phase 03 | Complete |
+| TRANS-04 | Phase 03 | Complete |
+| TRANS-05 | Phase 03 | Complete |
+| BUILT-02 | Phase 03 | Complete |
 | RES-01 | Phase 04 | Pending |
 | RES-02 | Phase 04 | Pending |
 | RES-03 | Phase 04 | Pending |
@@ -122,4 +122,4 @@ Deferred to next milestone. Needs domain research first.
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-05 — MEET-03, MEET-04, MEET-05 completed (02-01)*
+*Last updated: 2026-03-05 — TRANS-01 through TRANS-05, BUILT-02 completed (Phase 03)*

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agentic Layer & Board Enhancements
 status: in_progress
-stopped_at: Completed 02-03-PLAN.md (Phase 02 complete)
-last_updated: "2026-03-05T01:52:43.936Z"
-last_activity: 2026-03-05 — Completed 02-03 (Frontend meeting creation overhaul, admin templates page)
+stopped_at: Completed 03-03-PLAN.md (Phase 03 complete)
+last_updated: "2026-03-05T02:12:40Z"
+last_activity: 2026-03-05 — Completed 03-03 (Frontend transcript section, minutes generator, recording card removal)
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  completed_phases: 3
+  total_plans: 10
+  completed_plans: 10
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Board members can efficiently conduct governance and leverage AI assistants to automate repetitive board tasks
-**Current focus:** v2.0 Phase 02 complete, ready for Phase 03
+**Current focus:** v2.0 Phase 03 complete, ready for Phase 04
 
 ## Current Position
 
-Phase: 02 of 05 (Meeting Creation Overhaul & Meeting Setup Agent) -- COMPLETE
+Phase: 03 of 05 (Transcripts & Minutes Generator) -- COMPLETE
 Plan: 3 of 3 in current phase (all complete)
 Status: Phase Complete
-Last activity: 2026-03-05 — Completed 02-03 (Frontend meeting creation overhaul, admin templates page)
+Last activity: 2026-03-05 — Completed 03-03 (Frontend transcript section, minutes generator, recording card removal)
 
 Progress: [██████████] 100%
 
@@ -42,9 +42,9 @@ Progress: [██████████] 100%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 10
 - Average duration: 4min
-- Total execution time: 29min
+- Total execution time: 38min
 
 **By Phase:**
 
@@ -52,6 +52,7 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 01 | 4 | 19min | 5min |
 | 02 | 3 | 10min | 3min |
+| 03 | 3 | 9min | 3min |
 
 ## Accumulated Context
 
@@ -96,6 +97,10 @@ Progress: [██████████] 100%
 - **Seed data upgrade block** — _seed_agents() detects placeholder prompt and auto-updates existing agents
 - **Replaced list_members with list_meetings** — list_members was never a registered tool; corrected to list_meetings
 
+### Key Decisions (03-03)
+- **useAgentStream directly in MinutesGenerator** — AgentResponsePanel embeds its own text input; MinutesGenerator needs one-click generate, not a chat interface
+- **Inline feedback instead of toast library** — auto-dismissing messages match existing patterns without adding dependencies
+
 ### Key Decisions (02-03)
 - **Full-page creation replaces modal** — modal too constrained for three creation modes (AI, template, manual) plus inline agenda editing
 - **AI-assisted section expanded by default** — primary recommended flow; collapse for manual/template
@@ -115,7 +120,11 @@ Progress: [██████████] 100%
 - `backend/app/tools/__init__.py` — Tool registry
 - `backend/app/tools/meetings.py` — Meeting tools (create_agenda_item, get_meeting, list_meetings, create_meeting_with_agenda)
 - `backend/app/models/decision.py` — Decisions (has resolution type, used in Phase 04)
-- `backend/app/models/meeting.py` — Meetings (has recording_url to remove in Phase 03)
+- `backend/app/models/meeting.py` — Meetings (recording_url removed in Phase 03)
+- `frontend/src/components/transcript-section.tsx` — Transcript paste/upload/view component
+- `frontend/src/components/minutes-generator.tsx` — Minutes generator with inline agent invocation
+- `backend/app/api/transcripts.py` — Transcript CRUD endpoints (nested under meetings router)
+- `backend/app/tools/transcripts.py` — Minutes Generator agent tools
 - `backend/app/api/agents.py` — Agent API: list, detail, SSE run endpoint
 - `backend/tests/test_agent_api.py` — 10 integration tests for agent API
 - `.planning/phases/01-agent-infrastructure/01-RESEARCH.md` — Agentic layer research (HIGH confidence)
@@ -134,6 +143,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-03-05T01:52:42.674Z
-Stopped at: Completed 02-03-PLAN.md (Phase 02 complete)
+Last session: 2026-03-05T02:12:40Z
+Stopped at: Completed 03-03-PLAN.md (Phase 03 complete)
 Resume file: None
