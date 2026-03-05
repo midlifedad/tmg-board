@@ -1195,6 +1195,42 @@ export interface AuditLogEntry {
   ip_address?: string | null;
 }
 
+// =============================================================================
+// Agent Admin Types
+// =============================================================================
+
+export interface AdminAgentConfig {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  system_prompt: string;
+  model: string;
+  max_iterations: number;
+  temperature: number;
+  allowed_tool_names: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ToolInfo {
+  name: string;
+  description: string;
+  category: string;
+  parameter_count: number;
+}
+
+export interface AgentUsageStats {
+  agent_id: number;
+  agent_name: string;
+  total_calls: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_cost_usd: number;
+  avg_duration_ms: number;
+}
+
 export interface SystemSettings {
   app_name: string;
   organization_name: string;
@@ -1417,5 +1453,68 @@ export const adminApi = {
     permissions: string[]
   ): Promise<void> => {
     return api.put(`/admin/roles/${role}`, { permissions });
+  },
+
+  // -------------------------------------------------------------------------
+  // Agent Management
+  // -------------------------------------------------------------------------
+
+  /**
+   * List all agent configurations
+   */
+  listAgents: async (includeInactive = false): Promise<AdminAgentConfig[]> => {
+    const query = includeInactive ? "?include_inactive=true" : "";
+    const response = await api.get<AdminAgentConfig[] | PaginatedResponse<AdminAgentConfig>>(`/admin/agents${query}`);
+    return Array.isArray(response) ? response : response.items || [];
+  },
+
+  /**
+   * Create a new agent configuration
+   */
+  createAgent: async (data: {
+    name: string;
+    description?: string;
+    system_prompt: string;
+    model: string;
+    max_iterations?: number;
+    temperature?: number;
+    allowed_tool_names?: string[];
+  }): Promise<AdminAgentConfig> => {
+    return api.post("/admin/agents", data);
+  },
+
+  /**
+   * Update an agent configuration
+   */
+  updateAgent: async (id: number, data: Partial<AdminAgentConfig>): Promise<{ status: string; id: number }> => {
+    return api.patch(`/admin/agents/${id}`, data);
+  },
+
+  /**
+   * Deactivate an agent (soft delete)
+   */
+  deleteAgent: async (id: number): Promise<{ status: string; id: number }> => {
+    return api.delete(`/admin/agents/${id}`);
+  },
+
+  /**
+   * List all available tools from the tool registry
+   */
+  listAvailableTools: async (): Promise<ToolInfo[]> => {
+    return api.get("/admin/agents/tools");
+  },
+
+  /**
+   * Get aggregated usage statistics per agent
+   */
+  getAgentUsageStats: async (params?: {
+    start_date?: string;
+    end_date?: string;
+  }): Promise<AgentUsageStats[]> => {
+    const searchParams = new URLSearchParams();
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+    const query = searchParams.toString();
+    return api.get(`/admin/agents/usage${query ? `?${query}` : ""}`);
   },
 };
