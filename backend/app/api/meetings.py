@@ -40,7 +40,6 @@ class UpdateMeetingRequest(BaseModel):
     duration_minutes: Optional[int] = None
     location: Optional[str] = None
     meeting_link: Optional[str] = None
-    recording_url: Optional[str] = None
 
 
 class CreateAgendaItemRequest(BaseModel):
@@ -354,10 +353,6 @@ async def update_meeting(
     if request.meeting_link is not None and request.meeting_link != meeting.meeting_link:
         changes["meeting_link"] = {"old": meeting.meeting_link, "new": request.meeting_link}
         meeting.meeting_link = request.meeting_link
-
-    if request.recording_url is not None and request.recording_url != meeting.recording_url:
-        changes["recording_url"] = {"old": meeting.recording_url, "new": request.recording_url}
-        meeting.recording_url = request.recording_url
 
     if changes:
         db.add(AuditLog(
