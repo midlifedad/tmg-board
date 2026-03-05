@@ -46,7 +46,7 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 ### Built-in Agents
 
-- [ ] **BUILT-01**: Meeting Setup agent can parse a pasted description into structured meeting with agenda items
+- [x] **BUILT-01**: Meeting Setup agent can parse a pasted description into structured meeting with agenda items
 - [ ] **BUILT-02**: Minutes Generator agent can create minutes document from meeting transcript
 - [ ] **BUILT-03**: Resolution Writer agent can draft resolution documents and link them to decisions
 
@@ -98,7 +98,7 @@ Deferred to next milestone. Needs domain research first.
 | MEET-04 | Phase 02 | Pending |
 | MEET-05 | Phase 02 | Pending |
 | UX-01 | Phase 02 | Pending |
-| BUILT-01 | Phase 02 | Pending |
+| BUILT-01 | Phase 02 | Complete |
 | TRANS-01 | Phase 03 | Pending |
 | TRANS-02 | Phase 03 | Pending |
 | TRANS-03 | Phase 03 | Pending |

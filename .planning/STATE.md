@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agentic Layer & Board Enhancements
-status: completed
-stopped_at: Completed 01-04-PLAN.md (Phase 01 complete)
-last_updated: "2026-03-05T01:14:36.870Z"
-last_activity: 2026-03-04 — Completed 01-04 (Frontend agent UX components)
+status: in_progress
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-05T01:38:11Z"
+last_activity: 2026-03-05 — Completed 02-02 (Meeting Setup agent prompt and tool)
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_plans: 7
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State — TMG Board
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Board members can efficiently conduct governance and leverage AI assistants to automate repetitive board tasks
-**Current focus:** v2.0 Phase 01 complete, ready for Phase 02
+**Current focus:** v2.0 Phase 02 in progress (Meeting Creation Overhaul)
 
 ## Current Position
 
-Phase: 01 of 05 (Agent Infrastructure & Streaming UX) -- COMPLETE
-Plan: 4 of 4 in current phase
-Status: Phase Complete
-Last activity: 2026-03-04 — Completed 01-04 (Frontend agent UX components)
+Phase: 02 of 05 (Meeting Creation Overhaul & Meeting Setup Agent)
+Plan: 2 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-05 — Completed 02-02 (Meeting Setup agent prompt and tool)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 86%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -42,15 +42,16 @@ Progress: [██████████] 100%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 5min
-- Total execution time: 19min
+- Total plans completed: 6
+- Average duration: 4min
+- Total execution time: 22min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 4 | 19min | 5min |
+| 02 | 2 | 3min | 2min |
 
 ## Accumulated Context
 
@@ -85,6 +86,11 @@ Progress: [██████████] 100%
 - **userEmail as prop, not useSession** — decouples hook from NextAuth; parent passes email
 - **onToolComplete callback** — fires after tool_result events for page data refresh
 
+### Key Decisions (02-02)
+- **Single-turn agent prompt** — Meeting Setup agent parses what it can and reports missing fields, no follow-up question loop
+- **Seed data upgrade block** — _seed_agents() detects placeholder prompt and auto-updates existing agents
+- **Replaced list_members with list_meetings** — list_members was never a registered tool; corrected to list_meetings
+
 ### Key Files
 - `frontend/src/components/sidebar.tsx` — Left navigation
 - `frontend/src/lib/api.ts` — API client
@@ -96,7 +102,7 @@ Progress: [██████████] 100%
 - `backend/app/services/agent_runner.py` — Core agent loop (run_agent, run_agent_streaming)
 - `backend/app/services/llm_provider.py` — LiteLLM wrapper
 - `backend/app/tools/__init__.py` — Tool registry
-- `backend/app/tools/meetings.py` — Meeting tools (create_agenda_item, get_meeting, list_meetings)
+- `backend/app/tools/meetings.py` — Meeting tools (create_agenda_item, get_meeting, list_meetings, create_meeting_with_agenda)
 - `backend/app/models/decision.py` — Decisions (has resolution type, used in Phase 04)
 - `backend/app/models/meeting.py` — Meetings (has recording_url to remove in Phase 03)
 - `backend/app/api/agents.py` — Agent API: list, detail, SSE run endpoint
@@ -112,6 +118,6 @@ None
 
 ## Session Continuity
 
-Last session: 2026-03-05T00:08:00Z
-Stopped at: Completed 01-04-PLAN.md (Phase 01 complete)
+Last session: 2026-03-05T01:38:11Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
