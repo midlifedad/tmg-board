@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agents, templates
+from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agents, templates, transcripts
 from app.db.session import engine, Base
 
 settings = get_settings()
@@ -385,6 +385,7 @@ app.include_router(ideas.router, prefix="/api/ideas", tags=["ideas"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(templates.router, prefix="/api/templates", tags=["templates"])
+app.include_router(transcripts.router, prefix="/api/meetings", tags=["transcripts"])
 
 
 @app.get("/api/health")
