@@ -8,8 +8,9 @@ from __future__ import annotations
 
 from typing import AsyncGenerator, Dict, List, Optional
 
-from litellm import acompletion
+from sqlalchemy.orm import Session
 
+from app.services.llm_provider import get_completion
 from app.tools import execute_tool, get_tools_for_agent
 
 
@@ -17,6 +18,7 @@ async def run_agent(
     config,
     message: str,
     user_context: dict,
+    db: Optional[Session] = None,
 ) -> str:
     """Non-streaming agent loop.
 
@@ -36,16 +38,13 @@ async def run_agent(
     tools = get_tools_for_agent(config.allowed_tool_names) if config.allowed_tool_names else []
 
     for _ in range(config.max_iterations):
-        kwargs: dict = {
-            "model": config.model,
-            "messages": messages,
-            "temperature": config.temperature,
-        }
-        if tools:
-            kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
-
-        response = await acompletion(**kwargs)
+        response = await get_completion(
+            model=config.model,
+            messages=messages,
+            tools=tools or None,
+            temperature=config.temperature,
+            db=db,
+        )
         msg = response.choices[0].message
 
         # No tool calls means final response
@@ -73,6 +72,7 @@ async def run_agent_streaming(
     config,
     message: str,
     user_context: dict,
+    db: Optional[Session] = None,
 ) -> AsyncGenerator[dict, None]:
     """Hybrid streaming agent loop (Pattern S1).
 
@@ -102,17 +102,13 @@ async def run_agent_streaming(
 
     completed = False
     for _ in range(config.max_iterations):
-        kwargs: dict = {
-            "model": config.model,
-            "messages": messages,
-            "temperature": config.temperature,
-            "stream": False,
-        }
-        if tools:
-            kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
-
-        response = await acompletion(**kwargs)
+        response = await get_completion(
+            model=config.model,
+            messages=messages,
+            tools=tools or None,
+            temperature=config.temperature,
+            db=db,
+        )
         msg = response.choices[0].message
 
         # Accumulate usage

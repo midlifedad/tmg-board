@@ -99,7 +99,7 @@ async def test_agent_runner_simple_response():
 
     mock_acompletion = AsyncMock(return_value=MockResponse(content="Hello!"))
 
-    with patch("app.services.agent_runner.acompletion", mock_acompletion):
+    with patch("app.services.llm_provider.acompletion", mock_acompletion):
         result = await run_agent(
             config=make_agent_config(),
             message="Hi",
@@ -125,7 +125,7 @@ async def test_agent_runner_tool_call_cycle():
 
     mock_execute_tool = AsyncMock(return_value='{"id": 1, "title": "Board Meeting"}')
 
-    with patch("app.services.agent_runner.acompletion", mock_acompletion), \
+    with patch("app.services.llm_provider.acompletion", mock_acompletion), \
          patch("app.services.agent_runner.execute_tool", mock_execute_tool):
         result = await run_agent(
             config=make_agent_config(allowed_tool_names=["get_meeting"]),
@@ -149,7 +149,7 @@ async def test_agent_runner_max_iterations():
     mock_acompletion = AsyncMock(return_value=MockResponse(tool_calls=[tool_call]))
     mock_execute_tool = AsyncMock(return_value='{"id": 1}')
 
-    with patch("app.services.agent_runner.acompletion", mock_acompletion), \
+    with patch("app.services.llm_provider.acompletion", mock_acompletion), \
          patch("app.services.agent_runner.execute_tool", mock_execute_tool):
         result = await run_agent(
             config=make_agent_config(max_iterations=2, allowed_tool_names=["get_meeting"]),
@@ -175,7 +175,7 @@ async def test_agent_runner_tool_error_handling():
 
     mock_execute_tool = AsyncMock(return_value='{"error": "Not found"}')
 
-    with patch("app.services.agent_runner.acompletion", mock_acompletion), \
+    with patch("app.services.llm_provider.acompletion", mock_acompletion), \
          patch("app.services.agent_runner.execute_tool", mock_execute_tool):
         result = await run_agent(
             config=make_agent_config(allowed_tool_names=["get_meeting"]),
@@ -199,7 +199,7 @@ async def test_agent_runner_passes_config():
         allowed_tool_names=["create_agenda_item"],
     )
 
-    with patch("app.services.agent_runner.acompletion", mock_acompletion), \
+    with patch("app.services.llm_provider.acompletion", mock_acompletion), \
          patch("app.services.agent_runner.get_tools_for_agent") as mock_get_tools:
         mock_get_tools.return_value = [{"type": "function", "function": {"name": "create_agenda_item"}}]
 
@@ -225,7 +225,7 @@ async def test_streaming_event_order_no_tools():
 
     mock_acompletion = AsyncMock(return_value=MockResponse(content="Hello stream!"))
 
-    with patch("app.services.agent_runner.acompletion", mock_acompletion):
+    with patch("app.services.llm_provider.acompletion", mock_acompletion):
         events = []
         async for event in run_agent_streaming(
             config=make_agent_config(),
@@ -255,7 +255,7 @@ async def test_streaming_event_order_with_tools():
 
     mock_execute_tool = AsyncMock(return_value='{"id": 1, "title": "Board Meeting"}')
 
-    with patch("app.services.agent_runner.acompletion", mock_acompletion), \
+    with patch("app.services.llm_provider.acompletion", mock_acompletion), \
          patch("app.services.agent_runner.execute_tool", mock_execute_tool):
         events = []
         async for event in run_agent_streaming(

@@ -158,7 +158,7 @@ async def test_get_agent_not_found(client, seed_user):
 @pytest.mark.asyncio
 async def test_run_agent_sse_content_type(client, db_session, seed_agent, seed_user):
     """POST /api/agents/run returns content-type text/event-stream."""
-    with patch("app.services.agent_runner.acompletion", new_callable=AsyncMock) as mock_llm:
+    with patch("app.services.llm_provider.acompletion", new_callable=AsyncMock) as mock_llm:
         mock_llm.return_value = _make_llm_response()
 
         resp = await client.post(
@@ -174,7 +174,7 @@ async def test_run_agent_sse_content_type(client, db_session, seed_agent, seed_u
 @pytest.mark.asyncio
 async def test_run_agent_sse_event_order(client, db_session, seed_agent, seed_user):
     """POST /api/agents/run SSE events arrive in order: start -> text_delta(s) -> usage -> done."""
-    with patch("app.services.agent_runner.acompletion", new_callable=AsyncMock) as mock_llm:
+    with patch("app.services.llm_provider.acompletion", new_callable=AsyncMock) as mock_llm:
         mock_llm.return_value = _make_llm_response(content="Hello from agent!")
 
         resp = await client.post(
@@ -199,7 +199,7 @@ async def test_run_agent_with_tool_events(client, db_session, seed_agent, seed_u
     tool_response = _make_tool_call_response()
     final_response = _make_llm_response(content="Done with tools")
 
-    with patch("app.services.agent_runner.acompletion", new_callable=AsyncMock) as mock_llm:
+    with patch("app.services.llm_provider.acompletion", new_callable=AsyncMock) as mock_llm:
         mock_llm.side_effect = [tool_response, final_response]
 
         with patch("app.tools.execute_tool", new_callable=AsyncMock) as mock_tool:
@@ -245,7 +245,7 @@ async def test_run_agent_unknown_slug(client, seed_user):
 @pytest.mark.asyncio
 async def test_run_agent_creates_usage_log(client, db_session, seed_agent, seed_user):
     """POST /api/agents/run creates AgentUsageLog after successful run."""
-    with patch("app.services.agent_runner.acompletion", new_callable=AsyncMock) as mock_llm:
+    with patch("app.services.llm_provider.acompletion", new_callable=AsyncMock) as mock_llm:
         mock_llm.return_value = _make_llm_response()
 
         resp = await client.post(

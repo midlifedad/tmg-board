@@ -1,20 +1,23 @@
-"""Agent API endpoints -- list, detail, and SSE streaming run."""
+"""Agent API endpoints -- list, detail, SSE streaming run, and API key management."""
 from __future__ import annotations
 
 import json
 import time
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette.responses import StreamingResponse
 
 from app.db import get_db
-from app.api.auth import require_member
+from app.api.auth import require_member, require_admin
+from app.models.admin import Setting
 from app.models.agent import AgentConfig, AgentUsageLog
 from app.models.member import BoardMember
 from app.schemas.agent import RunAgentRequest, AgentConfigResponse, AgentListResponse
 from app.services.agent_runner import run_agent_streaming
+from app.services.llm_provider import PROVIDER_KEY_MAP, validate_provider_keys
 
 router = APIRouter()
 
@@ -100,7 +103,7 @@ async def run_agent_endpoint(
         tool_count = 0
         error_msg = None
 
-        async for event in run_agent_streaming(config, request.message, user_context):
+        async for event in run_agent_streaming(config, request.message, user_context, db=db):
             # Track metrics from events
             if event["type"] == "usage":
                 usage_data["prompt_tokens"] = event.get("prompt_tokens", 0)
@@ -140,3 +143,80 @@ async def run_agent_endpoint(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# =========================================================================
+# API Key Management (admin only)
+# =========================================================================
+
+
+def _mask_key(value: str) -> str:
+    """Mask an API key for display, showing only the last 4 characters."""
+    if not value or len(value) <= 4:
+        return "****"
+    return "****" + value[-4:]
+
+
+class UpdateApiKeysRequest(BaseModel):
+    anthropic_api_key: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+
+
+@router.get("/api-keys")
+async def get_api_keys(
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_admin),
+):
+    """Get LLM API key status -- shows which providers are configured and masked values."""
+    provider_status = validate_provider_keys(db=db)
+
+    # Read DB values for masking
+    db_keys = {v[0]: v[1] for v in PROVIDER_KEY_MAP.values()}
+    settings = db.query(Setting).filter(Setting.key.in_(db_keys.keys())).all()
+    settings_map = {s.key: s.value for s in settings}
+
+    result = {}
+    for provider, (db_key, env_key) in PROVIDER_KEY_MAP.items():
+        db_value = settings_map.get(db_key, "")
+        result[provider] = {
+            "configured": provider_status[provider],
+            "source": "database" if db_value else ("environment" if provider_status[provider] else "not set"),
+            "masked_value": _mask_key(db_value) if db_value else ("****" if provider_status[provider] else ""),
+        }
+
+    return result
+
+
+@router.put("/api-keys")
+async def update_api_keys(
+    request: UpdateApiKeysRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_admin),
+):
+    """Set LLM API keys in the database settings table.
+
+    Only updates keys that are provided (non-None). Send empty string to clear a key.
+    """
+    updates = {}
+    if request.anthropic_api_key is not None:
+        updates["anthropic_api_key"] = request.anthropic_api_key
+    if request.gemini_api_key is not None:
+        updates["gemini_api_key"] = request.gemini_api_key
+    if request.groq_api_key is not None:
+        updates["groq_api_key"] = request.groq_api_key
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No keys provided")
+
+    for key, value in updates.items():
+        setting = db.query(Setting).filter(Setting.key == key).first()
+        if setting:
+            setting.value = value
+            setting.updated_by_id = current_user.id
+        else:
+            db.add(Setting(key=key, value=value, updated_by_id=current_user.id))
+
+    db.commit()
+
+    return {"status": "updated", "keys": list(updates.keys())}
