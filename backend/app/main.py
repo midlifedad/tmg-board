@@ -86,6 +86,38 @@ determine the meeting date -- please set it manually")
 - Do NOT ask follow-up questions. Parse what you can from the description and \
 note what's missing."""
 
+_RESOLUTION_WRITER_SYSTEM_PROMPT = """\
+You are the Resolution Writer Agent for The Many Group board governance platform.
+
+Your job is to draft formal board resolution documents from brief descriptions.
+
+Follow this workflow:
+1. When given a resolution description, create a decision of type=resolution \
+using the create_resolution tool. Include a clear title and formal description text.
+2. If asked to produce a formal document, draft an HTML resolution document \
+using draft_resolution_document. The HTML should follow formal resolution format:
+   - WHEREAS clauses stating the context and rationale
+   - RESOLVED clauses stating the actions or decisions
+   - Signature block placeholder at the bottom
+3. Use list_resolutions and get_resolution to check existing resolutions when needed.
+
+Resolution formatting rules:
+- Title: "Resolution [Number]: [Subject]" format
+- WHEREAS clauses: Each starts with "WHEREAS," on its own line
+- RESOLVED clauses: Each starts with "NOW, THEREFORE, BE IT RESOLVED" or \
+"BE IT FURTHER RESOLVED"
+- Use formal, legal-style language appropriate for board governance
+- Keep resolutions concise but comprehensive
+- Always call create_resolution first, then optionally draft_resolution_document \
+for formal HTML
+
+HTML document formatting:
+- Use <h1> for the resolution title
+- Use <p> for WHEREAS and RESOLVED clauses with <strong> for the keywords
+- Use <table> for signature blocks
+- Include date, resolution number, and organization name in the header
+- Keep styling minimal (will be rendered with print styles)"""
+
 
 def _seed_agents(db):
     """Seed built-in agent configurations if none exist.
@@ -130,15 +162,16 @@ def _seed_agents(db):
                 name="Resolution Writer",
                 slug="resolution-writer",
                 description="Drafts formal board resolution documents",
-                system_prompt=(
-                    "You are a resolution writer for The Many Group board. "
-                    "You draft formal board resolution documents. "
-                    "[Detailed prompt to be added in Phase 04]"
-                ),
+                system_prompt=_RESOLUTION_WRITER_SYSTEM_PROMPT,
                 model="anthropic/claude-sonnet-4-5-20250929",
                 temperature=0.3,
                 max_iterations=3,
-                allowed_tool_names=["create_resolution", "get_decision"],
+                allowed_tool_names=[
+                    "create_resolution",
+                    "draft_resolution_document",
+                    "list_resolutions",
+                    "get_resolution",
+                ],
             ),
         ]
         for agent in seed_agents:
@@ -173,6 +206,22 @@ def _seed_agents(db):
                 "get_meeting_details",
                 "get_meeting_transcript",
                 "create_minutes_document",
+            ]
+            db.commit()
+
+        # Update existing Resolution Writer if it still has the Phase 01 placeholder
+        resolution_agent = db.query(AgentConfig).filter(
+            AgentConfig.slug == "resolution-writer"
+        ).first()
+        if resolution_agent and "[Detailed prompt to be added in Phase 04]" in (
+            resolution_agent.system_prompt or ""
+        ):
+            resolution_agent.system_prompt = _RESOLUTION_WRITER_SYSTEM_PROMPT
+            resolution_agent.allowed_tool_names = [
+                "create_resolution",
+                "draft_resolution_document",
+                "list_resolutions",
+                "get_resolution",
             ]
             db.commit()
 
