@@ -15,6 +15,7 @@ import {
   LogOut,
   BarChart3,
   ClipboardList,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ const boardNavGroups: NavGroup[] = [
     items: [
       { label: "Users", href: "/admin/users", icon: Users },
       { label: "Templates", href: "/admin/templates", icon: ClipboardList },
+      { label: "Agents", href: "/admin/agents", icon: Bot },
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },
