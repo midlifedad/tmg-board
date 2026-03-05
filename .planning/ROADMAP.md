@@ -63,7 +63,11 @@ Plans:
   3. Any board member can view the stored transcript for a meeting they have access to
   4. Minutes Generator agent produces a formatted minutes document from the meeting's transcript, visible inline on the meeting page
   5. The recording URL field is absent from all meeting forms and views (removed, not just hidden)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — Backend: MeetingTranscript/MeetingDocument models, migration, transcript CRUD API, recording_url removal
+- [ ] 03-02-PLAN.md — Minutes Generator Agent: Production system prompt, agent tools, seed data update
+- [ ] 03-03-PLAN.md — Frontend: Transcript section, minutes generator button, recording card removal
 
 ### Phase 04: Board Resolutions & Resolution Writer
 **Goal**: Board members can view and digitally sign resolutions, chairs and admins can export signed resolutions, and the Resolution Writer agent can draft resolution documents
@@ -96,6 +100,6 @@ Plans:
 |-------|----------------|--------|-----------|
 | 01. Agent Infrastructure & Streaming UX | 4/4 | Complete    | 2026-03-05 |
 | 02. Meeting Creation Overhaul & Meeting Setup Agent | 3/3 | Complete    | 2026-03-05 |
-| 03. Transcripts & Minutes Generator | 0/TBD | Not started | - |
+| 03. Transcripts & Minutes Generator | 0/3 | Not started | - |
 | 04. Board Resolutions & Resolution Writer | 0/TBD | Not started | - |
 | 05. Admin Agent Management | 0/TBD | Not started | - |
