@@ -137,6 +137,162 @@ async def test_tool_handler_api_error(user_context):
     assert "error" in parsed
 
 
+# ── create_meeting_with_agenda Tool Tests ──
+
+
+def test_create_meeting_with_agenda_registered():
+    """create_meeting_with_agenda tool must be in TOOL_REGISTRY."""
+    from app.tools import TOOL_REGISTRY
+
+    assert "create_meeting_with_agenda" in TOOL_REGISTRY
+    tool = TOOL_REGISTRY["create_meeting_with_agenda"]
+    assert tool.category == "meetings"
+
+
+def test_create_meeting_with_agenda_schema():
+    """create_meeting_with_agenda has correct parameters schema."""
+    from app.tools import TOOL_REGISTRY
+
+    tool = TOOL_REGISTRY["create_meeting_with_agenda"]
+    schema = tool.parameters_schema
+
+    # Required fields
+    assert schema["type"] == "object"
+    assert "title" in schema["properties"]
+    assert "agenda_items" in schema["properties"]
+    assert set(schema["required"]) == {"title", "agenda_items"}
+
+    # Optional fields
+    assert "scheduled_date" in schema["properties"]
+    assert "duration_minutes" in schema["properties"]
+    assert "location" in schema["properties"]
+    assert "meeting_link" in schema["properties"]
+    assert "description" in schema["properties"]
+
+    # agenda_items is an array of objects
+    items_schema = schema["properties"]["agenda_items"]
+    assert items_schema["type"] == "array"
+    item_props = items_schema["items"]["properties"]
+    assert "title" in item_props
+    assert "description" in item_props
+    assert "item_type" in item_props
+    assert "duration_minutes" in item_props
+
+    # item_type has correct enum values
+    assert set(item_props["item_type"]["enum"]) == {
+        "information", "discussion", "decision_required", "consent_agenda"
+    }
+
+
+@pytest.mark.asyncio
+async def test_create_meeting_with_agenda_calls_api(user_context):
+    """create_meeting_with_agenda handler POSTs to /api/meetings/with-agenda with correct body and headers."""
+    from app.tools import TOOL_REGISTRY
+
+    handler = TOOL_REGISTRY["create_meeting_with_agenda"].handler
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "id": 42,
+        "title": "Q1 Board Meeting",
+        "agenda_items": [
+            {"id": 1, "title": "Call to Order", "item_type": "information"}
+        ],
+    }
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    params = {
+        "title": "Q1 Board Meeting",
+        "scheduled_date": "2026-04-15T10:00:00",
+        "duration_minutes": 90,
+        "location": "Board Room A",
+        "agenda_items": [
+            {"title": "Call to Order", "item_type": "information", "duration_minutes": 5}
+        ],
+    }
+
+    with patch("app.tools.meetings.httpx.AsyncClient", return_value=mock_client):
+        result = await handler(params, user_context)
+
+    # Verify POST to correct endpoint
+    mock_client.post.assert_called_once()
+    call_args = mock_client.post.call_args
+    assert "/api/meetings/with-agenda" in str(call_args)
+
+    # Verify X-User-Email header
+    call_kwargs = call_args.kwargs if call_args.kwargs else {}
+    if "headers" in call_kwargs:
+        assert call_kwargs["headers"]["X-User-Email"] == "test@themany.com"
+
+    # Verify result is JSON string
+    parsed = json.loads(result)
+    assert parsed["id"] == 42
+    assert parsed["title"] == "Q1 Board Meeting"
+
+
+@pytest.mark.asyncio
+async def test_create_meeting_with_agenda_api_error(user_context):
+    """create_meeting_with_agenda returns error JSON on API failure."""
+    from app.tools import TOOL_REGISTRY
+
+    handler = TOOL_REGISTRY["create_meeting_with_agenda"].handler
+
+    mock_response = MagicMock()
+    mock_response.status_code = 422
+    mock_response.text = "Validation Error"
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_response)
+
+    with patch("app.tools.meetings.httpx.AsyncClient", return_value=mock_client):
+        result = await handler(
+            {"title": "Test Meeting", "agenda_items": []},
+            user_context,
+        )
+
+    parsed = json.loads(result)
+    assert "error" in parsed
+
+
+# ── Meeting Setup Agent Seed Tests ──
+
+
+def test_meeting_setup_agent_has_create_meeting_with_agenda_tool(seeded_db_session):
+    """Meeting Setup agent seed must include create_meeting_with_agenda in allowed_tool_names."""
+    from app.models.agent import AgentConfig
+
+    agent = seeded_db_session.query(AgentConfig).filter(
+        AgentConfig.slug == "meeting-setup"
+    ).first()
+    assert agent is not None
+    assert "create_meeting_with_agenda" in agent.allowed_tool_names
+
+
+def test_meeting_setup_agent_has_production_prompt(seeded_db_session):
+    """Meeting Setup agent seed must have a real system prompt (not placeholder)."""
+    from app.models.agent import AgentConfig
+
+    agent = seeded_db_session.query(AgentConfig).filter(
+        AgentConfig.slug == "meeting-setup"
+    ).first()
+    assert agent is not None
+    # Must NOT contain the placeholder text
+    assert "[Detailed prompt to be added in Phase 02]" not in agent.system_prompt
+    # Must contain key elements of the production prompt
+    assert "create_meeting_with_agenda" in agent.system_prompt
+    assert "information" in agent.system_prompt
+    assert "discussion" in agent.system_prompt
+    assert "decision_required" in agent.system_prompt
+    assert "consent_agenda" in agent.system_prompt
+
+
 # ── LLM Provider Tests ──
 
 
