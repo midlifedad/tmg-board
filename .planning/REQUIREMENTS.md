@@ -52,10 +52,10 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 ### Admin Agent Management
 
-- [ ] **ADMIN-01**: Admin can create, edit, and delete agent configurations (under Admin section)
-- [ ] **ADMIN-02**: Admin can assign/remove tools from an agent's allowed tool list
-- [ ] **ADMIN-03**: Admin can edit an agent's system prompt and select its model
-- [ ] **ADMIN-04**: Admin can view agent usage statistics (calls, tokens, cost)
+- [x] **ADMIN-01**: Admin can create, edit, and delete agent configurations (under Admin section)
+- [x] **ADMIN-02**: Admin can assign/remove tools from an agent's allowed tool list
+- [x] **ADMIN-03**: Admin can edit an agent's system prompt and select its model
+- [x] **ADMIN-04**: Admin can view agent usage statistics (calls, tokens, cost)
 
 ## v2.1 Requirements
 
@@ -110,10 +110,10 @@ Deferred to next milestone. Needs domain research first.
 | RES-03 | Phase 04 | Complete |
 | RES-04 | Phase 04 | Complete |
 | BUILT-03 | Phase 04 | Complete |
-| ADMIN-01 | Phase 05 | Pending |
-| ADMIN-02 | Phase 05 | Pending |
-| ADMIN-03 | Phase 05 | Pending |
-| ADMIN-04 | Phase 05 | Pending |
+| ADMIN-01 | Phase 05 | Complete |
+| ADMIN-02 | Phase 05 | Complete |
+| ADMIN-03 | Phase 05 | Complete |
+| ADMIN-04 | Phase 05 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 29 total
@@ -122,4 +122,4 @@ Deferred to next milestone. Needs domain research first.
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-05 — RES-01 through RES-04, BUILT-03 completed (Phase 04)*
+*Last updated: 2026-03-05 — ADMIN-01 through ADMIN-04 completed (Phase 05) -- ALL v2.0 requirements complete*

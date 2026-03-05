@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agentic Layer & Board Enhancements
-status: in_progress
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-03-05T02:37:24Z"
-last_activity: 2026-03-05 — Completed 04-03 (Frontend resolutions UI, signature panel, resolution writer)
+status: complete
+stopped_at: Completed 05-02-PLAN.md (v2.0 milestone complete)
+last_updated: "2026-03-05T02:59:00Z"
+last_activity: 2026-03-05 — Completed 05-02 (Frontend admin agents page, modals, sidebar)
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  completed_phases: 5
+  total_plans: 15
+  completed_plans: 15
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Board members can efficiently conduct governance and leverage AI assistants to automate repetitive board tasks
-**Current focus:** v2.0 Phase 04 complete, ready for Phase 05
+**Current focus:** v2.0 COMPLETE -- all 5 phases delivered
 
 ## Current Position
 
-Phase: 04 of 05 (Board Resolutions & Resolution Writer) -- COMPLETE
-Plan: 3 of 3 in current phase (all complete)
-Status: Phase Complete
-Last activity: 2026-03-05 — Completed 04-03 (Frontend resolutions UI, signature panel, resolution writer)
+Phase: 05 of 05 (Admin Agent Management) -- COMPLETE
+Plan: 2 of 2 in current phase (all complete)
+Status: Milestone Complete
+Last activity: 2026-03-05 — Completed 05-02 (Frontend admin agents page, modals, sidebar)
 
 Progress: [██████████] 100%
 
@@ -42,9 +42,9 @@ Progress: [██████████] 100%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 15
 - Average duration: 4min
-- Total execution time: 50min
+- Total execution time: 56min
 
 **By Phase:**
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100%
 | 02 | 3 | 10min | 3min |
 | 03 | 3 | 9min | 3min |
 | 04 | 3 | 12min | 4min |
+| 05 | 2 | 6min | 3min |
 
 ## Accumulated Context
 
@@ -113,6 +114,12 @@ Progress: [██████████] 100%
 - **isChairOrAbove added to permissions** — print button gated by chair/admin role, separate from existing isBoardOrAbove
 - **Gold accent styling on sign/generate buttons** — matches app theme pattern established in minutes-generator
 
+### Key Decisions (05-02)
+- **AdminAgentConfig type** — avoids collision with user-facing AgentConfig types
+- **Hardcoded MODEL_LABELS map** — friendly model names in agents table without dynamic discovery
+- **Stale tool warnings in edit modal** — amber banner when agent references tools not in current registry
+- **Partial update optimization** — edit modal only sends changed fields in PATCH request
+
 ### Key Files
 - `frontend/src/components/sidebar.tsx` — Left navigation
 - `frontend/src/lib/api.ts` — API client
@@ -147,12 +154,17 @@ Progress: [██████████] 100%
 - `frontend/src/app/resolutions/[id]/page.tsx` — Resolution detail with signature panel, print, and agent
 - `frontend/src/components/signature-panel.tsx` — Signature status display and sign button
 - `frontend/src/components/resolution-writer.tsx` — Resolution Writer agent invocation component
+- `backend/app/api/agent_admin.py` — Admin agent CRUD, tool list, usage stats API
+- `backend/tests/test_agent_admin.py` — 16 tests for admin agent endpoints
+- `frontend/src/app/admin/agents/page.tsx` — Admin agents page (list + usage tabs)
+- `frontend/src/components/create-agent-modal.tsx` — Create agent modal with tool checkboxes
+- `frontend/src/components/edit-agent-modal.tsx` — Edit agent modal with stale tool warnings
 
 ### Blockers
 None
 
 ## Session Continuity
 
-Last session: 2026-03-05T02:37:24Z
-Stopped at: Completed 04-03-PLAN.md (Phase 04 complete)
+Last session: 2026-03-05T02:59:00Z
+Stopped at: Completed 05-02-PLAN.md (v2.0 milestone complete)
 Resume file: None

@@ -7,7 +7,7 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
 ## Milestones
 
 - ✅ **v1.0 Meetings UX Redesign** — Phases pre-01 (shipped 2026-03-04, outside GSD)
-- 🚧 **v2.0 Agentic Layer & Board Enhancements** — Phases 01–05 (in progress)
+- ✅ **v2.0 Agentic Layer & Board Enhancements** — Phases 01-05 (completed 2026-03-05)
 
 ## Phases
 
@@ -17,7 +17,7 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
 - [x] **Phase 02: Meeting Creation Overhaul & Meeting Setup Agent** - Rework meeting creation with paste-to-populate and templates, powered by the first built-in agent (completed 2026-03-05)
 - [x] **Phase 03: Transcripts & Minutes Generator** - Transcript paste/upload for completed meetings and AI-driven minutes generation (completed 2026-03-05)
 - [x] **Phase 04: Board Resolutions & Resolution Writer** - Digital signature workflow and AI-assisted resolution drafting (completed 2026-03-05)
-- [ ] **Phase 05: Admin Agent Management** - CRUD, tool assignment, prompt editing, and usage stats under the Admin section
+- [x] **Phase 05: Admin Agent Management** - CRUD, tool assignment, prompt editing, and usage stats under the Admin section (completed 2026-03-05)
 
 ## Phase Details
 
@@ -94,10 +94,10 @@ Plans:
   2. Admin can edit an existing agent's system prompt and change its model without a deployment
   3. Admin can add or remove tools from an agent's allowed tool list
   4. Admin can view a usage dashboard showing call counts, token usage, and estimated cost per agent
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 05-01-PLAN.md — Backend: Agent admin API (CRUD, tool list, usage stats endpoints) with tests
-- [ ] 05-02-PLAN.md — Frontend: Admin agents page, create/edit modals, tool assignment, usage tab, sidebar entry
+- [x] 05-01-PLAN.md — Backend: Agent admin API (CRUD, tool list, usage stats endpoints) with tests
+- [x] 05-02-PLAN.md — Frontend: Admin agents page, create/edit modals, tool assignment, usage tab, sidebar entry
 
 ## Progress
 
@@ -109,4 +109,4 @@ Plans:
 | 02. Meeting Creation Overhaul & Meeting Setup Agent | 3/3 | Complete    | 2026-03-05 |
 | 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
-| 05. Admin Agent Management | 0/2 | Not started | - |
+| 05. Admin Agent Management | 2/2 | Complete    | 2026-03-05 |
