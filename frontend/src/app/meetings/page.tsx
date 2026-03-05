@@ -17,7 +17,6 @@ import {
   Scale,
 } from "lucide-react";
 import { meetingsApi, authApi, api, type Meeting as ApiMeeting } from "@/lib/api";
-import { CreateMeetingModal } from "@/components/create-meeting-modal";
 import { getTimezoneAbbr } from "@/lib/timezone";
 
 interface Meeting {
@@ -40,7 +39,6 @@ export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [tzAbbr, setTzAbbr] = useState("PT");
   const [ianaZone, setIanaZone] = useState("America/Los_Angeles");
 
@@ -116,48 +114,6 @@ export default function MeetingsPage() {
   const isChairOrAdmin =
     userRole === "admin" || userRole === "chair" || !session;
 
-  const refetchMeetings = async () => {
-    try {
-      const data = await meetingsApi.list();
-      const transformed: Meeting[] = data.map((meeting) => {
-        const parts = meeting.scheduled_date.split("T");
-        const dateStr = parts[0];
-        const time = parts[1]?.slice(0, 5) || "00:00";
-        const isVirtual =
-          meeting.meeting_link != null ||
-          meeting.location.toLowerCase().includes("virtual") ||
-          meeting.location.toLowerCase().includes("zoom");
-        return {
-          id: String(meeting.id),
-          title: meeting.title,
-          date: dateStr,
-          time: time,
-          duration: meeting.duration_minutes
-            ? meeting.duration_minutes >= 60
-              ? `${Math.floor(meeting.duration_minutes / 60)}h${meeting.duration_minutes % 60 ? ` ${meeting.duration_minutes % 60}m` : ""}`
-              : `${meeting.duration_minutes} min`
-            : "",
-          durationMinutes: meeting.duration_minutes ?? null,
-          location: meeting.location,
-          isVirtual: isVirtual,
-          status: meeting.status,
-          agendaItemsCount:
-            (meeting as ApiMeeting & { agenda_items_count?: number })
-              .agenda_items_count ?? 0,
-          hasMinutes:
-            (meeting as ApiMeeting & { has_minutes?: boolean }).has_minutes ??
-            false,
-          decisionsCount:
-            (meeting as ApiMeeting & { decisions_count?: number })
-              .decisions_count ?? 0,
-        };
-      });
-      setMeetings(transformed);
-    } catch (err) {
-      console.error("Failed to refetch meetings:", err);
-    }
-  };
-
   const upcomingMeetings = meetings
     .filter((m) => m.status === "scheduled" || m.status === "in_progress")
     .sort(
@@ -205,11 +161,13 @@ export default function MeetingsPage() {
           <div className="flex items-center gap-2">
             {isChairOrAdmin && (
               <Button
-                onClick={() => setShowCreateModal(true)}
+                asChild
                 className="min-h-[44px]"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Meeting
+                <Link href="/meetings/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  + New Meeting
+                </Link>
               </Button>
             )}
           </div>
@@ -255,12 +213,6 @@ export default function MeetingsPage() {
         </div>
       </div>
 
-      {/* Create Meeting Modal */}
-      <CreateMeetingModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={refetchMeetings}
-      />
     </AppShell>
   );
 }

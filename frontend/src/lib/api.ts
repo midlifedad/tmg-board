@@ -598,6 +598,103 @@ export const meetingsApi = {
   ): Promise<void> => {
     return api.patch(`/meetings/${meetingId}/attendance/${userId}`, { status });
   },
+
+  /**
+   * Create meeting with agenda items in one call
+   */
+  createWithAgenda: async (data: {
+    title: string;
+    date: string;
+    duration_minutes?: number;
+    location?: string;
+    meeting_link?: string;
+    description?: string;
+    template_id?: number;
+    agenda_items?: Array<{
+      title: string;
+      description?: string;
+      item_type?: string;
+      duration_minutes?: number;
+    }>;
+  }): Promise<Meeting> => {
+    return api.post("/meetings/with-agenda", data);
+  },
+};
+
+// =============================================================================
+// Templates API
+// =============================================================================
+
+export interface MeetingTemplate {
+  id: number;
+  name: string;
+  description?: string | null;
+  default_duration_minutes?: number | null;
+  default_location?: string | null;
+  items_count: number;
+  has_regulatory_items: boolean;
+  created_at: string;
+}
+
+export interface TemplateDetail extends MeetingTemplate {
+  items: TemplateItem[];
+}
+
+export interface TemplateItem {
+  id: number;
+  title: string;
+  description?: string | null;
+  item_type: string;
+  duration_minutes?: number | null;
+  order_index: number;
+  is_regulatory: boolean;
+}
+
+export const templatesApi = {
+  list: async (): Promise<MeetingTemplate[]> => {
+    return api.get<MeetingTemplate[]>("/templates");
+  },
+  get: async (id: number): Promise<TemplateDetail> => {
+    return api.get<TemplateDetail>(`/templates/${id}`);
+  },
+  create: async (data: {
+    name: string;
+    description?: string;
+    default_duration_minutes?: number;
+    default_location?: string;
+    items: Array<{
+      title: string;
+      description?: string;
+      item_type?: string;
+      duration_minutes?: number;
+      order_index: number;
+      is_regulatory?: boolean;
+    }>;
+  }): Promise<TemplateDetail> => {
+    return api.post("/templates", data);
+  },
+  update: async (
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      default_duration_minutes?: number;
+      default_location?: string;
+      items?: Array<{
+        title: string;
+        description?: string;
+        item_type?: string;
+        duration_minutes?: number;
+        order_index: number;
+        is_regulatory?: boolean;
+      }>;
+    }
+  ): Promise<TemplateDetail> => {
+    return api.patch(`/templates/${id}`, data);
+  },
+  delete: async (id: number): Promise<void> => {
+    return api.delete(`/templates/${id}`);
+  },
 };
 
 // =============================================================================
