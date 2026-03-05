@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agents
+from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agents, templates
 from app.db.session import engine, Base
 
 settings = get_settings()
@@ -126,6 +126,84 @@ def _seed_agents(db):
             db.commit()
 
 
+def _seed_templates(db):
+    """Seed default meeting template if none exist."""
+    from app.models.template import MeetingTemplate, TemplateAgendaItem
+    from app.models.member import BoardMember
+
+    if db.query(MeetingTemplate).count() == 0:
+        # Use the first admin user as template creator
+        admin_user = db.query(BoardMember).filter(
+            BoardMember.role == "admin"
+        ).first()
+        if not admin_user:
+            return
+
+        template = MeetingTemplate(
+            name="Board Meeting",
+            description="Standard board meeting template with regulatory items",
+            default_duration_minutes=65,
+            default_location="Conference Room",
+            created_by_id=admin_user.id,
+        )
+        db.add(template)
+        db.flush()
+
+        items = [
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Call to Order",
+                item_type="information",
+                duration_minutes=5,
+                order_index=0,
+                is_regulatory=False,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Approval of Previous Minutes",
+                item_type="consent_agenda",
+                duration_minutes=5,
+                order_index=1,
+                is_regulatory=True,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Financial Report",
+                item_type="information",
+                duration_minutes=15,
+                order_index=2,
+                is_regulatory=True,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Old Business",
+                item_type="discussion",
+                duration_minutes=15,
+                order_index=3,
+                is_regulatory=False,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="New Business",
+                item_type="discussion",
+                duration_minutes=20,
+                order_index=4,
+                is_regulatory=False,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Adjournment",
+                item_type="information",
+                duration_minutes=5,
+                order_index=5,
+                is_regulatory=False,
+            ),
+        ]
+        for item in items:
+            db.add(item)
+        db.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
@@ -218,6 +296,9 @@ async def lifespan(app: FastAPI):
 
         # Seed built-in agent configurations
         _seed_agents(db)
+
+        # Seed default meeting template
+        _seed_templates(db)
     finally:
         db.close()
 
@@ -252,6 +333,7 @@ app.include_router(decisions.router, prefix="/api/decisions", tags=["decisions"]
 app.include_router(ideas.router, prefix="/api/ideas", tags=["ideas"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
+app.include_router(templates.router, prefix="/api/templates", tags=["templates"])
 
 
 @app.get("/api/health")
