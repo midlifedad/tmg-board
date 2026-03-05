@@ -912,6 +912,47 @@ export const decisionsApi = {
 };
 
 // =============================================================================
+// Resolutions API
+// =============================================================================
+
+export interface ResolutionSignature {
+  member_id: number;
+  member_name: string;
+  signed_at: string | null;
+  ip_address: string | null;
+}
+
+export interface SignatureStatus {
+  resolution_id: number;
+  signatures: ResolutionSignature[];
+  signed_count: number;
+  total_members: number;
+}
+
+export interface ResolutionListItem extends Decision {
+  signature_count: number;
+  total_signers: number;
+  resolution_number: string | null;
+}
+
+export const resolutionsApi = {
+  list: async (params?: { status?: string }): Promise<ResolutionListItem[]> => {
+    const query = params?.status ? `?status=${params.status}` : "";
+    const response = await api.get<PaginatedResponse<ResolutionListItem>>(`/resolutions${query}`);
+    return response.items || [];
+  },
+  get: async (id: string): Promise<DecisionDetail> => {
+    return api.get(`/resolutions/${id}`);
+  },
+  getSignatures: async (id: string): Promise<SignatureStatus> => {
+    return api.get(`/resolutions/${id}/signatures`);
+  },
+  sign: async (id: string): Promise<{ status: string; signature_id: number; signed_at: string }> => {
+    return api.post(`/resolutions/${id}/sign`);
+  },
+};
+
+// =============================================================================
 // Ideas API
 // =============================================================================
 

@@ -75,9 +75,11 @@ export default function DecisionsPage() {
         setLoading(true);
         api.setUserEmail(email);
         const data = await decisionsApi.list();
+        // Filter out resolutions (they have their own dedicated page)
+        const nonResolutions = data.filter(d => d.type !== "resolution");
         // Transform decisions - fetch details for each to get results
         const transformed: Decision[] = await Promise.all(
-          data.map(async (decision) => {
+          nonResolutions.map(async (decision) => {
             let results = { yes: 0, no: 0, abstain: 0, pending: 0 };
             let userVote: VoteValue = null;
             try {
@@ -122,8 +124,9 @@ export default function DecisionsPage() {
   const refetchDecisions = async () => {
     try {
       const data = await decisionsApi.list();
+      const nonResolutions = data.filter(d => d.type !== "resolution");
       const transformed: Decision[] = await Promise.all(
-        data.map(async (decision) => {
+        nonResolutions.map(async (decision) => {
           let results = { yes: 0, no: 0, abstain: 0, pending: 0 };
           let userVote: VoteValue = null;
           try {
