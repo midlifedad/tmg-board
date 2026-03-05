@@ -40,9 +40,9 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 ### Embedded Agent UX
 
 - [ ] **UX-01**: Meeting creation page has an expandable section where user can paste a description for agent-assisted setup
-- [ ] **UX-02**: Agent responses appear inline on the page they're triggered from (not a separate chat UI)
-- [ ] **UX-03**: User sees streaming agent output with tool call indicators
-- [ ] **UX-04**: Agent actions (create agenda items, generate minutes, draft resolution) apply directly to the current context
+- [x] **UX-02**: Agent responses appear inline on the page they're triggered from (not a separate chat UI)
+- [x] **UX-03**: User sees streaming agent output with tool call indicators
+- [x] **UX-04**: Agent actions (create agenda items, generate minutes, draft resolution) apply directly to the current context
 
 ### Built-in Agents
 
@@ -89,9 +89,9 @@ Deferred to next milestone. Needs domain research first.
 | AGENT-02 | Phase 01 | Complete |
 | AGENT-03 | Phase 01 | Complete |
 | AGENT-04 | Phase 01 | Complete |
-| UX-02 | Phase 01 | Pending |
-| UX-03 | Phase 01 | Pending |
-| UX-04 | Phase 01 | Pending |
+| UX-02 | Phase 01 | Complete |
+| UX-03 | Phase 01 | Complete |
+| UX-04 | Phase 01 | Complete |
 | MEET-01 | Phase 02 | Pending |
 | MEET-02 | Phase 02 | Pending |
 | MEET-03 | Phase 02 | Pending |

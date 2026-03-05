@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agentic Layer & Board Enhancements
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-03-04T20:59:32.777Z"
-last_activity: 2026-03-04 — Completed 01-03 (Agent SSE API & proxy streaming)
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-03-05T00:08:00Z"
+last_activity: 2026-03-04 — Completed 01-04 (Frontend agent UX components)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State — TMG Board
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Board members can efficiently conduct governance and leverage AI assistants to automate repetitive board tasks
-**Current focus:** v2.0 Phase 01 — Agent Infrastructure & Streaming UX
+**Current focus:** v2.0 Phase 01 complete, ready for Phase 02
 
 ## Current Position
 
-Phase: 01 of 05 (Agent Infrastructure & Streaming UX)
-Plan: 3 of 4 in current phase
-Status: Executing
-Last activity: 2026-03-04 — Completed 01-03 (Agent SSE API & proxy streaming)
+Phase: 01 of 05 (Agent Infrastructure & Streaming UX) -- COMPLETE
+Plan: 4 of 4 in current phase
+Status: Phase Complete
+Last activity: 2026-03-04 — Completed 01-04 (Frontend agent UX components)
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -42,15 +42,15 @@ Progress: [████████░░] 75%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 5min
-- Total execution time: 15min
+- Total execution time: 19min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 3 | 15min | 5min |
+| 01 | 4 | 19min | 5min |
 
 ## Accumulated Context
 
@@ -79,6 +79,12 @@ Progress: [████████░░] 75%
 - **Route path '' not '/'** — matches redirect_slashes=False convention
 - **Usage logging inside async generator** — after all events yielded, captures accurate token/duration data
 
+### Key Decisions (01-04)
+- **react-markdown for agent output** — prose-invert dark theme styling for markdown rendering
+- **Buffer-based SSE parsing** — robust chunked event handling in useAgentStream hook
+- **userEmail as prop, not useSession** — decouples hook from NextAuth; parent passes email
+- **onToolComplete callback** — fires after tool_result events for page data refresh
+
 ### Key Files
 - `frontend/src/components/sidebar.tsx` — Left navigation
 - `frontend/src/lib/api.ts` — API client
@@ -96,12 +102,16 @@ Progress: [████████░░] 75%
 - `backend/app/api/agents.py` — Agent API: list, detail, SSE run endpoint
 - `backend/tests/test_agent_api.py` — 10 integration tests for agent API
 - `.planning/phases/01-agent-infrastructure/01-RESEARCH.md` — Agentic layer research (HIGH confidence)
+- `frontend/src/lib/agent-types.ts` — AgentEvent, ToolCallEvent, AgentStreamState types
+- `frontend/src/hooks/use-agent-stream.ts` — SSE consumption hook with run/cancel/reset API
+- `frontend/src/components/agent-response-panel.tsx` — Collapsible inline agent panel
+- `frontend/src/components/tool-call-indicator.tsx` — Tool call status indicator
 
 ### Blockers
 None
 
 ## Session Continuity
 
-Last session: 2026-03-04T20:59:32.775Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-03-05T00:08:00Z
+Stopped at: Completed 01-04-PLAN.md (Phase 01 complete)
 Resume file: None
