@@ -1,6 +1,6 @@
 # Phase 05: Admin Agent Management - Research
 
-**Researched:** 2026-03-04
+**Researched:** 2026-03-04 (updated 2026-03-04)
 **Domain:** Admin CRUD UI for agent configurations, tool assignment, prompt editing, and usage statistics
 **Confidence:** HIGH
 
@@ -8,49 +8,48 @@
 
 Phase 05 builds the admin-facing management interface for the AI agents created in Phase 01. The core challenge is not technical novelty -- it is a standard CRUD admin interface -- but rather maintaining consistency with the existing admin section patterns (Users page, Settings page) and providing good UX for the three distinct editing concerns: agent configuration (name, model, description), system prompt editing (multi-line text with potential for long prompts), and tool assignment (selecting from a registry of available tools).
 
-The existing codebase provides strong patterns to follow. The admin Users page (`frontend/src/app/admin/users/page.tsx`) demonstrates the established layout: `AppShell` wrapper, gold-accent section header, stats cards row, tabbed content with tables, and modal-based editing. The backend admin API (`backend/app/api/admin.py`) shows the standard pattern: Pydantic schemas for request/response, `require_admin` dependency for auth, `AuditLog` entries for all mutations, and SQLAlchemy ORM queries. Phase 05 replicates these patterns for agent management.
+The existing codebase provides strong, verified patterns to follow. The admin Users page (`frontend/src/app/admin/users/page.tsx`, 541 lines) demonstrates the established layout: `AppShell` wrapper, gold-accent section header, stats cards row, Button-based tab switching, table rows with actions, and Card-based modal editing. The backend admin API (`backend/app/api/admin.py`, 565 lines) shows the standard pattern: Pydantic schemas for request/response, `require_admin` dependency for auth, `AuditLog` entries for all mutations, and SQLAlchemy ORM queries. Phase 05 replicates these patterns for agent management.
 
-The data model (`AgentConfig`, `AgentUsageLog`) was already designed in Phase 01 research and will be created as part of Phase 01 implementation. Phase 05 depends on Phase 01 being complete -- specifically the `agent_configs` and `agent_usage_logs` tables, the tool registry in `backend/app/tools/`, and the agent runner service. This phase adds the admin UI and API endpoints for managing those existing models.
+The data model (`AgentConfig`, `AgentUsageLog`) was created in Phase 01 and is fully operational. The tool registry (`backend/app/tools/__init__.py`) uses `ToolDefinition` dataclasses with a `get_tool_definitions()` helper that returns OpenAI-format dicts. Three seed agents (Meeting Setup, Minutes Generator, Resolution Writer) exist with real system prompts and tool assignments. This phase adds the admin UI and API endpoints for managing those existing models.
 
-**Primary recommendation:** Build the agent admin page at `frontend/src/app/admin/agents/page.tsx` following the exact same patterns as the Users page. Use a tabbed layout (Agents | Usage) with a table-based agent list, modal-based create/edit forms, a checkbox-based tool assignment UI, and a simple aggregated usage stats table. Add the backend admin endpoints in a new `backend/app/api/agent_admin.py` file following the existing `admin.py` patterns.
+**Primary recommendation:** Build the agent admin page at `frontend/src/app/admin/agents/page.tsx` following the exact same patterns as the Users page. Use Button-based tab switching (Agents | Usage) with a table-based agent list, Card-based modal create/edit forms, a checkbox-based tool assignment UI, and a simple aggregated usage stats table. Add the backend admin endpoints in a new `backend/app/api/agent_admin.py` file following the existing `admin.py` patterns. Register the router in `main.py` under `/api/admin` prefix.
 
 <phase_requirements>
 ## Phase Requirements
 
 | ID | Description | Research Support |
 |----|-------------|-----------------|
-| ADMIN-01 | Admin can create, edit, and delete agent configurations (under Admin section) | Standard CRUD following existing admin patterns. Backend `agent_admin.py` with Pydantic schemas, `require_admin` auth. Frontend modal-based create/edit with confirm dialog for delete. Sidebar nav item added. |
-| ADMIN-02 | Admin can assign/remove tools from an agent's allowed tool list | Checkbox list UI in agent edit modal/page. Tools loaded from the tool registry (`backend/app/tools/`). Agent's `allowed_tool_names` JSON field stores selected tool names. |
-| ADMIN-03 | Admin can edit an agent's system prompt and select its model | System prompt: large textarea (monospace, ~20 rows). Model selection: dropdown populated from a hardcoded list of supported LiteLLM model identifiers. Both fields on the agent edit form. |
-| ADMIN-04 | Admin can view agent usage statistics (calls, tokens, cost) | Aggregation queries on `agent_usage_logs` table. Per-agent breakdown with totals. Date range filter. Simple table layout -- no charting library needed. |
+| ADMIN-01 | Admin can create, edit, and delete agent configurations (under Admin section) | Standard CRUD following existing admin patterns. Backend `agent_admin.py` with Pydantic schemas, `require_admin` auth. Frontend Card-based modal create/edit with confirm dialog for delete (soft-delete via `is_active=False`). Sidebar nav item added with Bot icon. |
+| ADMIN-02 | Admin can assign/remove tools from an agent's allowed tool list | Checkbox list UI in agent edit modal. Tools loaded from backend endpoint that reads `TOOL_REGISTRY` via `ToolDefinition` dataclass (name, description, category). Agent's `allowed_tool_names` JSON column stores selected tool names. |
+| ADMIN-03 | Admin can edit an agent's system prompt and select its model | System prompt: large `<textarea>` (monospace, ~20 rows). Model selection: `<select>` dropdown populated from a hardcoded list of supported LiteLLM model identifiers matching the 3 configured providers (Anthropic, Gemini, Groq). Both fields on the agent edit form. |
+| ADMIN-04 | Admin can view agent usage statistics (calls, tokens, cost) | SQL aggregation queries on `agent_usage_logs` table (SUM/COUNT/AVG grouped by agent_id). Per-agent breakdown with totals. Optional date range filter. Simple table layout -- no charting library needed. |
 </phase_requirements>
 
 ## Standard Stack
 
-### Core (already in project)
+### Core (already in project -- verified)
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
 | Next.js | 16.1.4 | Frontend framework | Already in project, admin pages are Next.js pages |
-| React | 19.2.3 | UI components | Already in project |
+| React | 19.x | UI components | Already in project |
 | shadcn/ui (Card, Button) | N/A | UI primitives | Already used in admin pages -- Card, CardContent, CardHeader, CardTitle, Button |
 | lucide-react | 0.563.0 | Icons | Already used throughout admin pages |
-| FastAPI | >=0.135.0 | Backend API | Already in project, will host admin endpoints |
+| FastAPI | >=0.135.0 | Backend API | Already in project, hosts admin endpoints |
 | SQLAlchemy 2.0 | >=2.0.25 | ORM for agent config CRUD | Already in project, used by all models |
 | Pydantic | >=2.5 | Request/response schemas | Already in project, used for all API schemas |
 
-### Supporting (already in project)
+### Supporting (already in project -- verified)
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| @radix-ui/react-tabs | 1.1.13 | Tab component | Already installed, used for Agents/Usage tabs |
 | @radix-ui/react-select | 2.2.6 | Select dropdowns | Already installed, use for model selection dropdown |
-| @radix-ui/react-dialog | 1.1.15 | Modal dialogs | Already installed, but project uses custom modals (Card-based). Follow existing pattern. |
-| Alembic | >=1.13.1 | Database migrations | Already in project. Phase 01 creates the agent tables; Phase 05 may not need new migrations. |
+| httpx | N/A | Async HTTP client for tests | Already in project, used by test client via `ASGITransport` |
+| pytest | N/A | Test framework | Already in project, existing test suite with `conftest.py` |
 
 ### No New Dependencies Needed
 Phase 05 requires zero new dependencies. Everything is built with existing libraries. Key observations:
-- The project already has `@radix-ui/react-tabs` and `@radix-ui/react-select` installed
-- Custom Card-based modals are the established pattern (not Radix Dialog)
-- No charting library needed -- usage stats are displayed as tables and stat cards
+- The project uses Button-based tab switching (not Radix Tabs component) -- verified in `admin/users/page.tsx`
+- Card-based modals are the established pattern (fixed z-50 overlay + backdrop blur) -- verified in `edit-user-modal.tsx`
+- No charting library needed -- usage stats displayed as tables and stat cards
 - No code editor library needed -- system prompt editing uses a plain `<textarea>` with monospace font
 
 ### Alternatives Considered
@@ -58,7 +57,7 @@ Phase 05 requires zero new dependencies. Everything is built with existing libra
 |------------|-----------|----------|
 | Plain textarea for prompt editing | Monaco Editor / CodeMirror | Over-engineering. System prompts are plain text, not code. Textarea is sufficient. Would add ~500KB bundle. |
 | Table for usage stats | Recharts / Chart.js | Over-engineering for v1. A well-formatted table with stat cards is clearer for admin use. Charts can be added later if needed. |
-| Custom checkbox list for tools | Radix Checkbox component | Could work, but native HTML checkboxes with Tailwind styling match the existing patterns (see permissions table in settings page). |
+| Hardcoded model list | LiteLLM model discovery | The org only supports 3 providers. A hardcoded list is clearer and safer than auto-discovery. |
 
 ## Architecture Patterns
 
@@ -67,7 +66,10 @@ Phase 05 requires zero new dependencies. Everything is built with existing libra
 backend/app/
 ├── api/
 │   └── agent_admin.py         # NEW: Admin CRUD endpoints for agent configs + usage stats
-└── (models/agent.py)          # EXISTS from Phase 01: AgentConfig, AgentUsageLog
+└── (models/agent.py)          # EXISTS: AgentConfig, AgentUsageLog (from Phase 01)
+
+backend/tests/
+└── test_agent_admin.py        # NEW: Tests for agent admin endpoints
 
 frontend/src/
 ├── app/
@@ -78,16 +80,19 @@ frontend/src/
 │   ├── create-agent-modal.tsx # NEW: Modal for creating new agent
 │   └── edit-agent-modal.tsx   # NEW: Modal for editing agent (prompt, model, tools)
 └── lib/
-    └── api.ts                 # MODIFIED: Add agentAdminApi section
+    └── api.ts                 # MODIFIED: Add agent admin API methods to adminApi object
 ```
 
-### Pattern 1: Admin Page Layout (follow existing Users page)
-**What:** Every admin page follows: AppShell > Section header with gold accent > Stats cards > Tabbed content with tables.
+### Pattern 1: Admin Page Layout (follow existing Users page exactly)
+**What:** Every admin page follows: AppShell > Section header with gold accent > Stats cards > Button-based tab switching > Table in Card.
 **When to use:** The agents admin page.
+**Verified source:** `frontend/src/app/admin/users/page.tsx` lines 182-541
 **Example:**
 ```typescript
 // Source: Derived from frontend/src/app/admin/users/page.tsx pattern
 export default function AdminAgentsPage() {
+  const [activeTab, setActiveTab] = useState<"agents" | "usage">("agents");
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -114,7 +119,24 @@ export default function AdminAgentsPage() {
           {/* Total Agents, Active Agents, Total Calls, Total Cost */}
         </div>
 
-        {/* Tabs: Agents | Usage */}
+        {/* Tabs - Button-based switching (same as Users page) */}
+        <div className="flex gap-2">
+          <Button
+            variant={activeTab === "agents" ? "default" : "outline"}
+            onClick={() => setActiveTab("agents")}
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            Agents ({agents.length})
+          </Button>
+          <Button
+            variant={activeTab === "usage" ? "default" : "outline"}
+            onClick={() => setActiveTab("usage")}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Usage
+          </Button>
+        </div>
+
         {/* Tables with same styling as Users page */}
       </div>
     </AppShell>
@@ -122,14 +144,20 @@ export default function AdminAgentsPage() {
 }
 ```
 
-### Pattern 2: Backend Admin CRUD (follow existing admin.py)
+### Pattern 2: Backend Admin CRUD (follow existing admin.py exactly)
 **What:** All admin endpoints use `require_admin` dependency, return Pydantic response models, log changes to `AuditLog`.
 **When to use:** All agent admin API endpoints.
-**Example:**
+**Verified source:** `backend/app/api/admin.py` lines 115-249 (user CRUD pattern)
+**Key details:**
+- `AuditLog` uses `entity_type="agent"`, `entity_name=agent.name`, `action="create"|"update"|"delete"`, `changes={"field": {"old": x, "new": y}}`
+- Soft delete sets `is_active = False` (matching AgentConfig's existing field)
+- PATCH for updates (partial update), POST for create, DELETE for soft-delete
+- Return `{"status": "updated|deactivated", "id": N}` for mutations
 ```python
-# Source: Derived from backend/app/api/admin.py patterns
-from fastapi import APIRouter, Depends, HTTPException
+# Source: Follows patterns from backend/app/api/admin.py
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.db import get_db
 from app.models.member import BoardMember
 from app.models.agent import AgentConfig, AgentUsageLog
@@ -140,234 +168,6 @@ router = APIRouter()
 
 @router.get("/agents")
 async def list_agents(
-    db: Session = Depends(get_db),
-    current_user: BoardMember = Depends(require_admin)
-):
-    """List all agent configurations."""
-    agents = db.query(AgentConfig).order_by(AgentConfig.name).all()
-    return agents
-
-@router.post("/agents")
-async def create_agent(
-    request: CreateAgentRequest,
-    db: Session = Depends(get_db),
-    current_user: BoardMember = Depends(require_admin)
-):
-    """Create a new agent configuration."""
-    agent = AgentConfig(
-        name=request.name,
-        slug=request.slug,
-        description=request.description,
-        system_prompt=request.system_prompt,
-        model=request.model,
-        allowed_tool_names=request.allowed_tool_names or [],
-        is_active=True,
-    )
-    db.add(agent)
-    db.add(AuditLog(
-        entity_type="agent",
-        entity_id=0,
-        entity_name=request.name,
-        action="create",
-        changed_by_id=current_user.id,
-    ))
-    db.commit()
-    db.refresh(agent)
-    return agent
-```
-
-### Pattern 3: Modal-Based Editing (follow existing edit-user-modal)
-**What:** Edit forms render in Card-based modals with backdrop blur, close on backdrop click, show loading state during submission.
-**When to use:** Agent create and edit modals.
-**Example:**
-```typescript
-// Source: Derived from frontend/src/components/edit-user-modal.tsx pattern
-interface EditAgentModalProps {
-  isOpen: boolean;
-  agent: AgentConfig | null;
-  availableTools: ToolInfo[];
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-export function EditAgentModal({ isOpen, agent, availableTools, onClose, onSuccess }: EditAgentModalProps) {
-  // Fixed z-50 overlay with backdrop blur
-  // Card-based modal with CardHeader (title + close button) + CardContent (form)
-  // Form fields: name, description, model (select), system prompt (textarea), tools (checkboxes)
-  // Submit calls agentAdminApi.updateAgent(), onSuccess refetches list
-}
-```
-
-### Pattern 4: Tool Assignment via Checkbox List
-**What:** The tool registry provides a list of available tools with name and description. The admin checks/unchecks tools to assign them to an agent. The `allowed_tool_names` JSON array stores the selection.
-**When to use:** Inside the agent edit modal.
-**Example:**
-```typescript
-// Tool assignment section within the edit modal
-<div>
-  <label className="text-sm font-medium">Allowed Tools</label>
-  <p className="text-xs text-muted-foreground mt-0.5">
-    Select which tools this agent can use
-  </p>
-  <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
-    {availableTools.map((tool) => (
-      <label
-        key={tool.name}
-        className="flex items-start gap-3 p-2 rounded hover:bg-muted/20 cursor-pointer"
-      >
-        <input
-          type="checkbox"
-          checked={selectedTools.includes(tool.name)}
-          onChange={() => toggleTool(tool.name)}
-          className="mt-1 h-4 w-4 rounded border-gray-300"
-        />
-        <div>
-          <p className="text-sm font-medium">{tool.name}</p>
-          <p className="text-xs text-muted-foreground">{tool.description}</p>
-        </div>
-      </label>
-    ))}
-  </div>
-</div>
-```
-
-### Pattern 5: Sidebar Navigation Item
-**What:** Add "Agents" to the Admin nav group in the sidebar, between "Users" and "Settings".
-**When to use:** Sidebar modification.
-**Example:**
-```typescript
-// In frontend/src/components/sidebar.tsx
-// Import Bot icon from lucide-react
-import { Bot } from "lucide-react";
-
-// Add to the Admin group items array:
-{
-  label: "Admin",
-  visibleTo: "admin",
-  items: [
-    { label: "Users", href: "/admin/users", icon: Users },
-    { label: "Agents", href: "/admin/agents", icon: Bot },  // NEW
-    { label: "Settings", href: "/admin/settings", icon: Settings },
-  ],
-}
-```
-
-### Anti-Patterns to Avoid
-- **Separate page for each agent function (list, edit, tools, usage):** Use a single page with tabs and modals. The existing admin section uses this pattern and admin pages should not proliferate.
-- **Complex WYSIWYG editor for system prompts:** System prompts are plain text instructions. A monospace textarea is the correct tool. Rich text editors add complexity and corrupt prompt formatting.
-- **Real-time usage charts with polling:** Overkill for v1. Usage stats are consulted occasionally, not monitored live. A simple aggregated table with a date range filter is sufficient.
-- **Inline editing on the table:** The existing pattern is click-to-edit-modal. Inline editing introduces complex state management for marginal UX gain.
-- **Separate API router file registration pattern:** Register the new agent_admin router in `main.py` under the `/api/admin` prefix, alongside the existing admin router. Use a sub-prefix like `/api/admin/agents`.
-
-## Don't Hand-Roll
-
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| Model selection dropdown options | Dynamic model discovery from LiteLLM | Hardcoded list of supported models | The org only supports 3 providers (Anthropic/Gemini/Groq). A hardcoded list with friendly names is clearer and safer than auto-discovery, which could expose unsupported models. Update the list when new models are added. |
-| Usage cost aggregation | Custom cost calculation logic | SQL aggregation on `agent_usage_logs.total_cost_usd` | LiteLLM already calculates per-call cost at invocation time (Phase 01). Admin just needs SUM/COUNT queries. |
-| Slug generation | Manual slug input | Auto-generate from name (lowercase, replace spaces with hyphens, strip special chars) | Slugs should be deterministic from names. Let the backend auto-generate. |
-| Tool list for assignment UI | Hardcoded tool list in frontend | Backend endpoint that returns registered tools from the tool registry | Tools are defined in `backend/app/tools/`. A backend endpoint should expose the tool registry (name + description) for the frontend to consume. |
-
-**Key insight:** Phase 05 is purely a management interface over models and data created in Phase 01. It should not contain any AI logic, tool execution, or streaming code. It is CRUD + aggregation queries + UI.
-
-## Common Pitfalls
-
-### Pitfall 1: Editing System Prompt Loses Formatting
-**What goes wrong:** Admin edits a multi-line system prompt in a textarea, but whitespace/newlines are stripped or mangled during save or display.
-**Why it happens:** JSON serialization, HTML rendering, or Pydantic validation strips whitespace.
-**How to avoid:** Store as `Text` column (not `String`). Send as raw string in JSON body. Render in a `<textarea>` with `whitespace-pre-wrap` for display. Test with prompts containing bullet points, code blocks, and multiple paragraphs.
-**Warning signs:** Prompts that looked fine in the editor break when the agent uses them.
-
-### Pitfall 2: Deleting an Agent That Is Being Used
-**What goes wrong:** Admin deletes an agent while a user is mid-invocation, causing a runtime error.
-**Why it happens:** No soft-delete or usage check.
-**How to avoid:** Use soft delete (`is_active = False`) instead of hard delete. Show a confirmation dialog. If the agent has usage logs, warn the admin. Deactivated agents don't appear in user-facing agent lists but preserve their usage history.
-**Warning signs:** 404 errors during agent invocations. Loss of usage statistics.
-
-### Pitfall 3: Tool Registry Out of Sync with Agent Config
-**What goes wrong:** An agent's `allowed_tool_names` references a tool name that no longer exists in the tool registry (e.g., after a tool is renamed or removed).
-**Why it happens:** Tool definitions live in code (`backend/app/tools/`), but agent configs live in the database.
-**How to avoid:** When loading agent config for execution, validate `allowed_tool_names` against the current tool registry and filter out any unknown tools (log a warning). In the admin UI, show a warning badge next to tools that are in the agent's config but not in the registry.
-**Warning signs:** Agent silently loses access to tools after a code deploy.
-
-### Pitfall 4: No Audit Trail for Agent Config Changes
-**What goes wrong:** Admin changes a system prompt that causes an agent to misbehave, but there's no record of what the prompt was before.
-**Why it happens:** Not logging changes to `AuditLog`.
-**How to avoid:** Log every create/update/delete to `AuditLog` with `entity_type="agent"`. For updates, include the changed fields in the `changes` JSON column (especially `system_prompt` old/new values). This follows the exact pattern used for user updates in `admin.py`.
-**Warning signs:** Cannot determine when or why an agent's behavior changed.
-
-### Pitfall 5: Model Identifier Validation
-**What goes wrong:** Admin types a model identifier incorrectly (e.g., "claude-sonnet" instead of "anthropic/claude-sonnet-4-5-20250929") and the agent fails at runtime.
-**Why it happens:** Free-text model input without validation.
-**How to avoid:** Use a `<select>` dropdown with a curated list of supported models, not a free-text input. The list should include only models the org has API keys for. Show the provider prefix clearly (e.g., "Anthropic: Claude Sonnet 4.5").
-**Warning signs:** LiteLLM errors about unknown model identifiers.
-
-## Code Examples
-
-### Backend: Agent Admin Endpoints
-```python
-# Source: Follows patterns from backend/app/api/admin.py
-
-from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
-
-# --- Schemas ---
-
-class CreateAgentRequest(BaseModel):
-    name: str
-    description: Optional[str] = None
-    system_prompt: str
-    model: str  # e.g., "anthropic/claude-sonnet-4-5-20250929"
-    max_iterations: int = 5
-    temperature: float = 0.3
-    allowed_tool_names: List[str] = []
-
-class UpdateAgentRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    system_prompt: Optional[str] = None
-    model: Optional[str] = None
-    max_iterations: Optional[int] = None
-    temperature: Optional[float] = None
-    allowed_tool_names: Optional[List[str]] = None
-    is_active: Optional[bool] = None
-
-class AgentConfigResponse(BaseModel):
-    id: int
-    name: str
-    slug: str
-    description: Optional[str]
-    system_prompt: str
-    model: str
-    max_iterations: int
-    temperature: float
-    allowed_tool_names: list
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class ToolInfoResponse(BaseModel):
-    name: str
-    description: str
-    parameter_count: int
-
-class UsageStatsResponse(BaseModel):
-    agent_id: int
-    agent_name: str
-    total_calls: int
-    total_prompt_tokens: int
-    total_completion_tokens: int
-    total_cost_usd: float
-    avg_duration_ms: float
-
-# --- Endpoints ---
-
-@router.get("/agents", response_model=List[AgentConfigResponse])
-async def list_agents(
     include_inactive: bool = Query(False),
     db: Session = Depends(get_db),
     current_user: BoardMember = Depends(require_admin),
@@ -377,20 +177,206 @@ async def list_agents(
         query = query.filter(AgentConfig.is_active == True)
     return query.order_by(AgentConfig.name).all()
 
-@router.get("/agents/tools", response_model=List[ToolInfoResponse])
+@router.post("/agents")
+async def create_agent(
+    request: CreateAgentRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_admin),
+):
+    # Auto-generate slug from name
+    slug = request.name.lower().replace(" ", "-")
+    slug = "".join(c for c in slug if c.isalnum() or c == "-")
+
+    agent = AgentConfig(
+        name=request.name,
+        slug=slug,
+        description=request.description,
+        system_prompt=request.system_prompt,
+        model=request.model,
+        temperature=request.temperature,
+        max_iterations=request.max_iterations,
+        allowed_tool_names=request.allowed_tool_names or [],
+        is_active=True,
+    )
+    db.add(agent)
+    db.add(AuditLog(
+        entity_type="agent",
+        entity_id=0,  # Will update after commit
+        entity_name=request.name,
+        action="create",
+        changed_by_id=current_user.id,
+    ))
+    db.commit()
+    db.refresh(agent)
+    return agent
+```
+
+### Pattern 3: Card-Based Modal (follow existing edit-user-modal.tsx exactly)
+**What:** Edit forms render in Card-based modals with fixed z-50 overlay, backdrop blur, close on backdrop click, loading state during submission.
+**When to use:** Agent create and edit modals.
+**Verified source:** `frontend/src/components/edit-user-modal.tsx` lines 75-192
+**Key structural elements:**
+```typescript
+// Source: Exact pattern from frontend/src/components/edit-user-modal.tsx
+return (
+  <div className="fixed inset-0 z-50 flex items-center justify-center">
+    {/* Backdrop */}
+    <div
+      className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+      onClick={handleClose}
+    />
+    {/* Modal */}
+    <Card className="relative z-10 w-full max-w-md mx-4 shadow-lg">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle className="flex items-center gap-2">
+          <Bot className="h-5 w-5" />
+          Edit Agent
+        </CardTitle>
+        <Button variant="ghost" size="sm" onClick={handleClose} disabled={submitting}>
+          <X className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form fields */}
+          {/* Actions row at bottom */}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={handleClose} disabled={submitting}>Cancel</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : "Save Changes"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  </div>
+);
+```
+
+### Pattern 4: Tool Assignment via Checkbox List
+**What:** The tool registry provides a list of available tools via `ToolDefinition` dataclass (name, description, category). The admin checks/unchecks tools to assign them to an agent. The `allowed_tool_names` JSON column stores the selection.
+**When to use:** Inside the agent create/edit modal.
+**Key detail:** The `ToolDefinition` dataclass in `backend/app/tools/__init__.py` has fields: `name`, `description`, `parameters_schema`, `handler`, `category`. The admin endpoint should expose `name`, `description`, and `category` (not handler or schema).
+
+### Pattern 5: Sidebar Navigation Item
+**What:** Add "Agents" to the Admin nav group in the sidebar, between "Templates" and "Settings".
+**Verified source:** `frontend/src/components/sidebar.tsx` lines 49-57
+**Example:**
+```typescript
+// In frontend/src/components/sidebar.tsx
+// Import Bot icon from lucide-react (add to existing import)
+import { Bot } from "lucide-react";
+
+// Modify the Admin group items array (line 52-56):
+{
+  label: "Admin",
+  visibleTo: "admin",
+  items: [
+    { label: "Users", href: "/admin/users", icon: Users },
+    { label: "Templates", href: "/admin/templates", icon: ClipboardList },
+    { label: "Agents", href: "/admin/agents", icon: Bot },  // NEW
+    { label: "Settings", href: "/admin/settings", icon: Settings },
+  ],
+}
+```
+
+### Pattern 6: Router Registration in main.py
+**What:** New routers are imported and registered in `backend/app/main.py` with `app.include_router()`.
+**Verified source:** `backend/app/main.py` lines 7, 428-438
+**Key detail:** The existing admin router is at `/api/admin`. The agent admin router should be registered separately with its own prefix to avoid route collisions. Use `/api/admin` prefix with route paths like `/agents`, `/agents/{id}`, `/agents/tools`, `/agents/usage`.
+**Important:** Since the existing `admin.router` is already at `/api/admin`, there could be route collisions. Options:
+  1. Add agent admin routes directly to the existing `admin.py` router (simplest, follows single-router-per-prefix pattern)
+  2. Create `agent_admin.py` with its own router and mount at `/api/admin` (two routers sharing a prefix -- FastAPI supports this)
+
+**Recommendation:** Option 2 -- separate file for clean separation of concerns. FastAPI allows multiple routers on the same prefix. Import in `main.py` as `from app.api import agent_admin` and register with `app.include_router(agent_admin.router, prefix="/api/admin", tags=["admin-agents"])`.
+
+### Anti-Patterns to Avoid
+- **Separate page for each agent function (list, edit, tools, usage):** Use a single page with tabs and modals. The existing admin section uses this pattern and admin pages should not proliferate.
+- **Complex WYSIWYG editor for system prompts:** System prompts are plain text instructions. A monospace textarea is the correct tool. Rich text editors add complexity and corrupt prompt formatting.
+- **Real-time usage charts with polling:** Overkill for v1. Usage stats are consulted occasionally, not monitored live. A simple aggregated table with a date range filter is sufficient.
+- **Inline editing on the table:** The existing pattern is click-to-edit-modal. Inline editing introduces complex state management for marginal UX gain.
+- **Using Radix Dialog for modals:** The project uses custom Card-based modals (verified in `edit-user-modal.tsx`), NOT Radix Dialog. Follow the existing pattern.
+- **Using Radix Tabs for tab switching:** The Users page uses Button-based tabs with `variant` toggling, NOT the Radix Tabs component. Follow the existing pattern.
+
+## Don't Hand-Roll
+
+| Problem | Don't Build | Use Instead | Why |
+|---------|-------------|-------------|-----|
+| Model selection dropdown options | Dynamic model discovery from LiteLLM | Hardcoded list of supported models | The org only supports 3 providers (Anthropic/Gemini/Groq). A hardcoded list with friendly names is clearer and safer than auto-discovery, which could expose unsupported models. Update the list when new models are added. |
+| Usage cost aggregation | Custom cost calculation logic | SQL aggregation on `agent_usage_logs.total_cost_usd` | The agent runner already calculates per-call cost at invocation time (Phase 01). Admin just needs SUM/COUNT queries. |
+| Slug generation | Manual slug input from admin | Auto-generate from name (lowercase, replace spaces with hyphens, strip special chars) | Slugs should be deterministic from names. Let the backend auto-generate. Validate uniqueness. |
+| Tool list for assignment UI | Hardcoded tool list in frontend | Backend endpoint that reads `TOOL_REGISTRY` | Tools are defined as `ToolDefinition` dataclasses in `backend/app/tools/`. The existing `get_tool_definitions()` function provides all registered tools. A backend endpoint should expose name + description + category for the frontend. |
+| Tool definition display format | Custom parsing of tool schemas | Read `ToolDefinition.name`, `.description`, `.category` directly | The `ToolDefinition` dataclass already has clean fields. Don't parse the OpenAI-format dict -- read the dataclass attributes directly. |
+
+**Key insight:** Phase 05 is purely a management interface over models and data created in Phase 01. It should not contain any AI logic, tool execution, or streaming code. It is CRUD + aggregation queries + UI.
+
+## Common Pitfalls
+
+### Pitfall 1: Editing System Prompt Loses Formatting
+**What goes wrong:** Admin edits a multi-line system prompt in a textarea, but whitespace/newlines are stripped or mangled during save or display.
+**Why it happens:** JSON serialization, HTML rendering, or Pydantic validation strips whitespace.
+**How to avoid:** The `system_prompt` column is already `Text` type (verified in `agent.py` line 19). Send as raw string in JSON body. Render in a `<textarea>` with `whitespace-pre-wrap` for display. Test with the existing seed agent prompts which contain bullet points, backslash continuations, and multiple paragraphs.
+**Warning signs:** Prompts that looked fine in the editor break when the agent uses them.
+
+### Pitfall 2: Deleting an Agent That Is Being Used
+**What goes wrong:** Admin deletes an agent while a user is mid-invocation, causing a runtime error.
+**Why it happens:** No soft-delete or usage check.
+**How to avoid:** Use soft delete (`is_active = False`) instead of hard delete. The `AgentConfig.is_active` field already exists (verified). The agent list endpoint already filters `is_active == True` (verified in `agents.py` line 39). The run endpoint already checks `is_active` (verified in `agents.py` line 88). So soft-deleting an agent will immediately prevent new invocations and hide it from user-facing lists. Show a confirmation dialog in the UI. If the agent has usage logs, warn the admin that stats will be preserved.
+**Warning signs:** 404 errors during agent invocations. Loss of usage statistics.
+
+### Pitfall 3: Tool Registry Out of Sync with Agent Config
+**What goes wrong:** An agent's `allowed_tool_names` references a tool name that no longer exists in the tool registry (e.g., after a tool is renamed or removed in code).
+**Why it happens:** Tool definitions live in code (`backend/app/tools/`), but agent configs live in the database.
+**How to avoid:** The `get_tools_for_agent()` function in `tools/__init__.py` already silently ignores unknown tool names (verified, line 41: `if tool:`). In the admin UI, show a warning badge next to tool names that are in the agent's config but not in the current registry. The backend tools endpoint provides the current registry for comparison.
+**Warning signs:** Agent silently loses access to tools after a code deploy.
+
+### Pitfall 4: No Audit Trail for Agent Config Changes
+**What goes wrong:** Admin changes a system prompt that causes an agent to misbehave, but there's no record of what the prompt was before.
+**Why it happens:** Not logging changes to `AuditLog`.
+**How to avoid:** Log every create/update/delete to `AuditLog` with `entity_type="agent"`. For updates, include changed fields in the `changes` JSON column (especially `system_prompt` old/new values). This follows the exact pattern used for user updates in `admin.py` (verified, lines 194-213).
+**Warning signs:** Cannot determine when or why an agent's behavior changed.
+
+### Pitfall 5: Model Identifier Validation
+**What goes wrong:** Admin enters an invalid model identifier and the agent fails at runtime with a LiteLLM error.
+**Why it happens:** Free-text model input without validation.
+**How to avoid:** Use a `<select>` dropdown with a curated list of supported models, not a free-text input. The `llm_provider.py` supports three providers: anthropic, gemini, groq (verified via `PROVIDER_KEY_MAP`). The model identifiers must use LiteLLM format: `provider/model-name`. The existing seed agents use `anthropic/claude-sonnet-4-5-20250929` (verified in `main.py` line 137).
+**Warning signs:** LiteLLM errors about unknown model identifiers.
+
+### Pitfall 6: Route Collision with Existing Agent API
+**What goes wrong:** The new admin agent endpoints conflict with the existing `/api/agents` routes (which are user-facing).
+**Why it happens:** Both the agent runner API and admin agent API deal with agent configs.
+**How to avoid:** Mount admin endpoints under `/api/admin/agents` (via the admin prefix), NOT under `/api/agents`. The existing agent API at `/api/agents` is for user-facing operations (list active agents, run agent). The admin API at `/api/admin/agents` is for configuration management (CRUD, tools, usage). Completely separate concerns.
+**Warning signs:** Non-admin users accessing admin-only endpoints, or admin routes shadowing user routes.
+
+## Code Examples
+
+### Backend: Tool Info Endpoint (reads ToolDefinition dataclass)
+```python
+# Source: backend/app/tools/__init__.py ToolDefinition dataclass
+# The TOOL_REGISTRY contains ToolDefinition instances, NOT raw dicts.
+# ToolDefinition has: name, description, parameters_schema, handler, category
+
+@router.get("/agents/tools")
 async def list_available_tools(
     current_user: BoardMember = Depends(require_admin),
 ):
     """Return all registered tools from the tool registry."""
     from app.tools import TOOL_REGISTRY
     return [
-        ToolInfoResponse(
-            name=name,
-            description=tool["function"]["description"],
-            parameter_count=len(tool["function"]["parameters"].get("properties", {})),
-        )
-        for name, tool in TOOL_REGISTRY.items()
+        {
+            "name": tool.name,
+            "description": tool.description,
+            "category": tool.category,
+            "parameter_count": len(tool.parameters_schema.get("properties", {})),
+        }
+        for tool in TOOL_REGISTRY.values()
     ]
+```
+
+### Backend: Usage Stats Aggregation
+```python
+# Source: Follows patterns from backend/app/api/admin.py
+from sqlalchemy import func
 
 @router.get("/agents/usage")
 async def get_usage_stats(
@@ -418,10 +404,55 @@ async def get_usage_stats(
     return query.all()
 ```
 
-### Frontend: Agent Admin API Client
-```typescript
-// Source: Follows patterns from frontend/src/lib/api.ts adminApi section
+### Backend: Pydantic Schemas
+```python
+# Agent admin request/response schemas
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import datetime
 
+class CreateAgentRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    system_prompt: str
+    model: str  # e.g., "anthropic/claude-sonnet-4-5-20250929"
+    max_iterations: int = 5
+    temperature: float = 0.3
+    allowed_tool_names: List[str] = []
+
+class UpdateAgentRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    system_prompt: Optional[str] = None
+    model: Optional[str] = None
+    max_iterations: Optional[int] = None
+    temperature: Optional[float] = None
+    allowed_tool_names: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+class AgentAdminResponse(BaseModel):
+    id: int
+    name: str
+    slug: str
+    description: Optional[str]
+    system_prompt: str
+    model: str
+    max_iterations: int
+    temperature: float
+    allowed_tool_names: list
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+```
+
+### Frontend: Agent Admin API Client Methods
+```typescript
+// Source: Follows patterns from frontend/src/lib/api.ts adminApi section (lines 1209-1421)
+
+// Types (add near other admin types)
 export interface AgentConfig {
   id: number;
   name: string;
@@ -440,6 +471,7 @@ export interface AgentConfig {
 export interface ToolInfo {
   name: string;
   description: string;
+  category: string;
   parameter_count: number;
 }
 
@@ -457,11 +489,8 @@ export interface AgentUsageStats {
 // Agent Management
 listAgents: async (includeInactive = false): Promise<AgentConfig[]> => {
   const query = includeInactive ? "?include_inactive=true" : "";
-  return api.get(`/admin/agents${query}`);
-},
-
-getAgent: async (id: number): Promise<AgentConfig> => {
-  return api.get(`/admin/agents/${id}`);
+  const response = await api.get<AgentConfig[] | PaginatedResponse<AgentConfig>>(`/admin/agents${query}`);
+  return Array.isArray(response) ? response : response.items || [];
 },
 
 createAgent: async (data: Partial<AgentConfig>): Promise<AgentConfig> => {
@@ -495,6 +524,8 @@ getAgentUsageStats: async (params?: {
 ### Frontend: Supported Models List
 ```typescript
 // Hardcoded list of supported models for the model selection dropdown
+// Based on verified PROVIDER_KEY_MAP in backend/app/services/llm_provider.py
+// and seed agent model values in backend/app/main.py
 export const SUPPORTED_MODELS = [
   {
     value: "anthropic/claude-sonnet-4-5-20250929",
@@ -529,6 +560,36 @@ export const SUPPORTED_MODELS = [
 ];
 ```
 
+### Frontend: Tool Assignment Checkbox Section
+```typescript
+// Tool assignment section within the create/edit modal
+<div>
+  <label className="text-sm font-medium">Allowed Tools</label>
+  <p className="text-xs text-muted-foreground mt-0.5">
+    Select which tools this agent can use
+  </p>
+  <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+    {availableTools.map((tool) => (
+      <label
+        key={tool.name}
+        className="flex items-start gap-3 p-2 rounded hover:bg-muted/20 cursor-pointer"
+      >
+        <input
+          type="checkbox"
+          checked={selectedTools.includes(tool.name)}
+          onChange={() => toggleTool(tool.name)}
+          className="mt-1 h-4 w-4 rounded border-gray-300"
+        />
+        <div>
+          <p className="text-sm font-medium">{tool.name}</p>
+          <p className="text-xs text-muted-foreground">{tool.description}</p>
+        </div>
+      </label>
+    ))}
+  </div>
+</div>
+```
+
 ## State of the Art
 
 | Old Approach | Current Approach | When Changed | Impact |
@@ -539,7 +600,7 @@ export const SUPPORTED_MODELS = [
 
 **Deprecated/outdated:**
 - JSON file-based prompt configuration: Replaced by database-backed management with admin UI
-- Hardcoded agent definitions in code: Replaced by `agent_configs` table with runtime editability
+- Hardcoded agent definitions in code: Already replaced by `agent_configs` table with runtime editability (Phase 01)
 
 ## Open Questions
 
@@ -556,7 +617,7 @@ export const SUPPORTED_MODELS = [
 3. **Usage stats date granularity**
    - What we know: `agent_usage_logs` has `created_at` timestamps for each call.
    - What's unclear: Should usage stats show daily/weekly/monthly breakdowns, or just a total with date range filter?
-   - Recommendation: Start with total aggregation + date range filter. This is simplest and covers the ADMIN-04 requirement. Time-series breakdowns can be added later.
+   - Recommendation: Start with total aggregation + optional date range filter. This is simplest and covers the ADMIN-04 requirement. Time-series breakdowns can be added later.
 
 ## Validation Architecture
 
@@ -564,9 +625,9 @@ export const SUPPORTED_MODELS = [
 | Property | Value |
 |----------|-------|
 | Framework | pytest (backend), Next.js build (frontend type checking) |
-| Config file | backend: `pytest.ini` or `pyproject.toml` (create in Wave 0 if absent) |
-| Quick run command | `cd backend && python -m pytest tests/test_agent_admin.py -x` |
-| Full suite command | `cd backend && python -m pytest --tb=short -q` |
+| Config file | `backend/tests/conftest.py` (exists, verified) |
+| Quick run command | `cd /Users/amirhaque/Files/swarmify/agents/ivy/tmg-board/backend && python -m pytest tests/test_agent_admin.py -x` |
+| Full suite command | `cd /Users/amirhaque/Files/swarmify/agents/ivy/tmg-board/backend && python -m pytest --tb=short -q` |
 
 ### Phase Requirements to Test Map
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
@@ -574,23 +635,33 @@ export const SUPPORTED_MODELS = [
 | ADMIN-01 | CRUD for agent configs (create, read, update, soft-delete) | unit | `pytest tests/test_agent_admin.py::test_create_agent -x` | Wave 0 |
 | ADMIN-01 | Only admin role can access agent admin endpoints | unit | `pytest tests/test_agent_admin.py::test_require_admin -x` | Wave 0 |
 | ADMIN-01 | AuditLog entry created for each agent mutation | unit | `pytest tests/test_agent_admin.py::test_audit_log -x` | Wave 0 |
-| ADMIN-02 | Tool list endpoint returns registered tools | unit | `pytest tests/test_agent_admin.py::test_list_tools -x` | Wave 0 |
+| ADMIN-02 | Tool list endpoint returns registered tools from TOOL_REGISTRY | unit | `pytest tests/test_agent_admin.py::test_list_tools -x` | Wave 0 |
 | ADMIN-02 | Agent update with allowed_tool_names persists correctly | unit | `pytest tests/test_agent_admin.py::test_update_tools -x` | Wave 0 |
 | ADMIN-03 | Agent update with system_prompt and model persists correctly | unit | `pytest tests/test_agent_admin.py::test_update_prompt_model -x` | Wave 0 |
-| ADMIN-03 | Invalid model identifier is rejected | unit | `pytest tests/test_agent_admin.py::test_invalid_model -x` | Wave 0 |
+| ADMIN-03 | Model must be from supported list (or at least valid format) | unit | `pytest tests/test_agent_admin.py::test_model_validation -x` | Wave 0 |
 | ADMIN-04 | Usage stats aggregation returns correct totals | unit | `pytest tests/test_agent_admin.py::test_usage_stats -x` | Wave 0 |
 | ADMIN-04 | Usage stats date range filter works | unit | `pytest tests/test_agent_admin.py::test_usage_stats_date_filter -x` | Wave 0 |
-| ALL | Frontend admin page builds without type errors | build | `cd frontend && npx next build` | N/A |
+| ALL | Frontend admin page builds without type errors | build | `cd /Users/amirhaque/Files/swarmify/agents/ivy/tmg-board/frontend && npx next build` | N/A |
 
 ### Sampling Rate
-- **Per task commit:** `cd backend && python -m pytest tests/test_agent_admin.py -x`
-- **Per wave merge:** `cd backend && python -m pytest --tb=short -q && cd ../frontend && npx next build`
-- **Phase gate:** Full suite green before `/gsd:verify-work`
+- **Per task commit:** `cd /Users/amirhaque/Files/swarmify/agents/ivy/tmg-board/backend && python -m pytest tests/test_agent_admin.py -x`
+- **Per wave merge:** `cd /Users/amirhaque/Files/swarmify/agents/ivy/tmg-board/backend && python -m pytest --tb=short -q`
+- **Phase gate:** Full backend suite + frontend build green before `/gsd:verify-work`
 
 ### Wave 0 Gaps
 - [ ] `backend/tests/test_agent_admin.py` -- covers ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-04
-- [ ] `backend/tests/conftest.py` -- shared fixtures (test DB, admin user, agent fixtures) -- may already exist from Phase 01
-- [ ] Verify pytest is in `requirements.txt` dev dependencies
+- [x] `backend/tests/conftest.py` -- shared fixtures exist (test DB, admin user `seed_user`, agent `seed_agent`, mock litellm)
+
+### Existing Test Infrastructure (verified)
+The following fixtures from `conftest.py` are directly reusable:
+- `db_engine` -- in-memory SQLite engine
+- `db_session` -- SQLAlchemy session bound to test engine
+- `client` -- httpx AsyncClient with FastAPI test transport
+- `seed_agent` -- creates a test AgentConfig
+- `seed_user` -- creates a test BoardMember with role="admin"
+
+**Additional fixture needed for Phase 05:**
+- `seed_usage_logs` -- creates sample AgentUsageLog entries for testing usage stats aggregation
 
 ## Files to Create
 
@@ -610,35 +681,42 @@ export const SUPPORTED_MODELS = [
 ### Modified files
 | File | Change |
 |------|--------|
-| `frontend/src/components/sidebar.tsx` | Add "Agents" nav item under Admin group |
-| `frontend/src/lib/api.ts` | Add `AgentConfig`, `ToolInfo`, `AgentUsageStats` types and `agentAdminApi` methods |
-| `backend/app/main.py` | Register `agent_admin.router` under `/api/admin` prefix |
+| `frontend/src/components/sidebar.tsx` | Add "Agents" nav item under Admin group with Bot icon |
+| `frontend/src/lib/api.ts` | Add `AgentConfig`, `ToolInfo`, `AgentUsageStats` types and agent admin methods to `adminApi` object |
+| `backend/app/main.py` | Import `agent_admin` and register router: `app.include_router(agent_admin.router, prefix="/api/admin", tags=["admin-agents"])` |
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `backend/app/api/admin.py` (lines 1-565) -- Existing admin endpoint patterns (schemas, auth, audit logging)
-- `frontend/src/app/admin/users/page.tsx` (lines 1-541) -- Existing admin page layout, styling, tabs, tables, modals
-- `frontend/src/app/admin/settings/page.tsx` (lines 1-687) -- Existing admin settings page with tabs and forms
-- `frontend/src/components/edit-user-modal.tsx` (lines 1-192) -- Existing modal pattern (Card-based, backdrop blur)
-- `frontend/src/components/sidebar.tsx` (lines 1-189) -- Existing nav structure and Admin group
-- `frontend/src/lib/api.ts` (lines 1003-1215) -- Existing adminApi client pattern
-- `.planning/phases/01-agent-infrastructure/01-RESEARCH.md` -- AgentConfig and AgentUsageLog model definitions, tool registry architecture
+- `backend/app/models/agent.py` -- AgentConfig and AgentUsageLog models (verified fields: id, name, slug, description, system_prompt, model, temperature, max_iterations, is_active, allowed_tool_names, created_at, updated_at)
+- `backend/app/tools/__init__.py` -- ToolDefinition dataclass (name, description, parameters_schema, handler, category), TOOL_REGISTRY dict, get_tool_definitions() helper
+- `backend/app/api/admin.py` (565 lines) -- Admin endpoint patterns: Pydantic schemas, require_admin auth, AuditLog entries, CRUD operations
+- `backend/app/api/agents.py` (223 lines) -- Existing user-facing agent endpoints (list, detail, run, API key management)
+- `frontend/src/app/admin/users/page.tsx` (541 lines) -- Admin page layout: AppShell, gold-accent header, stats cards, Button-based tabs, table in Card
+- `frontend/src/components/edit-user-modal.tsx` (192 lines) -- Card-based modal pattern: fixed z-50 overlay, backdrop blur, form with loading state
+- `frontend/src/components/sidebar.tsx` (193 lines) -- Nav structure with Admin group (Users, Templates, Settings)
+- `frontend/src/lib/api.ts` (1421 lines) -- API client patterns, adminApi object structure
+- `backend/app/main.py` (445 lines) -- Router registration pattern, seed agent data with real prompts
+- `backend/app/api/auth.py` -- `require_admin` dependency (checks `user.role != "admin"`, returns 403)
+- `backend/app/models/audit.py` -- AuditLog model (entity_type, entity_id, entity_name, action, changed_by_id, changes JSON)
+- `backend/tests/conftest.py` -- Test infrastructure: in-memory SQLite, db_session, client, seed_agent, seed_user fixtures
+- `backend/app/services/llm_provider.py` -- PROVIDER_KEY_MAP confirming 3 providers: anthropic, gemini, groq
 
 ### Secondary (MEDIUM confidence)
-- `frontend/src/hooks/use-permissions.tsx` -- Permission/role checking hooks for admin gate
-- `backend/app/api/auth.py` -- `require_admin` dependency implementation
+- `frontend/src/hooks/use-permissions.tsx` -- Permission/role checking hooks (isAdmin, isBoardOrAbove)
+- `backend/tests/test_agent_api.py` -- Test patterns: async tests with pytest.mark.asyncio, header-based auth
 
 ### Tertiary (LOW confidence)
-- LiteLLM model identifier formats -- model list may need updating as new models release
+- LiteLLM model identifier formats -- model list may need updating as new models release. The seed agents currently use `anthropic/claude-sonnet-4-5-20250929` which is a real LiteLLM model identifier format.
 
 ## Metadata
 
 **Confidence breakdown:**
-- Standard stack: HIGH -- All libraries already in project, no new dependencies
-- Architecture: HIGH -- Directly follows existing admin page and API patterns documented in the codebase
-- Pitfalls: HIGH -- All identified pitfalls are standard CRUD concerns with known solutions
-- UI/UX patterns: HIGH -- Derived directly from existing admin pages in the same codebase
+- Standard stack: HIGH -- All libraries already in project, no new dependencies, versions verified from package.json
+- Architecture: HIGH -- Directly follows existing admin page and API patterns, code-verified against 8 source files
+- Pitfalls: HIGH -- All identified pitfalls are standard CRUD concerns with known solutions, existing code already handles some (soft delete, tool filtering)
+- UI/UX patterns: HIGH -- Derived directly from existing admin pages in the same codebase, specific line numbers verified
+- Test infrastructure: HIGH -- conftest.py and 8 test files already exist with reusable fixtures
 
 **Research date:** 2026-03-04
 **Valid until:** 2026-04-04 (30 days -- patterns are stable, model list may need updates)
