@@ -32,10 +32,10 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 ### Board Resolutions & Signatures
 
-- [ ] **RES-01**: Board resolutions appear as a dedicated section (building on existing decisions with type=resolution)
-- [ ] **RES-02**: Board members can digitally sign a resolution (name + timestamp + IP)
-- [ ] **RES-03**: Resolution shows signature status (who signed, who hasn't)
-- [ ] **RES-04**: Chair/admin can view and export signed resolutions
+- [x] **RES-01**: Board resolutions appear as a dedicated section (building on existing decisions with type=resolution)
+- [x] **RES-02**: Board members can digitally sign a resolution (name + timestamp + IP)
+- [x] **RES-03**: Resolution shows signature status (who signed, who hasn't)
+- [x] **RES-04**: Chair/admin can view and export signed resolutions
 
 ### Embedded Agent UX
 
@@ -48,7 +48,7 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 - [x] **BUILT-01**: Meeting Setup agent can parse a pasted description into structured meeting with agenda items
 - [x] **BUILT-02**: Minutes Generator agent can create minutes document from meeting transcript
-- [ ] **BUILT-03**: Resolution Writer agent can draft resolution documents and link them to decisions
+- [x] **BUILT-03**: Resolution Writer agent can draft resolution documents and link them to decisions
 
 ### Admin Agent Management
 
@@ -105,11 +105,11 @@ Deferred to next milestone. Needs domain research first.
 | TRANS-04 | Phase 03 | Complete |
 | TRANS-05 | Phase 03 | Complete |
 | BUILT-02 | Phase 03 | Complete |
-| RES-01 | Phase 04 | Pending |
-| RES-02 | Phase 04 | Pending |
-| RES-03 | Phase 04 | Pending |
-| RES-04 | Phase 04 | Pending |
-| BUILT-03 | Phase 04 | Pending |
+| RES-01 | Phase 04 | Complete |
+| RES-02 | Phase 04 | Complete |
+| RES-03 | Phase 04 | Complete |
+| RES-04 | Phase 04 | Complete |
+| BUILT-03 | Phase 04 | Complete |
 | ADMIN-01 | Phase 05 | Pending |
 | ADMIN-02 | Phase 05 | Pending |
 | ADMIN-03 | Phase 05 | Pending |
@@ -122,4 +122,4 @@ Deferred to next milestone. Needs domain research first.
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-05 — TRANS-01 through TRANS-05, BUILT-02 completed (Phase 03)*
+*Last updated: 2026-03-05 — RES-01 through RES-04, BUILT-03 completed (Phase 04)*

@@ -16,7 +16,7 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
 - [x] **Phase 01: Agent Infrastructure & Streaming UX** - Build the AI engine: LiteLLM, agent loop, SSE streaming, and embedded response UI patterns (completed 2026-03-05)
 - [x] **Phase 02: Meeting Creation Overhaul & Meeting Setup Agent** - Rework meeting creation with paste-to-populate and templates, powered by the first built-in agent (completed 2026-03-05)
 - [x] **Phase 03: Transcripts & Minutes Generator** - Transcript paste/upload for completed meetings and AI-driven minutes generation (completed 2026-03-05)
-- [ ] **Phase 04: Board Resolutions & Resolution Writer** - Digital signature workflow and AI-assisted resolution drafting
+- [x] **Phase 04: Board Resolutions & Resolution Writer** - Digital signature workflow and AI-assisted resolution drafting (completed 2026-03-05)
 - [ ] **Phase 05: Admin Agent Management** - CRUD, tool assignment, prompt editing, and usage stats under the Admin section
 
 ## Phase Details
@@ -79,11 +79,11 @@ Plans:
   3. Resolution detail shows a signature status panel: who has signed and who has not
   4. Chair or admin can export a signed resolution (PDF or printable view)
   5. Resolution Writer agent drafts a resolution document from a brief description and links it to the relevant decision
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 04-01-PLAN.md — Backend: ResolutionSignature model, migration, schemas, resolutions API with sign/signatures endpoints, tests
-- [ ] 04-02-PLAN.md — Resolution Writer Agent: Production system prompt, four agent tools, seed data upgrade
-- [ ] 04-03-PLAN.md — Frontend: Sidebar entry, resolutions list/detail pages, signature panel, print export, Resolution Writer component
+- [x] 04-01-PLAN.md — Backend: ResolutionSignature model, migration, schemas, resolutions API with sign/signatures endpoints, tests
+- [x] 04-02-PLAN.md — Resolution Writer Agent: Production system prompt, four agent tools, seed data upgrade
+- [x] 04-03-PLAN.md — Frontend: Sidebar entry, resolutions list/detail pages, signature panel, print export, Resolution Writer component
 
 ### Phase 05: Admin Agent Management
 **Goal**: Admins can create, configure, and monitor all board agents from within the existing Admin section without touching code or deployments
@@ -105,5 +105,5 @@ Plans:
 | 01. Agent Infrastructure & Streaming UX | 4/4 | Complete    | 2026-03-05 |
 | 02. Meeting Creation Overhaul & Meeting Setup Agent | 3/3 | Complete    | 2026-03-05 |
 | 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
-| 04. Board Resolutions & Resolution Writer | 0/3 | Not started | - |
+| 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
 | 05. Admin Agent Management | 0/TBD | Not started | - |
