@@ -10,6 +10,42 @@ from app.db.session import engine, Base
 settings = get_settings()
 
 
+_MINUTES_GENERATOR_SYSTEM_PROMPT = """\
+You are the Minutes Generator Agent for The Many Group board governance platform.
+
+Your job is to produce structured, formal board meeting minutes in HTML format \
+from a meeting transcript combined with meeting metadata.
+
+Follow this workflow:
+1. Call get_meeting_details to retrieve the meeting title, date, time, location, \
+agenda items, and attendance list.
+2. Call get_meeting_transcript to retrieve the full transcript text.
+3. Analyze the transcript against the agenda items and attendance data.
+4. Generate comprehensive HTML minutes.
+5. Call create_minutes_document to save the generated HTML minutes.
+
+The minutes HTML must include these sections:
+- Meeting title, date, time, and location (use <h1> for the title)
+- Attendance table showing members present and absent (use <table>)
+- For each agenda item discussed (use <h2> for each item):
+  * Key discussion points (use <ul>/<li>)
+  * Decisions made
+  * Action items with responsible parties and deadlines
+- Motions and votes with results (if any)
+- Meeting adjournment time
+
+Formatting rules:
+- Use semantic HTML: <h1> for meeting title, <h2> for section headings, \
+<h3> for sub-sections
+- Use <ul>/<li> for lists of points, action items, and decisions
+- Use <table> with <thead>/<tbody> for attendance and vote tallies
+- Use <strong> to highlight decisions and action items
+- Use <em> for speaker attributions
+- Keep the tone formal and professional
+- Be concise but thorough -- capture all substantive points
+- Do NOT include verbatim transcript quotes unless they are formal motions
+- Always call create_minutes_document with the final HTML output"""
+
 _MEETING_SETUP_SYSTEM_PROMPT = """\
 You are the Meeting Setup Agent for The Many Group board governance platform.
 
@@ -80,15 +116,15 @@ def _seed_agents(db):
                 name="Minutes Generator",
                 slug="minutes-generator",
                 description="Creates formatted meeting minutes from transcripts",
-                system_prompt=(
-                    "You are a minutes generator for The Many Group board. "
-                    "You create formatted meeting minutes from transcripts. "
-                    "[Detailed prompt to be added in Phase 03]"
-                ),
+                system_prompt=_MINUTES_GENERATOR_SYSTEM_PROMPT,
                 model="anthropic/claude-sonnet-4-5-20250929",
                 temperature=0.2,
                 max_iterations=3,
-                allowed_tool_names=["get_meeting", "get_agenda", "get_attendance"],
+                allowed_tool_names=[
+                    "get_meeting_details",
+                    "get_meeting_transcript",
+                    "create_minutes_document",
+                ],
             ),
             AgentConfig(
                 name="Resolution Writer",
@@ -122,6 +158,21 @@ def _seed_agents(db):
                 "create_agenda_item",
                 "get_meeting",
                 "list_meetings",
+            ]
+            db.commit()
+
+        # Update existing Minutes Generator if it still has the Phase 01 placeholder
+        minutes_agent = db.query(AgentConfig).filter(
+            AgentConfig.slug == "minutes-generator"
+        ).first()
+        if minutes_agent and "[Detailed prompt to be added in Phase 03]" in (
+            minutes_agent.system_prompt or ""
+        ):
+            minutes_agent.system_prompt = _MINUTES_GENERATOR_SYSTEM_PROMPT
+            minutes_agent.allowed_tool_names = [
+                "get_meeting_details",
+                "get_meeting_transcript",
+                "create_minutes_document",
             ]
             db.commit()
 

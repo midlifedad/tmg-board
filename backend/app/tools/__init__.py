@@ -86,3 +86,4 @@ async def execute_tool(tool_name: str, arguments: str, user_context: dict) -> st
 
 # Import tool modules to trigger registration
 from app.tools import meetings  # noqa: E402, F401
+from app.tools import transcripts  # noqa: E402, F401
