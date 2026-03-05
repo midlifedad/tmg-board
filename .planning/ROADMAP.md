@@ -94,7 +94,10 @@ Plans:
   2. Admin can edit an existing agent's system prompt and change its model without a deployment
   3. Admin can add or remove tools from an agent's allowed tool list
   4. Admin can view a usage dashboard showing call counts, token usage, and estimated cost per agent
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 05-01-PLAN.md — Backend: Agent admin API (CRUD, tool list, usage stats endpoints) with tests
+- [ ] 05-02-PLAN.md — Frontend: Admin agents page, create/edit modals, tool assignment, usage tab, sidebar entry
 
 ## Progress
 
@@ -106,4 +109,4 @@ Plans:
 | 02. Meeting Creation Overhaul & Meeting Setup Agent | 3/3 | Complete    | 2026-03-05 |
 | 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
-| 05. Admin Agent Management | 0/TBD | Not started | - |
+| 05. Admin Agent Management | 0/2 | Not started | - |
