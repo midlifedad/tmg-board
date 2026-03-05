@@ -10,6 +10,47 @@ from app.db.session import engine, Base
 settings = get_settings()
 
 
+_MEETING_SETUP_SYSTEM_PROMPT = """\
+You are the Meeting Setup Agent for The Many Group board governance platform.
+
+Your job is to parse a pasted meeting description into a structured meeting \
+with agenda items, then create it using the create_meeting_with_agenda tool.
+
+When given a meeting description, extract:
+1. Meeting title
+2. Date and time (if mentioned) -- use ISO 8601 format (e.g., "2026-04-15T10:00:00")
+3. Location or virtual meeting link (if mentioned)
+4. Duration (if mentioned, otherwise estimate by summing agenda item durations \
+plus 10 minutes buffer)
+5. Individual agenda items with:
+   - Title (concise, 3-10 words)
+   - Description (additional details if provided)
+   - Type: classify as one of:
+     * "information" -- announcements, reports, updates
+     * "discussion" -- topics needing group input
+     * "decision_required" -- votes, resolutions, approvals
+     * "consent_agenda" -- routine items approved as a batch \
+(e.g., minutes approval)
+   - Estimated duration in minutes (5 for simple, 10-15 for discussions, \
+15-30 for decisions)
+   - Order (sequence as listed in the description)
+
+Rules:
+- If the description mentions a vote, resolution, or approval, classify that \
+item as "decision_required"
+- If items are listed for review without discussion, classify as "consent_agenda"
+- Default item type is "information" unless context suggests otherwise
+- If the date is not specified, omit the scheduled_date field entirely \
+(do NOT guess)
+- If the location is not specified, omit the location field
+- Always call the create_meeting_with_agenda tool with the parsed data
+- After the tool call, respond with a brief summary of what you created and \
+list any fields the user needs to fill in manually (e.g., "I couldn't \
+determine the meeting date -- please set it manually")
+- Do NOT ask follow-up questions. Parse what you can from the description and \
+note what's missing."""
+
+
 def _seed_agents(db):
     """Seed built-in agent configurations if none exist.
 
@@ -24,15 +65,16 @@ def _seed_agents(db):
                 name="Meeting Setup",
                 slug="meeting-setup",
                 description="Helps create structured meeting agendas from descriptions",
-                system_prompt=(
-                    "You are a meeting setup assistant for The Many Group board. "
-                    "You help create structured meeting agendas from descriptions. "
-                    "[Detailed prompt to be added in Phase 02]"
-                ),
+                system_prompt=_MEETING_SETUP_SYSTEM_PROMPT,
                 model="anthropic/claude-sonnet-4-5-20250929",
                 temperature=0.3,
                 max_iterations=5,
-                allowed_tool_names=["create_agenda_item", "get_meeting", "list_members"],
+                allowed_tool_names=[
+                    "create_meeting_with_agenda",
+                    "create_agenda_item",
+                    "get_meeting",
+                    "list_meetings",
+                ],
             ),
             AgentConfig(
                 name="Minutes Generator",
@@ -66,6 +108,22 @@ def _seed_agents(db):
         for agent in seed_agents:
             db.add(agent)
         db.commit()
+    else:
+        # Update existing Meeting Setup agent if it still has the Phase 01 placeholder
+        meeting_agent = db.query(AgentConfig).filter(
+            AgentConfig.slug == "meeting-setup"
+        ).first()
+        if meeting_agent and "[Detailed prompt to be added in Phase 02]" in (
+            meeting_agent.system_prompt or ""
+        ):
+            meeting_agent.system_prompt = _MEETING_SETUP_SYSTEM_PROMPT
+            meeting_agent.allowed_tool_names = [
+                "create_meeting_with_agenda",
+                "create_agenda_item",
+                "get_meeting",
+                "list_meetings",
+            ]
+            db.commit()
 
 
 @asynccontextmanager

@@ -137,3 +137,97 @@ register_tool(ToolDefinition(
     handler=_list_meetings,
     category="meetings",
 ))
+
+
+# ── create_meeting_with_agenda ──
+
+
+async def _create_meeting_with_agenda(params: dict, user_context: dict) -> str:
+    """Create a new meeting with agenda items via the board API."""
+    body = {"title": params["title"]}
+    for field in ("scheduled_date", "duration_minutes", "location",
+                  "meeting_link", "description"):
+        if field in params and params[field] is not None:
+            body[field] = params[field]
+    if "agenda_items" in params:
+        body["agenda_items"] = params["agenda_items"]
+
+    try:
+        async with httpx.AsyncClient(base_url=_get_base_url()) as client:
+            response = await client.post(
+                "/api/meetings/with-agenda",
+                json=body,
+                headers={"X-User-Email": user_context["email"]},
+            )
+            if response.status_code >= 400:
+                return json.dumps({"error": response.text, "status": response.status_code})
+            return json.dumps(response.json())
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+register_tool(ToolDefinition(
+    name="create_meeting_with_agenda",
+    description=(
+        "Create a new board meeting with agenda items in a single operation. "
+        "Use this after parsing a meeting description to create the structured meeting."
+    ),
+    parameters_schema={
+        "type": "object",
+        "properties": {
+            "title": {
+                "type": "string",
+                "description": "Title of the meeting",
+            },
+            "scheduled_date": {
+                "type": "string",
+                "description": (
+                    "ISO 8601 datetime for the meeting "
+                    "(e.g., '2026-04-15T10:00:00'). "
+                    "Leave empty if not specified in the description."
+                ),
+            },
+            "duration_minutes": {
+                "type": "integer",
+                "description": "Total meeting duration in minutes",
+            },
+            "location": {
+                "type": "string",
+                "description": "Physical location or 'Virtual'",
+            },
+            "meeting_link": {
+                "type": "string",
+                "description": "URL for virtual meeting",
+            },
+            "description": {
+                "type": "string",
+                "description": "Meeting description or notes",
+            },
+            "agenda_items": {
+                "type": "array",
+                "description": "List of agenda items in order",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "description": {"type": "string"},
+                        "item_type": {
+                            "type": "string",
+                            "enum": [
+                                "information",
+                                "discussion",
+                                "decision_required",
+                                "consent_agenda",
+                            ],
+                        },
+                        "duration_minutes": {"type": "integer"},
+                    },
+                    "required": ["title"],
+                },
+            },
+        },
+        "required": ["title", "agenda_items"],
+    },
+    handler=_create_meeting_with_agenda,
+    category="meetings",
+))

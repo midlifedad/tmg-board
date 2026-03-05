@@ -23,9 +23,10 @@ def test_meeting_setup_agent_config(seeded_db_session):
     assert agent.model == "anthropic/claude-sonnet-4-5-20250929"
     assert agent.temperature == 0.3
     assert agent.max_iterations == 5
+    assert "create_meeting_with_agenda" in agent.allowed_tool_names
     assert "create_agenda_item" in agent.allowed_tool_names
     assert "get_meeting" in agent.allowed_tool_names
-    assert "list_members" in agent.allowed_tool_names
+    assert "list_meetings" in agent.allowed_tool_names
 
 
 def test_minutes_generator_agent_config(seeded_db_session):
