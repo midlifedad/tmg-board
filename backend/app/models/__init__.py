@@ -1,10 +1,12 @@
 from app.models.member import BoardMember
 from app.models.document import Document, DocumentVersion, RelatedDocument
-from app.models.meeting import Meeting, AgendaItem, MeetingAttendance
-from app.models.decision import Decision, Vote
+from app.models.meeting import Meeting, AgendaItem, MeetingAttendance, MeetingTranscript, MeetingDocument
+from app.models.decision import Decision, Vote, ResolutionSignature
 from app.models.idea import Idea, Comment, IdeaCategory, IdeaHistory, CommentReaction
 from app.models.audit import AuditLog, DocumentAccessLog
 from app.models.admin import Invitation, Permission, RolePermission, Setting, UserSession
+from app.models.agent import AgentConfig, AgentUsageLog
+from app.models.template import MeetingTemplate, TemplateAgendaItem
 
 __all__ = [
     "BoardMember",
@@ -14,8 +16,11 @@ __all__ = [
     "Meeting",
     "AgendaItem",
     "MeetingAttendance",
+    "MeetingTranscript",
+    "MeetingDocument",
     "Decision",
     "Vote",
+    "ResolutionSignature",
     "Idea",
     "Comment",
     "IdeaCategory",
@@ -28,4 +33,8 @@ __all__ = [
     "RolePermission",
     "Setting",
     "UserSession",
+    "AgentConfig",
+    "AgentUsageLog",
+    "MeetingTemplate",
+    "TemplateAgendaItem",
 ]

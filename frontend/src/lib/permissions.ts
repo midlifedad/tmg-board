@@ -222,6 +222,13 @@ export function isBoardOrAbove(role: Role | undefined): boolean {
 }
 
 /**
+ * Check if user is chair or above (chair or admin)
+ */
+export function isChairOrAbove(role: Role | undefined): boolean {
+  return role === "chair" || role === "admin";
+}
+
+/**
  * Check if user is admin
  */
 export function isAdmin(role: Role | undefined): boolean {

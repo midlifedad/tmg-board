@@ -1,0 +1,13 @@
+{
+  "workflow": {
+    "research": true,
+    "_auto_chain_active": false
+  },
+  "models": {
+    "executor": "opus",
+    "planner": "opus",
+    "researcher": "opus",
+    "checker": "opus",
+    "verifier": "opus"
+  }
+}

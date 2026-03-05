@@ -421,6 +421,18 @@ export interface Meeting {
   decisions_count?: number;
 }
 
+export interface Transcript {
+  id: number;
+  meeting_id: number;
+  content: string;
+  source: "paste" | "upload";
+  original_filename?: string | null;
+  char_count: number;
+  created_by_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AgendaItem {
   id: number;
   meeting_id: number;
@@ -598,6 +610,159 @@ export const meetingsApi = {
   ): Promise<void> => {
     return api.patch(`/meetings/${meetingId}/attendance/${userId}`, { status });
   },
+
+  /**
+   * Get transcript for a meeting
+   */
+  getTranscript: async (meetingId: string): Promise<Transcript | null> => {
+    try {
+      return await api.get<Transcript>(`/meetings/${meetingId}/transcript`);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+
+  /**
+   * Add transcript via paste
+   */
+  addTranscript: async (meetingId: string, content: string): Promise<Transcript> => {
+    return api.post(`/meetings/${meetingId}/transcript`, { content });
+  },
+
+  /**
+   * Upload a .txt transcript file
+   */
+  uploadTranscript: async (meetingId: string, file: File): Promise<Transcript> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`/api/proxy/meetings/${meetingId}/transcript/upload`, {
+      method: "POST",
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, error.detail || "Failed to upload transcript");
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Replace existing transcript
+   */
+  replaceTranscript: async (meetingId: string, content: string): Promise<Transcript> => {
+    return api.put(`/meetings/${meetingId}/transcript`, { content });
+  },
+
+  /**
+   * Delete transcript
+   */
+  deleteTranscript: async (meetingId: string): Promise<void> => {
+    return api.delete(`/meetings/${meetingId}/transcript`);
+  },
+
+  /**
+   * Create meeting with agenda items in one call
+   */
+  createWithAgenda: async (data: {
+    title: string;
+    date: string;
+    duration_minutes?: number;
+    location?: string;
+    meeting_link?: string;
+    description?: string;
+    template_id?: number;
+    agenda_items?: Array<{
+      title: string;
+      description?: string;
+      item_type?: string;
+      duration_minutes?: number;
+    }>;
+  }): Promise<Meeting> => {
+    return api.post("/meetings/with-agenda", data);
+  },
+};
+
+// =============================================================================
+// Templates API
+// =============================================================================
+
+export interface MeetingTemplate {
+  id: number;
+  name: string;
+  description?: string | null;
+  default_duration_minutes?: number | null;
+  default_location?: string | null;
+  items_count: number;
+  has_regulatory_items: boolean;
+  created_at: string;
+}
+
+export interface TemplateDetail extends MeetingTemplate {
+  items: TemplateItem[];
+}
+
+export interface TemplateItem {
+  id: number;
+  title: string;
+  description?: string | null;
+  item_type: string;
+  duration_minutes?: number | null;
+  order_index: number;
+  is_regulatory: boolean;
+}
+
+export const templatesApi = {
+  list: async (): Promise<MeetingTemplate[]> => {
+    return api.get<MeetingTemplate[]>("/templates");
+  },
+  get: async (id: number): Promise<TemplateDetail> => {
+    return api.get<TemplateDetail>(`/templates/${id}`);
+  },
+  create: async (data: {
+    name: string;
+    description?: string;
+    default_duration_minutes?: number;
+    default_location?: string;
+    items: Array<{
+      title: string;
+      description?: string;
+      item_type?: string;
+      duration_minutes?: number;
+      order_index: number;
+      is_regulatory?: boolean;
+    }>;
+  }): Promise<TemplateDetail> => {
+    return api.post("/templates", data);
+  },
+  update: async (
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      default_duration_minutes?: number;
+      default_location?: string;
+      items?: Array<{
+        title: string;
+        description?: string;
+        item_type?: string;
+        duration_minutes?: number;
+        order_index: number;
+        is_regulatory?: boolean;
+      }>;
+    }
+  ): Promise<TemplateDetail> => {
+    return api.patch(`/templates/${id}`, data);
+  },
+  delete: async (id: number): Promise<void> => {
+    return api.delete(`/templates/${id}`);
+  },
 };
 
 // =============================================================================
@@ -743,6 +908,47 @@ export const decisionsApi = {
    */
   archive: async (id: string, reason?: string): Promise<void> => {
     return api.post(`/decisions/${id}/archive`, { reason: reason || null });
+  },
+};
+
+// =============================================================================
+// Resolutions API
+// =============================================================================
+
+export interface ResolutionSignature {
+  member_id: number;
+  member_name: string;
+  signed_at: string | null;
+  ip_address: string | null;
+}
+
+export interface SignatureStatus {
+  resolution_id: number;
+  signatures: ResolutionSignature[];
+  signed_count: number;
+  total_members: number;
+}
+
+export interface ResolutionListItem extends Decision {
+  signature_count: number;
+  total_signers: number;
+  resolution_number: string | null;
+}
+
+export const resolutionsApi = {
+  list: async (params?: { status?: string }): Promise<ResolutionListItem[]> => {
+    const query = params?.status ? `?status=${params.status}` : "";
+    const response = await api.get<PaginatedResponse<ResolutionListItem>>(`/resolutions${query}`);
+    return response.items || [];
+  },
+  get: async (id: string): Promise<DecisionDetail> => {
+    return api.get(`/resolutions/${id}`);
+  },
+  getSignatures: async (id: string): Promise<SignatureStatus> => {
+    return api.get(`/resolutions/${id}/signatures`);
+  },
+  sign: async (id: string): Promise<{ status: string; signature_id: number; signed_at: string }> => {
+    return api.post(`/resolutions/${id}/sign`);
   },
 };
 
@@ -989,6 +1195,42 @@ export interface AuditLogEntry {
   ip_address?: string | null;
 }
 
+// =============================================================================
+// Agent Admin Types
+// =============================================================================
+
+export interface AdminAgentConfig {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  system_prompt: string;
+  model: string;
+  max_iterations: number;
+  temperature: number;
+  allowed_tool_names: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ToolInfo {
+  name: string;
+  description: string;
+  category: string;
+  parameter_count: number;
+}
+
+export interface AgentUsageStats {
+  agent_id: number;
+  agent_name: string;
+  total_calls: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_cost_usd: number;
+  avg_duration_ms: number;
+}
+
 export interface SystemSettings {
   app_name: string;
   organization_name: string;
@@ -1211,5 +1453,68 @@ export const adminApi = {
     permissions: string[]
   ): Promise<void> => {
     return api.put(`/admin/roles/${role}`, { permissions });
+  },
+
+  // -------------------------------------------------------------------------
+  // Agent Management
+  // -------------------------------------------------------------------------
+
+  /**
+   * List all agent configurations
+   */
+  listAgents: async (includeInactive = false): Promise<AdminAgentConfig[]> => {
+    const query = includeInactive ? "?include_inactive=true" : "";
+    const response = await api.get<AdminAgentConfig[] | PaginatedResponse<AdminAgentConfig>>(`/admin/agents${query}`);
+    return Array.isArray(response) ? response : response.items || [];
+  },
+
+  /**
+   * Create a new agent configuration
+   */
+  createAgent: async (data: {
+    name: string;
+    description?: string;
+    system_prompt: string;
+    model: string;
+    max_iterations?: number;
+    temperature?: number;
+    allowed_tool_names?: string[];
+  }): Promise<AdminAgentConfig> => {
+    return api.post("/admin/agents", data);
+  },
+
+  /**
+   * Update an agent configuration
+   */
+  updateAgent: async (id: number, data: Partial<AdminAgentConfig>): Promise<{ status: string; id: number }> => {
+    return api.patch(`/admin/agents/${id}`, data);
+  },
+
+  /**
+   * Deactivate an agent (soft delete)
+   */
+  deleteAgent: async (id: number): Promise<{ status: string; id: number }> => {
+    return api.delete(`/admin/agents/${id}`);
+  },
+
+  /**
+   * List all available tools from the tool registry
+   */
+  listAvailableTools: async (): Promise<ToolInfo[]> => {
+    return api.get("/admin/agents/tools");
+  },
+
+  /**
+   * Get aggregated usage statistics per agent
+   */
+  getAgentUsageStats: async (params?: {
+    start_date?: string;
+    end_date?: string;
+  }): Promise<AgentUsageStats[]> => {
+    const searchParams = new URLSearchParams();
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+    const query = searchParams.toString();
+    return api.get(`/admin/agents/usage${query ? `?${query}` : ""}`);
   },
 };
