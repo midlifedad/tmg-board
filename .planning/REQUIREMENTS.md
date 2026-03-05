@@ -16,8 +16,8 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 ### Meeting Creation & Templates
 
-- [ ] **MEET-01**: User can create a meeting by selecting a date and pasting a full description that the agent parses into structured agenda
-- [ ] **MEET-02**: User can alternatively fill in meeting details manually (as today, but improved UX)
+- [x] **MEET-01**: User can create a meeting by selecting a date and pasting a full description that the agent parses into structured agenda
+- [x] **MEET-02**: User can alternatively fill in meeting details manually (as today, but improved UX)
 - [x] **MEET-03**: Admin can create meeting templates with standard agenda items
 - [x] **MEET-04**: User can apply a template when creating a meeting, then customize
 - [x] **MEET-05**: Meeting templates can include required regulatory items (manual configuration for now)
@@ -39,7 +39,7 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 ### Embedded Agent UX
 
-- [ ] **UX-01**: Meeting creation page has an expandable section where user can paste a description for agent-assisted setup
+- [x] **UX-01**: Meeting creation page has an expandable section where user can paste a description for agent-assisted setup
 - [x] **UX-02**: Agent responses appear inline on the page they're triggered from (not a separate chat UI)
 - [x] **UX-03**: User sees streaming agent output with tool call indicators
 - [x] **UX-04**: Agent actions (create agenda items, generate minutes, draft resolution) apply directly to the current context
@@ -92,12 +92,12 @@ Deferred to next milestone. Needs domain research first.
 | UX-02 | Phase 01 | Complete |
 | UX-03 | Phase 01 | Complete |
 | UX-04 | Phase 01 | Complete |
-| MEET-01 | Phase 02 | Pending |
-| MEET-02 | Phase 02 | Pending |
+| MEET-01 | Phase 02 | Complete |
+| MEET-02 | Phase 02 | Complete |
 | MEET-03 | Phase 02 | Complete |
 | MEET-04 | Phase 02 | Complete |
 | MEET-05 | Phase 02 | Complete |
-| UX-01 | Phase 02 | Pending |
+| UX-01 | Phase 02 | Complete |
 | BUILT-01 | Phase 02 | Complete |
 | TRANS-01 | Phase 03 | Pending |
 | TRANS-02 | Phase 03 | Pending |
