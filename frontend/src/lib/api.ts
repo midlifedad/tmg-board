@@ -421,6 +421,18 @@ export interface Meeting {
   decisions_count?: number;
 }
 
+export interface Transcript {
+  id: number;
+  meeting_id: number;
+  content: string;
+  source: "paste" | "upload";
+  original_filename?: string | null;
+  char_count: number;
+  created_by_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AgendaItem {
   id: number;
   meeting_id: number;
@@ -597,6 +609,62 @@ export const meetingsApi = {
     status: "present" | "absent" | "excused"
   ): Promise<void> => {
     return api.patch(`/meetings/${meetingId}/attendance/${userId}`, { status });
+  },
+
+  /**
+   * Get transcript for a meeting
+   */
+  getTranscript: async (meetingId: string): Promise<Transcript | null> => {
+    try {
+      return await api.get<Transcript>(`/meetings/${meetingId}/transcript`);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+
+  /**
+   * Add transcript via paste
+   */
+  addTranscript: async (meetingId: string, content: string): Promise<Transcript> => {
+    return api.post(`/meetings/${meetingId}/transcript`, { content });
+  },
+
+  /**
+   * Upload a .txt transcript file
+   */
+  uploadTranscript: async (meetingId: string, file: File): Promise<Transcript> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`/api/proxy/meetings/${meetingId}/transcript/upload`, {
+      method: "POST",
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new ApiError(response.status, error.detail || "Failed to upload transcript");
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Replace existing transcript
+   */
+  replaceTranscript: async (meetingId: string, content: string): Promise<Transcript> => {
+    return api.put(`/meetings/${meetingId}/transcript`, { content });
+  },
+
+  /**
+   * Delete transcript
+   */
+  deleteTranscript: async (meetingId: string): Promise<void> => {
+    return api.delete(`/meetings/${meetingId}/transcript`);
   },
 
   /**
