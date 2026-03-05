@@ -18,9 +18,9 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 - [ ] **MEET-01**: User can create a meeting by selecting a date and pasting a full description that the agent parses into structured agenda
 - [ ] **MEET-02**: User can alternatively fill in meeting details manually (as today, but improved UX)
-- [ ] **MEET-03**: Admin can create meeting templates with standard agenda items
-- [ ] **MEET-04**: User can apply a template when creating a meeting, then customize
-- [ ] **MEET-05**: Meeting templates can include required regulatory items (manual configuration for now)
+- [x] **MEET-03**: Admin can create meeting templates with standard agenda items
+- [x] **MEET-04**: User can apply a template when creating a meeting, then customize
+- [x] **MEET-05**: Meeting templates can include required regulatory items (manual configuration for now)
 
 ### Meeting Transcripts & Minutes
 
@@ -94,9 +94,9 @@ Deferred to next milestone. Needs domain research first.
 | UX-04 | Phase 01 | Complete |
 | MEET-01 | Phase 02 | Pending |
 | MEET-02 | Phase 02 | Pending |
-| MEET-03 | Phase 02 | Pending |
-| MEET-04 | Phase 02 | Pending |
-| MEET-05 | Phase 02 | Pending |
+| MEET-03 | Phase 02 | Complete |
+| MEET-04 | Phase 02 | Complete |
+| MEET-05 | Phase 02 | Complete |
 | UX-01 | Phase 02 | Pending |
 | BUILT-01 | Phase 02 | Complete |
 | TRANS-01 | Phase 03 | Pending |
@@ -122,4 +122,4 @@ Deferred to next milestone. Needs domain research first.
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-04 — traceability filled after roadmap creation*
+*Last updated: 2026-03-05 — MEET-03, MEET-04, MEET-05 completed (02-01)*

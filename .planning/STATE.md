@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Agentic Layer & Board Enhancements
 status: in_progress
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-03-05T01:38:11Z"
-last_activity: 2026-03-05 — Completed 02-02 (Meeting Setup agent prompt and tool)
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-05T01:40:40Z"
+last_activity: 2026-03-05 — Completed 02-01 (Template models, CRUD API, batch meeting creation)
 progress:
   total_phases: 5
   completed_phases: 1
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 ## Current Position
 
 Phase: 02 of 05 (Meeting Creation Overhaul & Meeting Setup Agent)
-Plan: 2 of 3 in current phase
+Plan: 3 of 3 in current phase
 Status: In Progress
-Last activity: 2026-03-05 — Completed 02-02 (Meeting Setup agent prompt and tool)
+Last activity: 2026-03-05 — Completed 02-01 (Template models, CRUD API, batch meeting creation)
 
 Progress: [████████░░] 86%
 
@@ -44,14 +44,14 @@ Progress: [████████░░] 86%
 **Velocity:**
 - Total plans completed: 6
 - Average duration: 4min
-- Total execution time: 22min
+- Total execution time: 27min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 4 | 19min | 5min |
-| 02 | 2 | 3min | 2min |
+| 02 | 2+1 | 8min | 3min |
 
 ## Accumulated Context
 
@@ -86,6 +86,11 @@ Progress: [████████░░] 86%
 - **userEmail as prop, not useSession** — decouples hook from NextAuth; parent passes email
 - **onToolComplete callback** — fires after tool_result events for page data refresh
 
+### Key Decisions (02-01)
+- **Soft-delete via is_active boolean** — simpler than deleted_at for template configuration data
+- **Batch meeting creation as /with-agenda** — separate route from POST / to avoid overloading
+- **_seed_templates standalone function** — matches _seed_agents pattern for testability
+
 ### Key Decisions (02-02)
 - **Single-turn agent prompt** — Meeting Setup agent parses what it can and reports missing fields, no follow-up question loop
 - **Seed data upgrade block** — _seed_agents() detects placeholder prompt and auto-updates existing agents
@@ -112,12 +117,15 @@ Progress: [████████░░] 86%
 - `frontend/src/hooks/use-agent-stream.ts` — SSE consumption hook with run/cancel/reset API
 - `frontend/src/components/agent-response-panel.tsx` — Collapsible inline agent panel
 - `frontend/src/components/tool-call-indicator.tsx` — Tool call status indicator
+- `backend/app/models/template.py` — MeetingTemplate and TemplateAgendaItem models
+- `backend/app/api/templates.py` — Template CRUD API (list, get, create, update, delete)
+- `backend/migrations/versions/005_add_meeting_templates.py` — Template tables migration
 
 ### Blockers
 None
 
 ## Session Continuity
 
-Last session: 2026-03-05T01:38:11Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-03-05T01:40:40Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None

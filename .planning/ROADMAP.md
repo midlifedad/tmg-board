@@ -49,7 +49,7 @@ Plans:
   4. User can select a template when creating a meeting and then customize the pre-populated agenda
 **Plans:** 3 plans
 Plans:
-- [ ] 02-01-PLAN.md — Backend: Template models, migration, template CRUD API, batch meeting creation endpoint
+- [x] 02-01-PLAN.md — Backend: Template models, migration, template CRUD API, batch meeting creation endpoint
 - [x] 02-02-PLAN.md — Meeting Setup Agent: Production system prompt, create_meeting_with_agenda tool
 - [ ] 02-03-PLAN.md — Frontend: Meeting creation page overhaul, AI-assisted section, template selector, admin templates page
 
