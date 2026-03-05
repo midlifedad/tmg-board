@@ -47,7 +47,11 @@ Plans:
   2. User can still create meetings manually by filling fields (the existing flow, improved)
   3. Admin can create a meeting template with standard agenda items, including flagged regulatory items
   4. User can select a template when creating a meeting and then customize the pre-populated agenda
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 02-01-PLAN.md — Backend: Template models, migration, template CRUD API, batch meeting creation endpoint
+- [ ] 02-02-PLAN.md — Meeting Setup Agent: Production system prompt, create_meeting_with_agenda tool
+- [ ] 02-03-PLAN.md — Frontend: Meeting creation page overhaul, AI-assisted section, template selector, admin templates page
 
 ### Phase 03: Transcripts & Minutes Generator
 **Goal**: Chairs and admins can attach transcripts to completed meetings and generate formatted minutes documents from them using AI
@@ -91,7 +95,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 01. Agent Infrastructure & Streaming UX | 4/4 | Complete    | 2026-03-05 |
-| 02. Meeting Creation Overhaul & Meeting Setup Agent | 0/TBD | Not started | - |
+| 02. Meeting Creation Overhaul & Meeting Setup Agent | 0/3 | Not started | - |
 | 03. Transcripts & Minutes Generator | 0/TBD | Not started | - |
 | 04. Board Resolutions & Resolution Writer | 0/TBD | Not started | - |
 | 05. Admin Agent Management | 0/TBD | Not started | - |
