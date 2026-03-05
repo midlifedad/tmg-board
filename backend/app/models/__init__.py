@@ -1,7 +1,7 @@
 from app.models.member import BoardMember
 from app.models.document import Document, DocumentVersion, RelatedDocument
 from app.models.meeting import Meeting, AgendaItem, MeetingAttendance, MeetingTranscript, MeetingDocument
-from app.models.decision import Decision, Vote
+from app.models.decision import Decision, Vote, ResolutionSignature
 from app.models.idea import Idea, Comment, IdeaCategory, IdeaHistory, CommentReaction
 from app.models.audit import AuditLog, DocumentAccessLog
 from app.models.admin import Invitation, Permission, RolePermission, Setting, UserSession
@@ -20,6 +20,7 @@ __all__ = [
     "MeetingDocument",
     "Decision",
     "Vote",
+    "ResolutionSignature",
     "Idea",
     "Comment",
     "IdeaCategory",
