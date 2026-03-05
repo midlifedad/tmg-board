@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agents, templates, transcripts, resolutions
+from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agent_admin, agents, templates, transcripts, resolutions
 from app.db.session import engine, Base
 
 settings = get_settings()
@@ -427,6 +427,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(agent_admin.router, prefix="/api/admin", tags=["admin-agents"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(meetings.router, prefix="/api/meetings", tags=["meetings"])
 app.include_router(decisions.router, prefix="/api/decisions", tags=["decisions"])
