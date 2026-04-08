@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "lucide-react";
@@ -15,6 +16,7 @@ interface MinutesGeneratorProps {
   meetingTitle: string;
   userEmail: string;
   hasTranscript: boolean;
+  onMinutesGenerated?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -26,8 +28,21 @@ export function MinutesGenerator({
   meetingTitle,
   userEmail,
   hasTranscript,
+  onMinutesGenerated,
 }: MinutesGeneratorProps) {
   const { status, text, toolCalls, error, run, reset } = useAgentStream();
+  const calledRef = useRef(false);
+
+  // Notify parent when generation completes so it can re-fetch minutes
+  useEffect(() => {
+    if (status === "done" && onMinutesGenerated && !calledRef.current) {
+      calledRef.current = true;
+      onMinutesGenerated();
+    }
+    if (status === "idle" || status === "streaming") {
+      calledRef.current = false;
+    }
+  }, [status, onMinutesGenerated]);
 
   const isStreaming = status === "streaming";
   const isDone = status === "done";
