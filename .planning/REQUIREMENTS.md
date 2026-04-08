@@ -59,7 +59,25 @@ Requirements for the Agentic Board Tools milestone. Each maps to roadmap phases.
 
 ## v2.1 Requirements
 
-Deferred to next milestone. Needs domain research first.
+### Bug Fixes & Stability (Phase 06)
+
+- [x] **BUG-01**: Agent API route conflict fixed (static routes before parameterized)
+- [x] **BUG-02**: XSS in resolution detail page fixed (ReactMarkdown)
+- [x] **BUG-03**: Auth leak in meetings/decisions pages fixed
+- [x] **BUG-04**: Minutes persistence endpoints added and working
+- [x] **TEST-01**: Meetings CRUD endpoints have test coverage
+- [x] **TEST-02**: Auth dependencies tested across all role levels
+- [x] **TEST-03**: Tool handlers tested with mocked HTTP calls
+
+### Agent Configuration & Provider Management (Phase 07)
+
+- **AGCFG-01**: Admin can configure LLM API keys for Anthropic and Groq via the admin UI
+- **AGCFG-02**: API key status shows which providers are configured (with masked key preview)
+- **AGCFG-03**: Model dropdown in agent create/edit shows only models for configured providers
+- **AGCFG-04**: Model list is consolidated in a single shared location (not duplicated across files)
+- **AGCFG-05**: has_minutes field on meetings list accurately reflects whether minutes exist (not just completed status)
+- **AGCFG-06**: Minutes display on meeting detail page uses safe HTML rendering (no XSS)
+- **AGCFG-07**: Remove Gemini models from provider list (only Anthropic and Groq supported)
 
 ### Compliance & Governance
 

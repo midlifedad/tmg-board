@@ -103,6 +103,7 @@ Plans:
 ### v2.1 Stability & Quality
 
 - [x] **Phase 06: Bug Fixes, Minutes Persistence & Test Coverage** - Fix critical bugs from code review, add missing minutes persistence endpoint, print CSS, and comprehensive test coverage (completed 2026-04-08)
+- [ ] **Phase 07: Agent Configuration & Provider Management** - Add API key management UI, consolidate model list, fix has_minutes bug, fix minutes XSS, remove Gemini provider
 
 ## Phase Details (v2.1)
 
@@ -122,9 +123,25 @@ Plans:
 - [x] 06-01-PLAN.md — Bug fixes (route conflict, XSS, auth leak) + minutes persistence endpoints + print CSS
 - [x] 06-02-PLAN.md — Comprehensive test coverage: meetings CRUD, minutes, auth, agent API keys, tool handlers
 
+### Phase 07: Agent Configuration & Provider Management
+**Goal**: Admin can manage LLM API keys through the UI, model list is dynamic based on configured providers, has_minutes bug fixed, minutes XSS fixed, Gemini removed
+**Depends on**: Phase 06
+**Requirements**: AGCFG-01, AGCFG-02, AGCFG-03, AGCFG-04, AGCFG-05, AGCFG-06, AGCFG-07
+**Success Criteria** (what must be TRUE):
+  1. Admin can enter/update Anthropic and Groq API keys from the Admin Agents page
+  2. API key status section shows configured/not configured with masked key preview per provider
+  3. Agent model dropdown only shows models for providers that have keys configured
+  4. Model list defined once in a shared constants file (not duplicated)
+  5. Meetings list page shows "Minutes Available" badge only for meetings that actually have minutes
+  6. Meeting detail minutes card renders HTML safely (no dangerouslySetInnerHTML)
+  7. Gemini models and provider removed from the model list and provider map
+Plans:
+- [ ] 07-01-PLAN.md — Backend: remove Gemini provider, fix has_minutes, add models endpoint
+- [ ] 07-02-PLAN.md — Frontend: API key management UI, consolidated model list, minutes XSS fix
+
 ## Progress
 
-**Execution Order:** 01 → 02 → 03 → 04 → 05 → 06
+**Execution Order:** 01 → 02 → 03 → 04 → 05 → 06 → 07
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -134,3 +151,4 @@ Plans:
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
 | 05. Admin Agent Management | 2/2 | Complete    | 2026-03-05 |
 | 06. Bug Fixes, Minutes Persistence & Tests | 2/2 | Complete    | 2026-04-08 |
+| 07. Agent Configuration & Provider Mgmt | 0/2 | Planned     |  |
