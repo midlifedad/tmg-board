@@ -26,7 +26,7 @@ This phase delivers the ability for chairs/admins to generate AI-powered meeting
 - New service: `app/services/document_generator.py` following existing singleton pattern (like StorageService)
 - New API router for generation endpoints
 - Anthropic API key stored as environment variable in config.py Settings
-- Generated markdown stored via existing StorageService (local or S3)
+- Generated markdown storage approach is at Claude's Discretion (DB Text column preferred per research for faster reads; StorageService backup optional)
 
 ### Frontend — Meeting Detail Page
 - Replace "Recording" section (which says "Recording will be available after the meeting") with "Meeting Minutes" section
@@ -48,6 +48,7 @@ This phase delivers the ability for chairs/admins to generate AI-powered meeting
 - Must render cleanly in-app and be printable
 
 ### Claude's Discretion
+- Generated markdown storage mechanism (DB Text column vs file-based via StorageService)
 - Specific markdown template structure for minutes output
 - Error handling for failed LLM calls
 - Whether to use streaming for generation progress
