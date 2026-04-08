@@ -5,15 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Bot, Loader2, AlertTriangle } from "lucide-react";
 import { adminApi, type AdminAgentConfig, type ToolInfo } from "@/lib/api";
-
-const SUPPORTED_MODELS = [
-  { value: "anthropic/claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-  { value: "anthropic/claude-haiku-3-5-20241022", label: "Claude Haiku 3.5" },
-  { value: "gemini/gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-  { value: "gemini/gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
-  { value: "groq/llama-3.3-70b-versatile", label: "Llama 3.3 70B" },
-  { value: "groq/llama-3.1-8b-instant", label: "Llama 3.1 8B (Fast)" },
-];
+import { type ModelInfo } from "@/lib/models";
 
 interface EditAgentModalProps {
   isOpen: boolean;
@@ -25,12 +17,14 @@ interface EditAgentModalProps {
 export function EditAgentModal({ isOpen, agent, onClose, onSuccess }: EditAgentModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [model, setModel] = useState(SUPPORTED_MODELS[0].value);
+  const [model, setModel] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [temperature, setTemperature] = useState(0.3);
   const [maxIterations, setMaxIterations] = useState(5);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [availableTools, setAvailableTools] = useState<ToolInfo[]>([]);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +41,15 @@ export function EditAgentModal({ isOpen, agent, onClose, onSuccess }: EditAgentM
 
       // Load available tools
       adminApi.listAvailableTools().then(setAvailableTools).catch(() => {});
+
+      // Load available models (provider-filtered)
+      setModelsLoading(true);
+      adminApi.getAvailableModels()
+        .then((res) => {
+          setAvailableModels(res.models);
+          setModelsLoading(false);
+        })
+        .catch(() => setModelsLoading(false));
     }
   }, [isOpen, agent]);
 
@@ -164,18 +167,44 @@ export function EditAgentModal({ isOpen, agent, onClose, onSuccess }: EditAgentM
             {/* Model */}
             <div>
               <label className="text-sm font-medium">Model *</label>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                disabled={submitting}
-              >
-                {SUPPORTED_MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
+              {modelsLoading ? (
+                <div className="flex items-center gap-2 mt-1 h-10 px-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading models...
+                </div>
+              ) : (
+                <>
+                  {availableModels.length === 0 && (
+                    <p className="mt-1 text-sm text-amber-400">
+                      No models available. Configure API keys in the API Keys section first.
+                    </p>
+                  )}
+                  {model && availableModels.length > 0 && !availableModels.some((m) => m.value === model) && (
+                    <div className="mt-1 mb-1 p-2 rounded bg-amber-500/10 border border-amber-500/30">
+                      <div className="flex items-center gap-1.5 text-amber-500 text-xs font-medium">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Current model &quot;{model}&quot; is no longer available (provider key may have been removed)
+                      </div>
+                    </div>
+                  )}
+                  <select
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    disabled={submitting}
+                  >
+                    {/* Show current model even if not in available list */}
+                    {model && !availableModels.some((m) => m.value === model) && (
+                      <option value={model}>{model} (unavailable)</option>
+                    )}
+                    {availableModels.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
             </div>
 
             {/* System Prompt */}
