@@ -23,10 +23,14 @@ import {
   GripVertical,
   Check,
   X,
+  FileText,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption } from "@/lib/api";
+import { meetingsApi, authApi, api, generationApi, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption, type MeetingMinutesResponse } from "@/lib/api";
 import { EditMeetingModal } from "@/components/edit-meeting-modal";
+import { GenerateMinutesModal } from "@/components/generate-minutes-modal";
+import ReactMarkdown from "react-markdown";
 import { getTimezoneAbbr } from "@/lib/timezone";
 
 type MeetingStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
@@ -95,6 +99,8 @@ export default function MeetingDetailPage({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [minutes, setMinutes] = useState<MeetingMinutesResponse | null>(null);
+  const [showMinutesModal, setShowMinutesModal] = useState(false);
   const [showAddAgenda, setShowAddAgenda] = useState(false);
   const [newAgendaTitle, setNewAgendaTitle] = useState("");
   const [newAgendaDuration, setNewAgendaDuration] = useState("");
@@ -206,6 +212,15 @@ export default function MeetingDetailPage({
         documents: [],
         recording: null,
       });
+
+      // Fetch existing meeting minutes (if any)
+      try {
+        const existingMinutes = await generationApi.getMinutes(id);
+        setMinutes(existingMinutes);
+      } catch {
+        // Non-critical — minutes may not exist yet
+      }
+
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load meeting");
@@ -826,22 +841,31 @@ export default function MeetingDetailPage({
               </Card>
             )}
 
-            {/* Recording */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Recording</CardTitle>
+            {/* Meeting Minutes */}
+            <Card className="print-content">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base">Meeting Minutes</CardTitle>
+                {isChairOrAdmin && (
+                  <Button variant="outline" size="sm" onClick={() => setShowMinutesModal(true)}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    {minutes ? "Regenerate" : "Create Minutes"}
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
-                {meeting.recording ? (
-                  <Button variant="outline" className="w-full min-h-[44px]">
-                    <Video className="h-4 w-4 mr-2" />
-                    Watch Recording
-                  </Button>
+                {minutes ? (
+                  <>
+                    <div className="max-h-96 overflow-y-auto prose-minutes">
+                      <ReactMarkdown>{minutes.content_markdown}</ReactMarkdown>
+                    </div>
+                    <Button variant="ghost" size="sm" className="mt-4 w-full no-print" onClick={() => window.print()}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Minutes
+                    </Button>
+                  </>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-2">
-                    {meeting.status === "completed"
-                      ? "No recording available"
-                      : "Recording will be available after the meeting"}
+                    No minutes generated yet.
                   </p>
                 )}
               </CardContent>
@@ -903,6 +927,14 @@ export default function MeetingDetailPage({
           duration_minutes: meeting.durationMinutes,
           location: meeting.isVirtual ? `Virtual - ${meeting.meetingLink}` : meeting.location,
         } : null}
+      />
+
+      {/* Generate Minutes Modal */}
+      <GenerateMinutesModal
+        isOpen={showMinutesModal}
+        onClose={() => setShowMinutesModal(false)}
+        onSuccess={(result) => setMinutes(result)}
+        meetingId={id}
       />
     </AppShell>
   );
