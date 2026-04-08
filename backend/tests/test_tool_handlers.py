@@ -193,7 +193,7 @@ async def test_create_minutes_document_success(user_context):
             {
                 "meeting_id": 1,
                 "title": "Meeting Minutes - January 2026",
-                "html_content": "<h1>Minutes</h1><p>Content here.</p>",
+                "content": "# Minutes\n\nContent here.",
             },
             user_context,
         )
@@ -202,17 +202,17 @@ async def test_create_minutes_document_success(user_context):
     assert parsed["document_id"] == 42
     assert parsed["status"] == "created"
 
-    # Verify the POST was called with correct body
+    # Verify the POST was called with correct body (markdown converted to HTML)
     mock.post.assert_called_once()
     call_kwargs = mock.post.call_args.kwargs
     assert call_kwargs["json"]["title"] == "Meeting Minutes - January 2026"
-    assert "<h1>Minutes</h1>" in call_kwargs["json"]["html_content"]
+    assert "<h1>" in call_kwargs["json"]["html_content"]
     assert call_kwargs["headers"]["X-User-Email"] == "test@themany.com"
 
 
 @pytest.mark.asyncio
 async def test_create_minutes_document_fallback(user_context):
-    """create_minutes_document returns HTML content in error when endpoint returns 404."""
+    """create_minutes_document returns error message when endpoint returns 404."""
     from app.tools.transcripts import _create_minutes_document
 
     mock = _mock_client(post=_mock_response(404, text="Not found"))
@@ -222,15 +222,14 @@ async def test_create_minutes_document_fallback(user_context):
             {
                 "meeting_id": 1,
                 "title": "Minutes",
-                "html_content": "<p>The generated content.</p>",
+                "content": "The generated content.",
             },
             user_context,
         )
 
     parsed = json.loads(result)
     assert "error" in parsed
-    assert "html_content" in parsed  # Fallback includes the generated content
-    assert "<p>The generated content.</p>" in parsed["html_content"]
+    assert "not available" in parsed["error"].lower()
 
 
 @pytest.mark.asyncio
@@ -245,7 +244,7 @@ async def test_create_minutes_document_server_error(user_context):
             {
                 "meeting_id": 1,
                 "title": "Minutes",
-                "html_content": "<p>Content</p>",
+                "content": "Content",
             },
             user_context,
         )

@@ -21,38 +21,73 @@ settings = get_settings()
 _MINUTES_GENERATOR_SYSTEM_PROMPT = """\
 You are the Minutes Generator Agent for The Many Group board governance platform.
 
-Your job is to produce structured, formal board meeting minutes in HTML format \
-from a meeting transcript combined with meeting metadata.
+Your job is to produce structured, formal board meeting minutes from a meeting \
+transcript, the agenda, and attendance data.
 
-Follow this workflow:
-1. Call get_meeting_details to retrieve the meeting title, date, time, location, \
-agenda items, and attendance list.
-2. Call get_meeting_transcript to retrieve the full transcript text.
-3. Analyze the transcript against the agenda items and attendance data.
-4. Generate comprehensive HTML minutes.
-5. Call create_minutes_document to save the generated HTML minutes.
+## Workflow
 
-The minutes HTML must include these sections:
-- Meeting title, date, time, and location (use <h1> for the title)
-- Attendance table showing members present and absent (use <table>)
-- For each agenda item discussed (use <h2> for each item):
-  * Key discussion points (use <ul>/<li>)
-  * Decisions made
-  * Action items with responsible parties and deadlines
-- Motions and votes with results (if any)
-- Meeting adjournment time
+Follow these steps in order:
+1. Call get_board_members to get the list of all board members and their \
+canonical name spellings.
+2. Call get_meeting_details to get the meeting metadata, agenda items, and \
+attendance list.
+3. Call get_meeting_transcript to get the full transcript text.
+4. Write the minutes in markdown (see format below).
+5. Call create_minutes_document with the markdown content to save it.
 
-Formatting rules:
-- Use semantic HTML: <h1> for meeting title, <h2> for section headings, \
-<h3> for sub-sections
-- Use <ul>/<li> for lists of points, action items, and decisions
-- Use <table> with <thead>/<tbody> for attendance and vote tallies
-- Use <strong> to highlight decisions and action items
-- Use <em> for speaker attributions
-- Keep the tone formal and professional
-- Be concise but thorough -- capture all substantive points
+## How to write the minutes
+
+Use the **agenda items as the structural outline**. Go through each agenda \
+item in order and find the corresponding discussion in the transcript. For \
+each item, write:
+
+- A brief summary of the discussion (2-5 sentences)
+- Any decisions that were made
+- Action items: who is responsible, what they will do, and any deadline mentioned
+- Motions and votes: who moved, who seconded, and the result (passed/failed/tabled)
+
+**Name spellings**: Cross-reference names you hear in the transcript against \
+the board member list from get_board_members. Use the canonical spelling from \
+that list. If someone in the transcript is NOT a board member, spell their \
+name as it sounds and note their role if mentioned (e.g., "guest speaker", \
+"legal counsel").
+
+## Markdown format
+
+Write the minutes as markdown. The tool will handle conversion.
+
+Use this structure:
+
+# [Meeting Title]
+
+**Date:** [date and time]
+**Location:** [location or "Virtual"]
+
+## Attendance
+
+**Present:** [names]
+**Absent:** [names]
+**Also present:** [non-member attendees, if any]
+
+## 1. [First Agenda Item Title]
+
+[Discussion summary, decisions, action items]
+
+## 2. [Second Agenda Item Title]
+
+[Discussion summary, decisions, action items]
+
+## Adjournment
+
+Meeting adjourned at [time] by [name].
+
+## Rules
+
+- Formal, professional tone
+- Be concise but capture all substantive points
 - Do NOT include verbatim transcript quotes unless they are formal motions
-- Always call create_minutes_document with the final HTML output"""
+- If the transcript does not cover an agenda item, note "No discussion recorded"
+- Always call create_minutes_document as the final step"""
 
 _MEETING_SETUP_SYSTEM_PROMPT = """\
 You are the Meeting Setup Agent for The Many Group board governance platform.
@@ -159,8 +194,9 @@ def _seed_agents(db):
                 system_prompt=_MINUTES_GENERATOR_SYSTEM_PROMPT,
                 model="anthropic/claude-sonnet-4-5-20250929",
                 temperature=0.2,
-                max_iterations=3,
+                max_iterations=5,
                 allowed_tool_names=[
+                    "get_board_members",
                     "get_meeting_details",
                     "get_meeting_transcript",
                     "create_minutes_document",
@@ -202,15 +238,18 @@ def _seed_agents(db):
             ]
             db.commit()
 
-        # Update existing Minutes Generator if it still has the Phase 01 placeholder
+        # Update existing Minutes Generator if it has an outdated prompt
         minutes_agent = db.query(AgentConfig).filter(
             AgentConfig.slug == "minutes-generator"
         ).first()
-        if minutes_agent and "[Detailed prompt to be added in Phase 03]" in (
-            minutes_agent.system_prompt or ""
+        if minutes_agent and (
+            "[Detailed prompt to be added in Phase 03]" in (minutes_agent.system_prompt or "")
+            or "produce structured, formal board meeting minutes in HTML" in (minutes_agent.system_prompt or "")
         ):
             minutes_agent.system_prompt = _MINUTES_GENERATOR_SYSTEM_PROMPT
+            minutes_agent.max_iterations = 5
             minutes_agent.allowed_tool_names = [
+                "get_board_members",
                 "get_meeting_details",
                 "get_meeting_transcript",
                 "create_minutes_document",

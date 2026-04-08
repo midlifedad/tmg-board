@@ -35,7 +35,7 @@ def test_minutes_generator_agent_config(seeded_db_session):
     assert agent is not None
     assert agent.name == "Minutes Generator"
     assert agent.temperature == 0.2
-    assert agent.max_iterations == 3
+    assert agent.max_iterations == 5
 
 
 def test_resolution_writer_agent_config(seeded_db_session):
