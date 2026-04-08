@@ -302,11 +302,10 @@ def test_validate_provider_keys():
 
     with patch.dict(os.environ, {
         "ANTHROPIC_API_KEY": "sk-ant-test",
-        "GEMINI_API_KEY": "",
         "GROQ_API_KEY": "gsk-test",
     }):
         result = validate_provider_keys()
 
     assert result["anthropic"] is True
-    assert result["gemini"] is False
     assert result["groq"] is True
+    assert "gemini" not in result

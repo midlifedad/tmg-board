@@ -1,3 +1,5 @@
+import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,6 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agent_admin, agents, templates, transcripts, resolutions
 from app.db.session import engine, Base
+
+# Configure logging before anything else
+logging.basicConfig(
+    level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 settings = get_settings()
 
