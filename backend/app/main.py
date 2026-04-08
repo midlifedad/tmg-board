@@ -312,19 +312,87 @@ def _seed_templates(db):
         db.commit()
 
 
+def _run_migrations():
+    """Run Alembic migrations, handling databases that predate migration tracking.
+
+    If alembic_version table doesn't exist, the database was created by
+    create_all() and some columns may already exist. We detect the latest
+    migration that's already applied by checking for known columns, stamp
+    that revision, then upgrade from there.
+    """
+    from sqlalchemy import inspect, text
+    from alembic.config import Config as AlembicConfig
+    from alembic import command as alembic_command
+
+    _log = logging.getLogger(__name__)
+    alembic_cfg = AlembicConfig("alembic.ini")
+
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+
+    # If alembic_version exists, just run upgrade normally
+    if "alembic_version" in tables:
+        alembic_command.upgrade(alembic_cfg, "head")
+        _log.info("Alembic migrations applied successfully")
+        return
+
+    # No alembic_version — database predates migration tracking.
+    # Detect which migrations are already applied by checking for columns.
+    _log.info("No alembic_version table — detecting current schema state")
+
+    # Ensure all tables exist first
+    Base.metadata.create_all(bind=engine)
+
+    # Build a map of table -> columns for detection
+    def _has_column(table: str, column: str) -> bool:
+        if table not in tables:
+            return False
+        cols = [c["name"] for c in inspector.get_columns(table)]
+        return column in cols
+
+    # Walk migrations newest-to-oldest to find the latest already-applied one
+    # Each tuple: (revision, table, column) — column added by that migration
+    migration_markers = [
+        ("007_add_resolution_signatures", "decisions", "resolution_number"),
+        ("006_add_transcripts", "meeting_transcripts", None),  # whole table
+        ("005_add_meeting_templates", "meeting_templates", None),  # whole table
+        ("004_add_timezone_support", "board_members", "timezone"),
+        ("003_add_agenda_item_type", "agenda_items", "item_type"),
+        ("002_add_audit_columns", "audit_log", "entity_name"),
+        ("001_add_crud_columns", "documents", "current_version"),
+    ]
+
+    stamp_at = None
+    for rev, table, column in migration_markers:
+        if column is None:
+            # Check if the whole table exists
+            if table in tables:
+                stamp_at = rev
+                break
+        else:
+            if _has_column(table, column):
+                stamp_at = rev
+                break
+
+    if stamp_at:
+        _log.info("Stamping alembic_version at %s (columns already present)", stamp_at)
+        alembic_command.stamp(alembic_cfg, stamp_at)
+    else:
+        _log.info("No existing migrations detected, starting from scratch")
+
+    # Now upgrade from stamped point to head
+    alembic_command.upgrade(alembic_cfg, "head")
+    _log.info("Alembic migrations applied successfully (stamped at %s)", stamp_at)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
     # Run Alembic migrations (applies any pending schema changes)
-    from alembic.config import Config as AlembicConfig
-    from alembic import command as alembic_command
-
-    alembic_cfg = AlembicConfig("alembic.ini")
     try:
-        alembic_command.upgrade(alembic_cfg, "head")
-        logging.getLogger(__name__).info("Alembic migrations applied successfully")
+        _run_migrations()
     except Exception as e:
-        logging.getLogger(__name__).warning("Alembic migration failed, falling back to create_all: %s", e)
+        logging.getLogger(__name__).error("Migration failed: %s", e, exc_info=True)
         Base.metadata.create_all(bind=engine)
 
     # Seed board members and permissions if empty
