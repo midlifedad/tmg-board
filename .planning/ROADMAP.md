@@ -135,7 +135,7 @@ Plans:
   5. Meetings list page shows "Minutes Available" badge only for meetings that actually have minutes
   6. Meeting detail minutes card renders HTML safely (no dangerouslySetInnerHTML)
   7. Gemini models and provider removed from the model list and provider map
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 07-01-PLAN.md — Backend: remove Gemini provider, fix has_minutes, add available-models endpoint
 - [x] 07-02-PLAN.md — Frontend: API key management UI, consolidated model list, provider-aware dropdowns, minutes XSS fix
