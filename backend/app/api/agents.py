@@ -17,7 +17,7 @@ from app.models.agent import AgentConfig, AgentUsageLog
 from app.models.member import BoardMember
 from app.schemas.agent import RunAgentRequest, AgentConfigResponse, AgentListResponse
 from app.services.agent_runner import run_agent_streaming
-from app.services.llm_provider import PROVIDER_KEY_MAP, validate_provider_keys
+from app.services.llm_provider import PROVIDER_KEY_MAP, SUPPORTED_MODELS, validate_provider_keys
 
 router = APIRouter()
 
@@ -56,7 +56,6 @@ def _mask_key(value: str) -> str:
 
 class UpdateApiKeysRequest(BaseModel):
     anthropic_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
 
 
@@ -98,8 +97,6 @@ async def update_api_keys(
     updates = {}
     if request.anthropic_api_key is not None:
         updates["anthropic_api_key"] = request.anthropic_api_key
-    if request.gemini_api_key is not None:
-        updates["gemini_api_key"] = request.gemini_api_key
     if request.groq_api_key is not None:
         updates["groq_api_key"] = request.groq_api_key
 
@@ -117,6 +114,17 @@ async def update_api_keys(
     db.commit()
 
     return {"status": "updated", "keys": list(updates.keys())}
+
+
+@router.get("/available-models")
+async def get_available_models(
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_member),
+):
+    """Return models filtered to only providers with configured API keys."""
+    provider_status = validate_provider_keys(db=db)
+    available = [m for m in SUPPORTED_MODELS if provider_status.get(m["provider"], False)]
+    return {"models": available}
 
 
 # =========================================================================

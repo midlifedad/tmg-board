@@ -1,8 +1,8 @@
 """LiteLLM wrapper with API key validation and model configuration.
 
 API keys are resolved in this order:
-  1. Database settings table (keys: anthropic_api_key, gemini_api_key, groq_api_key)
-  2. Environment variables (ANTHROPIC_API_KEY, GEMINI_API_KEY, GROQ_API_KEY)
+  1. Database settings table (keys: anthropic_api_key, groq_api_key)
+  2. Environment variables (ANTHROPIC_API_KEY, GROQ_API_KEY)
 
 LiteLLM reads from env vars, so we sync DB keys into os.environ before each call.
 """
@@ -19,9 +19,18 @@ from app.models.admin import Setting
 # Map of provider name -> (settings DB key, env var name)
 PROVIDER_KEY_MAP = {
     "anthropic": ("anthropic_api_key", "ANTHROPIC_API_KEY"),
-    "gemini": ("gemini_api_key", "GEMINI_API_KEY"),
     "groq": ("groq_api_key", "GROQ_API_KEY"),
 }
+
+# Single source of truth for available models.
+# Only models whose provider has a configured API key will be returned by the
+# GET /api/agents/available-models endpoint.
+SUPPORTED_MODELS = [
+    {"value": "anthropic/claude-sonnet-4-5-20250929", "label": "Claude Sonnet 4.5", "provider": "anthropic"},
+    {"value": "anthropic/claude-haiku-3-5-20241022", "label": "Claude Haiku 3.5", "provider": "anthropic"},
+    {"value": "groq/llama-3.3-70b-versatile", "label": "Llama 3.3 70B", "provider": "groq"},
+    {"value": "groq/llama-3.1-8b-instant", "label": "Llama 3.1 8B (Fast)", "provider": "groq"},
+]
 
 
 def load_api_keys_from_db(db: Session) -> Dict[str, str]:
@@ -88,6 +97,5 @@ def validate_provider_keys(db: Optional[Session] = None) -> Dict[str, bool]:
 
     return {
         "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY", "")),
-        "gemini": bool(os.environ.get("GEMINI_API_KEY", "")),
         "groq": bool(os.environ.get("GROQ_API_KEY", "")),
     }
