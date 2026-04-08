@@ -315,10 +315,13 @@ def _seed_templates(db):
 def _run_migrations():
     """Run Alembic migrations, handling databases that predate migration tracking.
 
-    If alembic_version table doesn't exist, the database was created by
-    create_all() and some columns may already exist. We detect the latest
-    migration that's already applied by checking for known columns, stamp
-    that revision, then upgrade from there.
+    The database was created by create_all() which makes tables with whatever
+    columns the model had at the time — but doesn't track what it did. So some
+    columns exist (from create_all) and some don't (added to model later).
+
+    Strategy: ensure all tables + columns exist via create_all(), then add any
+    columns that create_all() can't add (because the table already existed),
+    then stamp Alembic at head so future migrations work normally.
     """
     from sqlalchemy import inspect, text
     from alembic.config import Config as AlembicConfig
@@ -336,53 +339,70 @@ def _run_migrations():
         _log.info("Alembic migrations applied successfully")
         return
 
-    # No alembic_version — database predates migration tracking.
-    # Detect which migrations are already applied by checking for columns.
-    _log.info("No alembic_version table — detecting current schema state")
+    _log.info("No alembic_version table — bootstrapping schema")
 
-    # Ensure all tables exist first
+    # Step 1: create_all for any new tables
     Base.metadata.create_all(bind=engine)
 
-    # Build a map of table -> columns for detection
+    # Step 2: add missing columns that create_all can't handle
+    # (create_all creates new tables but won't alter existing ones)
     def _has_column(table: str, column: str) -> bool:
         if table not in tables:
             return False
         cols = [c["name"] for c in inspector.get_columns(table)]
         return column in cols
 
-    # Walk migrations newest-to-oldest to find the latest already-applied one
-    # Each tuple: (revision, table, column) — column added by that migration
-    migration_markers = [
-        ("007_add_resolution_signatures", "decisions", "resolution_number"),
-        ("006_add_transcripts", "meeting_transcripts", None),  # whole table
-        ("005_add_meeting_templates", "meeting_templates", None),  # whole table
-        ("004_add_timezone_support", "board_members", "timezone"),
-        ("003_add_agenda_item_type", "agenda_items", "item_type"),
-        ("002_add_audit_columns", "audit_log", "entity_name"),
-        ("001_add_crud_columns", "documents", "current_version"),
+    # All columns from all migrations, with their ADD COLUMN SQL
+    missing_columns = [
+        # 001
+        ("documents", "current_version", "ALTER TABLE documents ADD COLUMN current_version INTEGER DEFAULT 1"),
+        ("documents", "archived_at", "ALTER TABLE documents ADD COLUMN archived_at TIMESTAMP"),
+        ("documents", "archived_by_id", "ALTER TABLE documents ADD COLUMN archived_by_id INTEGER REFERENCES board_members(id)"),
+        ("meetings", "duration_minutes", "ALTER TABLE meetings ADD COLUMN duration_minutes INTEGER"),
+        ("meetings", "started_at", "ALTER TABLE meetings ADD COLUMN started_at TIMESTAMP"),
+        ("meetings", "ended_at", "ALTER TABLE meetings ADD COLUMN ended_at TIMESTAMP"),
+        ("meetings", "recording_url", "ALTER TABLE meetings ADD COLUMN recording_url TEXT"),
+        ("decisions", "visibility", "ALTER TABLE decisions ADD COLUMN visibility VARCHAR(20) DEFAULT 'standard'"),
+        ("decisions", "updated_at", "ALTER TABLE decisions ADD COLUMN updated_at TIMESTAMP"),
+        ("decisions", "archived_at", "ALTER TABLE decisions ADD COLUMN archived_at TIMESTAMP"),
+        ("decisions", "archived_by_id", "ALTER TABLE decisions ADD COLUMN archived_by_id INTEGER REFERENCES board_members(id)"),
+        ("decisions", "archived_reason", "ALTER TABLE decisions ADD COLUMN archived_reason TEXT"),
+        ("ideas", "category_id", "ALTER TABLE ideas ADD COLUMN category_id INTEGER"),
+        ("ideas", "status_reason", "ALTER TABLE ideas ADD COLUMN status_reason TEXT"),
+        ("comments", "parent_id", "ALTER TABLE comments ADD COLUMN parent_id INTEGER"),
+        ("comments", "is_pinned", "ALTER TABLE comments ADD COLUMN is_pinned BOOLEAN DEFAULT false"),
+        ("comments", "edited_at", "ALTER TABLE comments ADD COLUMN edited_at TIMESTAMP"),
+        # 002
+        ("audit_log", "entity_name", "ALTER TABLE audit_log ADD COLUMN entity_name VARCHAR(255)"),
+        ("audit_log", "ip_address", "ALTER TABLE audit_log ADD COLUMN ip_address VARCHAR(45)"),
+        ("audit_log", "user_agent", "ALTER TABLE audit_log ADD COLUMN user_agent TEXT"),
+        # 003
+        ("agenda_items", "item_type", "ALTER TABLE agenda_items ADD COLUMN item_type VARCHAR(30) DEFAULT 'information' NOT NULL"),
+        # 004
+        ("board_members", "timezone", "ALTER TABLE board_members ADD COLUMN timezone VARCHAR(50)"),
+        # 007
+        ("decisions", "resolution_number", "ALTER TABLE decisions ADD COLUMN resolution_number VARCHAR(50)"),
+        ("decisions", "formal_document_id", "ALTER TABLE decisions ADD COLUMN formal_document_id INTEGER"),
     ]
 
-    stamp_at = None
-    for rev, table, column in migration_markers:
-        if column is None:
-            # Check if the whole table exists
-            if table in tables:
-                stamp_at = rev
-                break
-        else:
-            if _has_column(table, column):
-                stamp_at = rev
-                break
+    # Refresh inspector after create_all
+    inspector = inspect(engine)
 
-    if stamp_at:
-        _log.info("Stamping alembic_version at %s (columns already present)", stamp_at)
-        alembic_command.stamp(alembic_cfg, stamp_at)
-    else:
-        _log.info("No existing migrations detected, starting from scratch")
+    with engine.begin() as conn:
+        added = []
+        for table, column, sql in missing_columns:
+            if table in inspector.get_table_names() and not _has_column(table, column):
+                try:
+                    conn.execute(text(sql))
+                    added.append(f"{table}.{column}")
+                except Exception as e:
+                    _log.warning("Could not add %s.%s: %s", table, column, e)
+        if added:
+            _log.info("Added missing columns: %s", ", ".join(added))
 
-    # Now upgrade from stamped point to head
-    alembic_command.upgrade(alembic_cfg, "head")
-    _log.info("Alembic migrations applied successfully (stamped at %s)", stamp_at)
+    # Step 3: stamp at head so future migrations work normally
+    alembic_command.stamp(alembic_cfg, "head")
+    _log.info("Schema bootstrapped and stamped at head")
 
 
 @asynccontextmanager
