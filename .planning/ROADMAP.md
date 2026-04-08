@@ -1,22 +1,21 @@
-# Roadmap — Meetings UX Redesign
+# Roadmap — TMG Board Enhancements
 
-## v1.0 Meetings Page Design Refinement
+## v1.0 Meeting Minutes Generation
 
-### Phase 1: Design Discovery
-**Goal:** Gather stakeholder feedback on meetings pages and agenda display from board member and board chair perspectives. Two rounds of refinement.
-**Requirements:** [D-1, D-2, D-3]
+### Phase 1: Meeting Minutes Generation
+**Goal:** Enable chairs/admins to generate AI-powered meeting minutes from pasted transcripts, with a document template system for admin-configurable prompts, viewable and printable minutes within the meeting detail page.
 
-### Phase 2: Implementation
-**Goal:** Implement the refined design across meetings list page, meeting detail page, and agenda display.
-**Requirements:** [D-1, D-2, D-3]
+**Requirements:** [M-1, M-2, M-3, M-4, M-5]
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Backend: Add item_type to AgendaItem, migration, enrich API with counts and presenter names
-- [ ] 02-02-PLAN.md — Frontend: Meetings list page redesign (remove calendar, enriched cards, iPad-friendly)
-- [ ] 02-03-PLAN.md — Frontend: Meeting detail page redesign (time slots, type borders, inline edit, drag reorder, .ics download)
+- [ ] 01-01-PLAN.md — Backend foundation: models, migration, AI service, API endpoints
+- [ ] 01-02-PLAN.md — Frontend meeting minutes: modal, inline display, print support
+- [ ] 01-03-PLAN.md — Admin template management UI in settings page
 
 ## Requirements
-- **D-1:** Meetings list page should be intuitive and information-rich for board members
-- **D-2:** Meeting detail page should clearly present agenda items with timing, presenters, and status
-- **D-3:** Overall design should match the dark theme with gold accents used across the app
+- **M-1:** Backend AI service layer using Anthropic SDK + Jinja2 templates for document generation
+- **M-2:** Database-driven DocumentTemplate model so admins can configure/edit generation prompts
+- **M-3:** Meeting detail page replaces "Recording" section with "Meeting Minutes" section, with a "Create Meeting Minutes" button that opens a modal for pasting transcript and generating minutes
+- **M-4:** Generated minutes stored as markdown, viewable inline (similar to agenda display) and printable
+- **M-5:** Admin section includes template management UI for viewing/editing document generation prompts, following existing RBAC patterns
