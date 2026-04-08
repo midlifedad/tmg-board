@@ -9,7 +9,7 @@
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Backend foundation: models, migration, AI service, API endpoints
+- [x] 01-01-PLAN.md — Backend foundation: models, migration, AI service, API endpoints
 - [ ] 01-02-PLAN.md — Frontend meeting minutes: modal, inline display, print support
 - [ ] 01-03-PLAN.md — Admin template management UI in settings page
 
