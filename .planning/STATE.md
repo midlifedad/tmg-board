@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Stability & Quality
-status: in_progress
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-04-08T19:19:00Z"
-last_activity: 2026-04-08 — Executed Phase 07 Plan 01 (Gemini removal, SUPPORTED_MODELS, has_minutes fix)
+status: complete
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-04-08T19:25:01Z"
+last_activity: 2026-04-08 — Executed Phase 07 Plan 02 (API key UI, models.ts, provider-aware dropdowns, DOMPurify XSS fix)
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State — TMG Board
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 
 ## Current Position
 
-Phase: 07 of 07 (Agent Configuration & Provider Management) — IN PROGRESS
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-04-08 — Executed Plan 07-01
+Phase: 07 of 07 (Agent Configuration & Provider Management) — COMPLETE
+Plan: 2 of 2 in current phase (all done)
+Status: Complete
+Last activity: 2026-04-08 — Executed Plan 07-02
 
-Progress: [=======---] 75%
+Progress: [==========] 100%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -60,14 +60,21 @@ Progress: [=======---] 75%
 - **available-models endpoint open to all members** — not admin-only, since agent modals need it
 - **Set pre-query for minutes_meeting_ids** — single query before loop, O(1) lookups
 
+### Phase 07 Plan 02 Decisions
+- **DOMPurify over ReactMarkdown for minutes HTML** — minutes are HTML not markdown, DOMPurify strips XSS while preserving formatting
+- **Dynamic model fetch on modal open** — models fetched from available-models endpoint each time to reflect current provider key status
+- **Stale model warning in edit modal** — if agent's current model not in available list, show warning but still allow selection
+
 ### Key Files
-- `backend/app/services/llm_provider.py` — Provider key map, sync_api_keys
-- `backend/app/api/agents.py` — API key endpoints, agent run
-- `backend/app/api/meetings.py` — has_minutes bug (line 158)
-- `frontend/src/app/admin/agents/page.tsx` — Admin agents page (MODEL_LABELS hardcoded)
-- `frontend/src/components/create-agent-modal.tsx` — SUPPORTED_MODELS hardcoded
-- `frontend/src/components/edit-agent-modal.tsx` — SUPPORTED_MODELS hardcoded
-- `frontend/src/app/meetings/[id]/page.tsx` — Minutes XSS (dangerouslySetInnerHTML)
+- `backend/app/services/llm_provider.py` — Provider key map, sync_api_keys, SUPPORTED_MODELS
+- `backend/app/api/agents.py` — API key endpoints, available-models endpoint, agent run
+- `backend/app/api/meetings.py` — has_minutes via MeetingDocument query
+- `frontend/src/lib/models.ts` — Single source of truth for SUPPORTED_MODELS and getModelLabel
+- `frontend/src/app/admin/agents/page.tsx` — Admin agents page with API key management section
+- `frontend/src/components/create-agent-modal.tsx` — Dynamic provider-aware model dropdown
+- `frontend/src/components/edit-agent-modal.tsx` — Dynamic provider-aware model dropdown with stale warning
+- `frontend/src/app/meetings/[id]/page.tsx` — DOMPurify-sanitized minutes rendering
+- `frontend/src/lib/api.ts` — API client with getApiKeys, updateApiKey, getAvailableModels
 
 ### Blockers
 None
@@ -79,9 +86,10 @@ None
 | 06 | 01 | 7min | 3 | 9 |
 | 06 | 02 | 5min | 4 | 7 |
 | 07 | 01 | 2min | 2 | 3 |
+| 07 | 02 | 3min | 2 | 7 |
 
 ## Session Continuity
 
-Last session: 2026-04-08T19:19:00Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-04-08T19:25:01Z
+Stopped at: Completed 07-02-PLAN.md (v2.1 milestone complete)
 Resume file: None

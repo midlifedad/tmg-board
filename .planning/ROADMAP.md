@@ -8,7 +8,7 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
 
 - ✅ **v1.0 Meetings UX Redesign** — Phases pre-01 (shipped 2026-03-04, outside GSD)
 - ✅ **v2.0 Agentic Layer & Board Enhancements** — Phases 01-05 (completed 2026-03-05)
-- 🔄 **v2.1 Stability & Quality** — Phase 06 (in progress)
+- ✅ **v2.1 Stability & Quality** — Phases 06-07 (completed 2026-04-08)
 
 ## Phases
 
@@ -103,7 +103,7 @@ Plans:
 ### v2.1 Stability & Quality
 
 - [x] **Phase 06: Bug Fixes, Minutes Persistence & Test Coverage** - Fix critical bugs from code review, add missing minutes persistence endpoint, print CSS, and comprehensive test coverage (completed 2026-04-08)
-- [ ] **Phase 07: Agent Configuration & Provider Management** - Add API key management UI, consolidate model list, fix has_minutes bug, fix minutes XSS, remove Gemini provider
+- [x] **Phase 07: Agent Configuration & Provider Management** - Add API key management UI, consolidate model list, fix has_minutes bug, fix minutes XSS, remove Gemini provider (completed 2026-04-08)
 
 ## Phase Details (v2.1)
 
@@ -138,7 +138,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 07-01-PLAN.md — Backend: remove Gemini provider, fix has_minutes, add available-models endpoint
-- [ ] 07-02-PLAN.md — Frontend: API key management UI, consolidated model list, provider-aware dropdowns, minutes XSS fix
+- [x] 07-02-PLAN.md — Frontend: API key management UI, consolidated model list, provider-aware dropdowns, minutes XSS fix
 
 ## Progress
 
@@ -152,4 +152,4 @@ Plans:
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
 | 05. Admin Agent Management | 2/2 | Complete    | 2026-03-05 |
 | 06. Bug Fixes, Minutes Persistence & Tests | 2/2 | Complete    | 2026-04-08 |
-| 07. Agent Configuration & Provider Mgmt | 1/2 | In Progress |  |
+| 07. Agent Configuration & Provider Mgmt | 2/2 | Complete    | 2026-04-08 |
