@@ -29,6 +29,7 @@ interface ResolutionDetailResponse extends DecisionDetail {
   resolution_number?: string | null;
   document_id?: number | null;
 }
+import ReactMarkdown from "react-markdown";
 import { isChairOrAbove, type Role } from "@/lib/permissions";
 import { SignaturePanel } from "@/components/signature-panel";
 import { ResolutionWriter } from "@/components/resolution-writer";
@@ -169,10 +170,9 @@ export default function ResolutionDetailPage() {
         </p>
         <hr className="my-4 border-gray-300" />
         {resolution.description && (
-          <div
-            className="prose prose-sm max-w-none text-black"
-            dangerouslySetInnerHTML={{ __html: resolution.description }}
-          />
+          <div className="prose prose-sm max-w-none text-black">
+            <ReactMarkdown>{resolution.description}</ReactMarkdown>
+          </div>
         )}
         {sigStatus && sigStatus.signatures.filter((s) => s.signed_at).length > 0 && (
           <div className="mt-8">
@@ -242,10 +242,9 @@ export default function ResolutionDetailPage() {
             {resolution.description && (
               <Card>
                 <CardContent className="p-6">
-                  <div
-                    className="prose prose-invert prose-sm max-w-none prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300"
-                    dangerouslySetInnerHTML={{ __html: resolution.description }}
-                  />
+                  <div className="prose prose-invert prose-sm max-w-none prose-p:text-gray-300 prose-headings:text-white prose-strong:text-white prose-li:text-gray-300">
+                    <ReactMarkdown>{resolution.description}</ReactMarkdown>
+                  </div>
                 </CardContent>
               </Card>
             )}

@@ -1,30 +1,12 @@
-"""Tests for AgentConfig and AgentUsageLog models."""
+"""Tests for AgentConfig and AgentUsageLog models.
+
+Note: db_engine and db_session fixtures are provided by conftest.py.
+"""
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 
-from app.db.session import Base
 from app.models.agent import AgentConfig, AgentUsageLog
 from app.models.member import BoardMember
-
-
-@pytest.fixture
-def db_engine():
-    """Create in-memory SQLite engine for testing."""
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(bind=engine)
-    yield engine
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def db_session(db_engine):
-    """Create a database session for testing."""
-    Session = sessionmaker(bind=db_engine)
-    session = Session()
-    yield session
-    session.close()
 
 
 class TestAgentConfig:

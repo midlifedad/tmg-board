@@ -112,7 +112,7 @@ export default function MeetingsPage() {
 
   const userRole = (session?.user as { role?: string })?.role;
   const isChairOrAdmin =
-    userRole === "admin" || userRole === "chair" || !session;
+    userRole === "admin" || userRole === "chair";
 
   const upcomingMeetings = meetings
     .filter((m) => m.status === "scheduled" || m.status === "in_progress")

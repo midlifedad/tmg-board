@@ -668,6 +668,18 @@ export const meetingsApi = {
   },
 
   /**
+   * Get minutes for a meeting (returns null if none exist)
+   */
+  getMinutes: async (meetingId: string): Promise<{ document_id: number; html_content: string; title: string; created_at: string | null; updated_at: string | null } | null> => {
+    try {
+      return await api.get(`/meetings/${meetingId}/minutes`);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+
+  /**
    * Create meeting with agenda items in one call
    */
   createWithAgenda: async (data: {

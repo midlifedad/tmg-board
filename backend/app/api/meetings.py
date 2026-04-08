@@ -1,5 +1,5 @@
 """
-Meetings API endpoints - Full CRUD for meetings, agenda items, and attendance.
+Meetings API endpoints - Full CRUD for meetings, agenda items, attendance, and minutes.
 """
 from typing import List, Optional
 from datetime import datetime
@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.member import BoardMember
-from app.models.meeting import Meeting, AgendaItem, MeetingAttendance
+from app.models.meeting import Meeting, AgendaItem, MeetingAttendance, MeetingDocument
+from app.models.document import Document
 from app.models.audit import AuditLog
 from app.api.auth import require_member, require_chair
 
@@ -849,4 +850,146 @@ async def update_attendance(
         "meeting_id": meeting_id,
         "member_id": member_id,
         "status": request.status
+    }
+
+
+# =============================================================================
+# Meeting Minutes
+# =============================================================================
+
+class CreateMinutesRequest(BaseModel):
+    html_content: str
+    title: str
+
+
+@router.post("/{meeting_id}/minutes")
+async def create_meeting_minutes(
+    meeting_id: int,
+    request: CreateMinutesRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_chair),
+):
+    """Create or update minutes for a completed meeting.
+
+    Creates a Document of type 'minutes' and links it via MeetingDocument.
+    If minutes already exist for this meeting, updates the existing document.
+    """
+    meeting = db.query(Meeting).filter(
+        Meeting.id == meeting_id,
+        Meeting.deleted_at.is_(None)
+    ).first()
+
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check if minutes already exist for this meeting (upsert logic)
+    existing_link = db.query(MeetingDocument).filter(
+        MeetingDocument.meeting_id == meeting_id,
+        MeetingDocument.relationship_type == "minutes",
+    ).first()
+
+    if existing_link:
+        # Update existing minutes document
+        doc = db.query(Document).filter(Document.id == existing_link.document_id).first()
+        if doc:
+            doc.title = request.title
+            doc.file_path = f"minutes://{meeting_id}"  # Virtual path for HTML-stored minutes
+            doc.description = request.html_content
+            doc.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(doc)
+
+            db.add(AuditLog(
+                entity_type="document",
+                entity_id=doc.id,
+                entity_name=request.title,
+                action="update_minutes",
+                changed_by_id=current_user.id,
+            ))
+            db.commit()
+
+            return {
+                "document_id": doc.id,
+                "meeting_id": meeting_id,
+                "title": doc.title,
+                "status": "updated",
+            }
+
+    # Create new minutes document
+    doc = Document(
+        title=request.title,
+        type="minutes",
+        description=request.html_content,
+        file_path=f"minutes://{meeting_id}",
+        uploaded_by_id=current_user.id,
+    )
+    db.add(doc)
+    db.flush()  # Get document ID
+
+    # Link document to meeting
+    link = MeetingDocument(
+        meeting_id=meeting_id,
+        document_id=doc.id,
+        relationship_type="minutes",
+        created_by_id=current_user.id,
+    )
+    db.add(link)
+
+    db.add(AuditLog(
+        entity_type="document",
+        entity_id=doc.id,
+        entity_name=request.title,
+        action="create_minutes",
+        changed_by_id=current_user.id,
+    ))
+
+    db.commit()
+    db.refresh(doc)
+
+    return {
+        "document_id": doc.id,
+        "meeting_id": meeting_id,
+        "title": doc.title,
+        "status": "created",
+    }
+
+
+@router.get("/{meeting_id}/minutes")
+async def get_meeting_minutes(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_member),
+):
+    """Get the minutes document for a meeting.
+
+    Returns the HTML content and metadata, or 404 if no minutes exist.
+    """
+    meeting = db.query(Meeting).filter(
+        Meeting.id == meeting_id,
+        Meeting.deleted_at.is_(None)
+    ).first()
+
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Look up minutes document via MeetingDocument junction
+    link = db.query(MeetingDocument).filter(
+        MeetingDocument.meeting_id == meeting_id,
+        MeetingDocument.relationship_type == "minutes",
+    ).first()
+
+    if not link:
+        raise HTTPException(status_code=404, detail="No minutes found for this meeting")
+
+    doc = db.query(Document).filter(Document.id == link.document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Minutes document not found")
+
+    return {
+        "document_id": doc.id,
+        "meeting_id": meeting_id,
+        "title": doc.title,
+        "html_content": doc.description or "",
+        "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        "updated_at": doc.updated_at.isoformat() if doc.updated_at else None,
     }

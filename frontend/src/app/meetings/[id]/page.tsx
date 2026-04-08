@@ -23,6 +23,7 @@ import {
   GripVertical,
   Check,
   X,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption, type Transcript } from "@/lib/api";
@@ -106,6 +107,9 @@ export default function MeetingDetailPage({
 
   // Transcript state
   const [transcript, setTranscript] = useState<Transcript | null>(null);
+
+  // Minutes state
+  const [minutes, setMinutes] = useState<{ document_id: number; html_content: string; title: string } | null>(null);
 
   // Inline editing state
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -192,6 +196,10 @@ export default function MeetingDetailPage({
       // Fetch transcript (gracefully returns null on 404)
       const transcriptData = await meetingsApi.getTranscript(String(meetingData.id));
       setTranscript(transcriptData);
+
+      // Fetch minutes (gracefully returns null on 404)
+      const minutesData = await meetingsApi.getMinutes(String(meetingData.id));
+      setMinutes(minutesData);
 
       setMeeting({
         id: String(meetingData.id),
@@ -851,7 +859,32 @@ export default function MeetingDetailPage({
                 meetingTitle={meeting.title}
                 userEmail={session?.user?.email || ""}
                 hasTranscript={!!transcript}
+                onMinutesGenerated={() => fetchMeeting()}
               />
+            )}
+
+            {/* Saved Minutes Display */}
+            {minutes && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-base">Meeting Minutes</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="no-print min-h-[44px]"
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print Minutes
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className="prose-minutes print-content max-h-[600px] overflow-y-auto"
+                    dangerouslySetInnerHTML={{ __html: minutes.html_content }}
+                  />
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>

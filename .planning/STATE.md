@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Agentic Layer & Board Enhancements
+milestone: v2.1
+milestone_name: Stability & Quality
 status: complete
-stopped_at: Completed 05-02-PLAN.md (v2.0 milestone complete)
-last_updated: "2026-03-05T02:59:00Z"
-last_activity: 2026-03-05 — Completed 05-02 (Frontend admin agents page, modals, sidebar)
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-04-08T04:57:48Z"
+last_activity: 2026-04-08 — Executed Plan 06-02 (comprehensive test coverage)
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
   percent: 100
 ---
 
@@ -21,150 +21,75 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Board members can efficiently conduct governance and leverage AI assistants to automate repetitive board tasks
-**Current focus:** v2.0 COMPLETE -- all 5 phases delivered
+**Current focus:** v2.1 — Fix critical bugs, add minutes persistence, improve test coverage
 
 ## Current Position
 
-Phase: 05 of 05 (Admin Agent Management) -- COMPLETE
-Plan: 2 of 2 in current phase (all complete)
-Status: Milestone Complete
-Last activity: 2026-03-05 — Completed 05-02 (Frontend admin agents page, modals, sidebar)
+Phase: 06 of 06 (Bug Fixes, Minutes Persistence & Test Coverage) — COMPLETE
+Plan: 2 of 2 in current phase (06-01 complete, 06-02 complete)
+Status: Complete
+Last activity: 2026-04-08 — Executed Plan 06-02 (comprehensive test coverage)
 
-Progress: [██████████] 100%
+Progress: [==========] 100%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
 - **Backend:** FastAPI (>=0.135.0 needed), SQLAlchemy 2.0, PostgreSQL
 - **Auth:** Google OAuth via NextAuth, email whitelist, role-based (admin/chair/board/shareholder)
+- **AI:** LiteLLM (multi-provider), custom agent loop, SSE streaming
 - **Theme:** Dark theme with gold accents (`var(--gold)`)
 - **Deployment:** Railway
 
-## Performance Metrics
+## Key Decisions
 
-**Velocity:**
-- Total plans completed: 15
-- Average duration: 4min
-- Total execution time: 56min
+### Phase 06 Decisions
+- **Work within staging's architecture** — LiteLLM agents, tool loopback, SSE streaming (NOT direct Anthropic SDK)
+- **Minutes stored as Documents** — via MeetingDocument junction table with relationship_type="minutes"
+- **ReactMarkdown for safe rendering** — replaces dangerouslySetInnerHTML
+- **Test focus on highest-impact gaps** — meetings CRUD, minutes, auth, agent API keys
 
-**By Phase:**
+### Code Review Findings (PR #52)
+- 4 critical bugs: route conflict, XSS, auth leak, minutes not persisting
+- ~78 existing tests, ~35% coverage
+- 14 of 16 meeting endpoints untested
+- Auth, API key endpoints completely untested
+- Agent infrastructure well-architected but missing error handling edges
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01 | 4 | 19min | 5min |
-| 02 | 3 | 10min | 3min |
-| 03 | 3 | 9min | 3min |
-| 04 | 3 | 12min | 4min |
-| 05 | 2 | 6min | 3min |
+### Plan 06-01 Execution Decisions
+- **Route ordering fix** — api-keys GET/PUT moved before /{slug} GET in FastAPI router
+- **Minutes stored in Document.description** — HTML content in description field, virtual file_path minutes://{id}
+- **Upsert for minutes regeneration** — Updates existing Document instead of creating duplicates
+- **onMinutesGenerated callback** — Added to MinutesGenerator so meeting detail page can re-fetch
 
-## Accumulated Context
-
-### Key Decisions
-- **Multi-model via LiteLLM** — unified API for Anthropic, Gemini, Groq
-- **Custom lightweight agent loop** — ~100 lines, no LangChain/CrewAI
-- **Tools call board REST API** — preserves auth, validation, audit logging
-- **Starlette StreamingResponse for SSE** — Python 3.9 can't use FastAPI >=0.135.0, manual SSE format identical
-- **Digital signatures are lightweight** — name + timestamp + IP, not DocuSign
-- **Remove recording_url** — replace with transcript paste/upload (Phase 03)
-- **Agents are embedded** — inline on existing pages, not a standalone chat UI
-
-### Key Decisions (01-01)
-- **Extracted _seed_agents()** — standalone function for testability outside lifespan
-- **JSON column for allowed_tool_names** — simpler than junction table for small tool lists
-- **Created backend .venv** — required for isolated test execution
-
-### Key Decisions (01-02)
-- **Hybrid streaming strategy** — non-streaming for tool iterations, single text_delta for final response
-- **Tools call board REST API via httpx** — X-User-Email header for auth context forwarding
-- **Tool auto-registration on import** — register_tool() at module level, import at bottom of __init__.py
-- **Python 3.9 compat** — `from __future__ import annotations` for union type syntax
-
-### Key Decisions (01-03)
-- **StreamingResponse for SSE** — Python 3.9 prevents FastAPI >=0.135.0; Starlette StreamingResponse with manual SSE format is wire-compatible
-- **Route path '' not '/'** — matches redirect_slashes=False convention
-- **Usage logging inside async generator** — after all events yielded, captures accurate token/duration data
-
-### Key Decisions (01-04)
-- **react-markdown for agent output** — prose-invert dark theme styling for markdown rendering
-- **Buffer-based SSE parsing** — robust chunked event handling in useAgentStream hook
-- **userEmail as prop, not useSession** — decouples hook from NextAuth; parent passes email
-- **onToolComplete callback** — fires after tool_result events for page data refresh
-
-### Key Decisions (02-01)
-- **Soft-delete via is_active boolean** — simpler than deleted_at for template configuration data
-- **Batch meeting creation as /with-agenda** — separate route from POST / to avoid overloading
-- **_seed_templates standalone function** — matches _seed_agents pattern for testability
-
-### Key Decisions (02-02)
-- **Single-turn agent prompt** — Meeting Setup agent parses what it can and reports missing fields, no follow-up question loop
-- **Seed data upgrade block** — _seed_agents() detects placeholder prompt and auto-updates existing agents
-- **Replaced list_members with list_meetings** — list_members was never a registered tool; corrected to list_meetings
-
-### Key Decisions (03-03)
-- **useAgentStream directly in MinutesGenerator** — AgentResponsePanel embeds its own text input; MinutesGenerator needs one-click generate, not a chat interface
-- **Inline feedback instead of toast library** — auto-dismissing messages match existing patterns without adding dependencies
-
-### Key Decisions (02-03)
-- **Full-page creation replaces modal** — modal too constrained for three creation modes (AI, template, manual) plus inline agenda editing
-- **AI-assisted section expanded by default** — primary recommended flow; collapse for manual/template
-- **ClipboardList icon for Templates sidebar** — differentiates from Documents (FileText)
-- **Regulatory items: Shield icon + amber border** — visual language for governance/compliance items
-
-### Key Decisions (04-03)
-- **ResolutionDetailResponse extends DecisionDetail** — resolution_number not on Decision type; extended interface for type-safe access
-- **isChairOrAbove added to permissions** — print button gated by chair/admin role, separate from existing isBoardOrAbove
-- **Gold accent styling on sign/generate buttons** — matches app theme pattern established in minutes-generator
-
-### Key Decisions (05-02)
-- **AdminAgentConfig type** — avoids collision with user-facing AgentConfig types
-- **Hardcoded MODEL_LABELS map** — friendly model names in agents table without dynamic discovery
-- **Stale tool warnings in edit modal** — amber banner when agent references tools not in current registry
-- **Partial update optimization** — edit modal only sends changed fields in PATCH request
+### Plan 06-02 Execution Decisions
+- **Test auth via real API calls** — not function isolation, tests full dependency chain
+- **Auth hierarchy reflects actual behavior** — require_member is require_board, shareholder gets 403
+- **Added chair fixture** — beyond plan scope, needed for complete 4-role coverage
 
 ### Key Files
-- `frontend/src/components/sidebar.tsx` — Left navigation
-- `frontend/src/lib/api.ts` — API client
-- `backend/app/api/` — All API routes
-- `backend/app/models/` — All SQLAlchemy models
-- `backend/app/models/agent.py` — AgentConfig and AgentUsageLog models
-- `backend/app/schemas/agent.py` — Agent Pydantic schemas
-- `backend/tests/conftest.py` — Shared test fixtures
-- `backend/app/services/agent_runner.py` — Core agent loop (run_agent, run_agent_streaming)
-- `backend/app/services/llm_provider.py` — LiteLLM wrapper
-- `backend/app/tools/__init__.py` — Tool registry
-- `backend/app/tools/meetings.py` — Meeting tools (create_agenda_item, get_meeting, list_meetings, create_meeting_with_agenda)
-- `backend/app/models/decision.py` — Decisions (has resolution type, used in Phase 04)
-- `backend/app/models/meeting.py` — Meetings (recording_url removed in Phase 03)
-- `frontend/src/components/transcript-section.tsx` — Transcript paste/upload/view component
-- `frontend/src/components/minutes-generator.tsx` — Minutes generator with inline agent invocation
-- `backend/app/api/transcripts.py` — Transcript CRUD endpoints (nested under meetings router)
-- `backend/app/tools/transcripts.py` — Minutes Generator agent tools
-- `backend/app/api/agents.py` — Agent API: list, detail, SSE run endpoint
-- `backend/tests/test_agent_api.py` — 10 integration tests for agent API
-- `.planning/phases/01-agent-infrastructure/01-RESEARCH.md` — Agentic layer research (HIGH confidence)
-- `frontend/src/lib/agent-types.ts` — AgentEvent, ToolCallEvent, AgentStreamState types
-- `frontend/src/hooks/use-agent-stream.ts` — SSE consumption hook with run/cancel/reset API
-- `frontend/src/components/agent-response-panel.tsx` — Collapsible inline agent panel
-- `frontend/src/components/tool-call-indicator.tsx` — Tool call status indicator
-- `backend/app/models/template.py` — MeetingTemplate and TemplateAgendaItem models
-- `backend/app/api/templates.py` — Template CRUD API (list, get, create, update, delete)
-- `backend/migrations/versions/005_add_meeting_templates.py` — Template tables migration
-- `frontend/src/app/meetings/create/page.tsx` — Full-page meeting creation (AI, templates, manual)
-- `frontend/src/app/admin/templates/page.tsx` — Admin template CRUD management
-- `frontend/src/app/resolutions/page.tsx` — Resolutions list page with filter tabs and signature progress
-- `frontend/src/app/resolutions/[id]/page.tsx` — Resolution detail with signature panel, print, and agent
-- `frontend/src/components/signature-panel.tsx` — Signature status display and sign button
-- `frontend/src/components/resolution-writer.tsx` — Resolution Writer agent invocation component
-- `backend/app/api/agent_admin.py` — Admin agent CRUD, tool list, usage stats API
-- `backend/tests/test_agent_admin.py` — 16 tests for admin agent endpoints
-- `frontend/src/app/admin/agents/page.tsx` — Admin agents page (list + usage tabs)
-- `frontend/src/components/create-agent-modal.tsx` — Create agent modal with tool checkboxes
-- `frontend/src/components/edit-agent-modal.tsx` — Edit agent modal with stale tool warnings
+- `backend/app/api/agents.py` — Route conflict FIXED (static before parameterized)
+- `backend/app/api/meetings.py` — Minutes endpoints ADDED (POST and GET)
+- `backend/app/tools/transcripts.py` — create_minutes_document tool now hits working endpoint
+- `frontend/src/app/resolutions/[id]/page.tsx` — XSS FIXED (ReactMarkdown)
+- `frontend/src/app/meetings/page.tsx` — Auth leak FIXED
+- `frontend/src/app/globals.css` — Print CSS ADDED
+- `backend/tests/test_meetings_api.py` — 24 tests for meetings CRUD/agenda/attendance
+- `backend/tests/test_minutes_persistence.py` — 8 tests for minutes endpoints
+- `backend/tests/test_auth.py` — 14 tests for auth dependencies across all roles
+- `backend/tests/test_tool_handlers.py` — 9 tests for transcript tool handlers
 
 ### Blockers
 None
 
+## Performance Metrics
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 06 | 01 | 7min | 3 | 9 |
+| 06 | 02 | 5min | 4 | 7 |
+
 ## Session Continuity
 
-Last session: 2026-03-05T02:59:00Z
-Stopped at: Completed 05-02-PLAN.md (v2.0 milestone complete)
+Last session: 2026-04-08T04:57:48Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None

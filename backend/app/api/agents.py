@@ -43,7 +43,84 @@ async def list_agents(
 
 
 # =========================================================================
-# GET /{slug} -- agent detail
+# API Key Management (admin only) -- static paths BEFORE parameterized
+# =========================================================================
+
+
+def _mask_key(value: str) -> str:
+    """Mask an API key for display, showing only the last 4 characters."""
+    if not value or len(value) <= 4:
+        return "****"
+    return "****" + value[-4:]
+
+
+class UpdateApiKeysRequest(BaseModel):
+    anthropic_api_key: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+
+
+@router.get("/api-keys")
+async def get_api_keys(
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_admin),
+):
+    """Get LLM API key status -- shows which providers are configured and masked values."""
+    provider_status = validate_provider_keys(db=db)
+
+    # Read DB values for masking
+    db_keys = {v[0]: v[1] for v in PROVIDER_KEY_MAP.values()}
+    settings = db.query(Setting).filter(Setting.key.in_(db_keys.keys())).all()
+    settings_map = {s.key: s.value for s in settings}
+
+    result = {}
+    for provider, (db_key, env_key) in PROVIDER_KEY_MAP.items():
+        db_value = settings_map.get(db_key, "")
+        result[provider] = {
+            "configured": provider_status[provider],
+            "source": "database" if db_value else ("environment" if provider_status[provider] else "not set"),
+            "masked_value": _mask_key(db_value) if db_value else ("****" if provider_status[provider] else ""),
+        }
+
+    return result
+
+
+@router.put("/api-keys")
+async def update_api_keys(
+    request: UpdateApiKeysRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_admin),
+):
+    """Set LLM API keys in the database settings table.
+
+    Only updates keys that are provided (non-None). Send empty string to clear a key.
+    """
+    updates = {}
+    if request.anthropic_api_key is not None:
+        updates["anthropic_api_key"] = request.anthropic_api_key
+    if request.gemini_api_key is not None:
+        updates["gemini_api_key"] = request.gemini_api_key
+    if request.groq_api_key is not None:
+        updates["groq_api_key"] = request.groq_api_key
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No keys provided")
+
+    for key, value in updates.items():
+        setting = db.query(Setting).filter(Setting.key == key).first()
+        if setting:
+            setting.value = value
+            setting.updated_by_id = current_user.id
+        else:
+            db.add(Setting(key=key, value=value, updated_by_id=current_user.id))
+
+    db.commit()
+
+    return {"status": "updated", "keys": list(updates.keys())}
+
+
+# =========================================================================
+# GET /{slug} -- agent detail (parameterized -- AFTER static routes)
 # =========================================================================
 
 
@@ -143,80 +220,3 @@ async def run_agent_endpoint(
             "X-Accel-Buffering": "no",
         },
     )
-
-
-# =========================================================================
-# API Key Management (admin only)
-# =========================================================================
-
-
-def _mask_key(value: str) -> str:
-    """Mask an API key for display, showing only the last 4 characters."""
-    if not value or len(value) <= 4:
-        return "****"
-    return "****" + value[-4:]
-
-
-class UpdateApiKeysRequest(BaseModel):
-    anthropic_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
-    groq_api_key: Optional[str] = None
-
-
-@router.get("/api-keys")
-async def get_api_keys(
-    db: Session = Depends(get_db),
-    current_user: BoardMember = Depends(require_admin),
-):
-    """Get LLM API key status -- shows which providers are configured and masked values."""
-    provider_status = validate_provider_keys(db=db)
-
-    # Read DB values for masking
-    db_keys = {v[0]: v[1] for v in PROVIDER_KEY_MAP.values()}
-    settings = db.query(Setting).filter(Setting.key.in_(db_keys.keys())).all()
-    settings_map = {s.key: s.value for s in settings}
-
-    result = {}
-    for provider, (db_key, env_key) in PROVIDER_KEY_MAP.items():
-        db_value = settings_map.get(db_key, "")
-        result[provider] = {
-            "configured": provider_status[provider],
-            "source": "database" if db_value else ("environment" if provider_status[provider] else "not set"),
-            "masked_value": _mask_key(db_value) if db_value else ("****" if provider_status[provider] else ""),
-        }
-
-    return result
-
-
-@router.put("/api-keys")
-async def update_api_keys(
-    request: UpdateApiKeysRequest,
-    db: Session = Depends(get_db),
-    current_user: BoardMember = Depends(require_admin),
-):
-    """Set LLM API keys in the database settings table.
-
-    Only updates keys that are provided (non-None). Send empty string to clear a key.
-    """
-    updates = {}
-    if request.anthropic_api_key is not None:
-        updates["anthropic_api_key"] = request.anthropic_api_key
-    if request.gemini_api_key is not None:
-        updates["gemini_api_key"] = request.gemini_api_key
-    if request.groq_api_key is not None:
-        updates["groq_api_key"] = request.groq_api_key
-
-    if not updates:
-        raise HTTPException(status_code=400, detail="No keys provided")
-
-    for key, value in updates.items():
-        setting = db.query(Setting).filter(Setting.key == key).first()
-        if setting:
-            setting.value = value
-            setting.updated_by_id = current_user.id
-        else:
-            db.add(Setting(key=key, value=value, updated_by_id=current_user.id))
-
-    db.commit()
-
-    return {"status": "updated", "keys": list(updates.keys())}

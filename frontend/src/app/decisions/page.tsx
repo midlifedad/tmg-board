@@ -119,7 +119,7 @@ export default function DecisionsPage() {
   }, [session?.user?.email]);
 
   const userRole = (session?.user as { role?: string })?.role;
-  const isChairOrAdmin = userRole === "admin" || userRole === "chair" || !session;
+  const isChairOrAdmin = userRole === "admin" || userRole === "chair";
 
   const refetchDecisions = async () => {
     try {
