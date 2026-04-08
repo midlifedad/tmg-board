@@ -6,12 +6,15 @@ produces a final text response.
 """
 from __future__ import annotations
 
+import logging
 from typing import AsyncGenerator, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
 from app.services.llm_provider import get_completion
 from app.tools import execute_tool, get_tools_for_agent
+
+logger = logging.getLogger(__name__)
 
 
 async def run_agent(
@@ -37,14 +40,19 @@ async def run_agent(
 
     tools = get_tools_for_agent(config.allowed_tool_names) if config.allowed_tool_names else []
 
-    for _ in range(config.max_iterations):
-        response = await get_completion(
-            model=config.model,
-            messages=messages,
-            tools=tools or None,
-            temperature=config.temperature,
-            db=db,
-        )
+    for iteration in range(config.max_iterations):
+        try:
+            response = await get_completion(
+                model=config.model,
+                messages=messages,
+                tools=tools or None,
+                temperature=config.temperature,
+                db=db,
+            )
+        except Exception as e:
+            logger.error("LLM call failed on iteration %d: %s", iteration + 1, e, exc_info=True)
+            return f"Error: Failed to get response from LLM — {e}"
+
         msg = response.choices[0].message
 
         # No tool calls means final response
@@ -88,6 +96,10 @@ async def run_agent_streaming(
         - {"type": "usage", "prompt_tokens": int, "completion_tokens": int, "model": str}
         - {"type": "done"}
     """
+    logger.info(
+        "Agent run started: agent=%s model=%s user=%s",
+        config.name, config.model, user_context.get("email", "unknown"),
+    )
     yield {"type": "start", "agent_name": config.name}
 
     messages: List[dict] = [
@@ -96,19 +108,29 @@ async def run_agent_streaming(
     ]
 
     tools = get_tools_for_agent(config.allowed_tool_names) if config.allowed_tool_names else []
+    logger.info("Agent tools: %s", [t["function"]["name"] for t in tools] if tools else "none")
 
     total_prompt_tokens = 0
     total_completion_tokens = 0
 
     completed = False
-    for _ in range(config.max_iterations):
-        response = await get_completion(
-            model=config.model,
-            messages=messages,
-            tools=tools or None,
-            temperature=config.temperature,
-            db=db,
-        )
+    for iteration in range(config.max_iterations):
+        # --- LLM call with error handling ---
+        try:
+            logger.info("LLM call iteration %d/%d (model=%s)", iteration + 1, config.max_iterations, config.model)
+            response = await get_completion(
+                model=config.model,
+                messages=messages,
+                tools=tools or None,
+                temperature=config.temperature,
+                db=db,
+            )
+        except Exception as e:
+            error_msg = f"LLM call failed: {type(e).__name__}: {e}"
+            logger.error(error_msg, exc_info=True)
+            yield {"type": "error", "message": error_msg}
+            break
+
         msg = response.choices[0].message
 
         # Accumulate usage
@@ -120,6 +142,7 @@ async def run_agent_streaming(
             # Execute tools (non-streaming) and emit events
             messages.append(msg.model_dump())
             for tc in msg.tool_calls:
+                logger.info("Tool call: %s (id=%s)", tc.function.name, tc.id)
                 yield {
                     "type": "tool_start",
                     "tool_name": tc.function.name,
@@ -131,6 +154,10 @@ async def run_agent_streaming(
                     user_context,
                 )
                 success = '"error"' not in result
+                if not success:
+                    logger.warning("Tool %s failed: %s", tc.function.name, result[:200])
+                else:
+                    logger.info("Tool %s succeeded", tc.function.name)
                 yield {
                     "type": "tool_result",
                     "tool_name": tc.function.name,
@@ -152,6 +179,11 @@ async def run_agent_streaming(
 
     if not completed:
         yield {"type": "error", "message": "Agent reached maximum iterations without completing."}
+
+    logger.info(
+        "Agent run finished: agent=%s completed=%s tokens=%d+%d",
+        config.name, completed, total_prompt_tokens, total_completion_tokens,
+    )
 
     yield {
         "type": "usage",
