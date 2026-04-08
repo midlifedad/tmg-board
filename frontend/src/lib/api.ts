@@ -1529,4 +1529,23 @@ export const adminApi = {
     const query = searchParams.toString();
     return api.get(`/admin/agents/usage${query ? `?${query}` : ""}`);
   },
+
+  // -------------------------------------------------------------------------
+  // Agent API Keys
+  // -------------------------------------------------------------------------
+
+  /** Get API key status for all providers (admin only) */
+  getApiKeys: async (): Promise<Record<string, { configured: boolean; source: string; masked_value: string }>> => {
+    return api.get("/agents/api-keys");
+  },
+
+  /** Update API keys for providers (admin only) */
+  updateApiKey: async (data: { anthropic_api_key?: string; groq_api_key?: string }): Promise<{ status: string; keys: string[] }> => {
+    return api.put("/agents/api-keys", data);
+  },
+
+  /** Get available models (filtered by configured providers) */
+  getAvailableModels: async (): Promise<{ models: Array<{ value: string; label: string; provider: string }> }> => {
+    return api.get("/agents/available-models");
+  },
 };
