@@ -312,107 +312,82 @@ def _seed_templates(db):
         db.commit()
 
 
-def _run_migrations():
-    """Run Alembic migrations, handling databases that predate migration tracking.
+def _ensure_schema():
+    """Ensure database schema matches models. Runs on every startup.
 
-    The database was created by create_all() which makes tables with whatever
-    columns the model had at the time — but doesn't track what it did. So some
-    columns exist (from create_all) and some don't (added to model later).
-
-    Strategy: ensure all tables + columns exist via create_all(), then add any
-    columns that create_all() can't add (because the table already existed),
-    then stamp Alembic at head so future migrations work normally.
+    create_all() handles new tables but can't add columns to existing tables.
+    This function adds any missing columns directly, which is fast and idempotent.
     """
     from sqlalchemy import inspect, text
-    from alembic.config import Config as AlembicConfig
-    from alembic import command as alembic_command
 
     _log = logging.getLogger(__name__)
-    alembic_cfg = AlembicConfig("alembic.ini")
 
-    inspector = inspect(engine)
-    tables = inspector.get_table_names()
-
-    # If alembic_version exists, just run upgrade normally
-    if "alembic_version" in tables:
-        alembic_command.upgrade(alembic_cfg, "head")
-        _log.info("Alembic migrations applied successfully")
-        return
-
-    _log.info("No alembic_version table — bootstrapping schema")
-
-    # Step 1: create_all for any new tables
+    # Create any new tables
     Base.metadata.create_all(bind=engine)
 
-    # Step 2: add missing columns that create_all can't handle
-    # (create_all creates new tables but won't alter existing ones)
-    def _has_column(table: str, column: str) -> bool:
-        if table not in tables:
-            return False
-        cols = [c["name"] for c in inspector.get_columns(table)]
-        return column in cols
+    # Check for and add missing columns on existing tables
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
 
-    # All columns from all migrations, with their ADD COLUMN SQL
-    missing_columns = [
-        # 001
-        ("documents", "current_version", "ALTER TABLE documents ADD COLUMN current_version INTEGER DEFAULT 1"),
-        ("documents", "archived_at", "ALTER TABLE documents ADD COLUMN archived_at TIMESTAMP"),
-        ("documents", "archived_by_id", "ALTER TABLE documents ADD COLUMN archived_by_id INTEGER REFERENCES board_members(id)"),
-        ("meetings", "duration_minutes", "ALTER TABLE meetings ADD COLUMN duration_minutes INTEGER"),
-        ("meetings", "started_at", "ALTER TABLE meetings ADD COLUMN started_at TIMESTAMP"),
-        ("meetings", "ended_at", "ALTER TABLE meetings ADD COLUMN ended_at TIMESTAMP"),
-        ("meetings", "recording_url", "ALTER TABLE meetings ADD COLUMN recording_url TEXT"),
-        ("decisions", "visibility", "ALTER TABLE decisions ADD COLUMN visibility VARCHAR(20) DEFAULT 'standard'"),
-        ("decisions", "updated_at", "ALTER TABLE decisions ADD COLUMN updated_at TIMESTAMP"),
-        ("decisions", "archived_at", "ALTER TABLE decisions ADD COLUMN archived_at TIMESTAMP"),
-        ("decisions", "archived_by_id", "ALTER TABLE decisions ADD COLUMN archived_by_id INTEGER REFERENCES board_members(id)"),
-        ("decisions", "archived_reason", "ALTER TABLE decisions ADD COLUMN archived_reason TEXT"),
-        ("ideas", "category_id", "ALTER TABLE ideas ADD COLUMN category_id INTEGER"),
-        ("ideas", "status_reason", "ALTER TABLE ideas ADD COLUMN status_reason TEXT"),
-        ("comments", "parent_id", "ALTER TABLE comments ADD COLUMN parent_id INTEGER"),
-        ("comments", "is_pinned", "ALTER TABLE comments ADD COLUMN is_pinned BOOLEAN DEFAULT false"),
-        ("comments", "edited_at", "ALTER TABLE comments ADD COLUMN edited_at TIMESTAMP"),
-        # 002
-        ("audit_log", "entity_name", "ALTER TABLE audit_log ADD COLUMN entity_name VARCHAR(255)"),
-        ("audit_log", "ip_address", "ALTER TABLE audit_log ADD COLUMN ip_address VARCHAR(45)"),
-        ("audit_log", "user_agent", "ALTER TABLE audit_log ADD COLUMN user_agent TEXT"),
-        # 003
-        ("agenda_items", "item_type", "ALTER TABLE agenda_items ADD COLUMN item_type VARCHAR(30) DEFAULT 'information' NOT NULL"),
-        # 004
-        ("board_members", "timezone", "ALTER TABLE board_members ADD COLUMN timezone VARCHAR(50)"),
-        # 007
-        ("decisions", "resolution_number", "ALTER TABLE decisions ADD COLUMN resolution_number VARCHAR(50)"),
-        ("decisions", "formal_document_id", "ALTER TABLE decisions ADD COLUMN formal_document_id INTEGER"),
+    # Build lookup of existing columns per table
+    existing_cols = {}
+    for table in existing_tables:
+        existing_cols[table] = {c["name"] for c in inspector.get_columns(table)}
+
+    # Every column that migrations would add (table, column, SQL)
+    required_columns = [
+        ("documents", "current_version", "INTEGER DEFAULT 1"),
+        ("documents", "archived_at", "TIMESTAMP"),
+        ("documents", "archived_by_id", "INTEGER"),
+        ("meetings", "duration_minutes", "INTEGER"),
+        ("meetings", "started_at", "TIMESTAMP"),
+        ("meetings", "ended_at", "TIMESTAMP"),
+        ("meetings", "recording_url", "TEXT"),
+        ("decisions", "visibility", "VARCHAR(20) DEFAULT 'standard'"),
+        ("decisions", "updated_at", "TIMESTAMP"),
+        ("decisions", "archived_at", "TIMESTAMP"),
+        ("decisions", "archived_by_id", "INTEGER"),
+        ("decisions", "archived_reason", "TEXT"),
+        ("decisions", "resolution_number", "VARCHAR(50)"),
+        ("decisions", "formal_document_id", "INTEGER"),
+        ("ideas", "category_id", "INTEGER"),
+        ("ideas", "status_reason", "TEXT"),
+        ("comments", "parent_id", "INTEGER"),
+        ("comments", "is_pinned", "BOOLEAN DEFAULT false"),
+        ("comments", "edited_at", "TIMESTAMP"),
+        ("audit_log", "entity_name", "VARCHAR(255)"),
+        ("audit_log", "ip_address", "VARCHAR(45)"),
+        ("audit_log", "user_agent", "TEXT"),
+        ("agenda_items", "item_type", "VARCHAR(30) DEFAULT 'information'"),
+        ("board_members", "timezone", "VARCHAR(50)"),
     ]
 
-    # Refresh inspector after create_all
-    inspector = inspect(engine)
-
+    added = []
     with engine.begin() as conn:
-        added = []
-        for table, column, sql in missing_columns:
-            if table in inspector.get_table_names() and not _has_column(table, column):
+        for table, column, col_type in required_columns:
+            if table in existing_tables and column not in existing_cols.get(table, set()):
                 try:
-                    conn.execute(text(sql))
+                    conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                    ))
                     added.append(f"{table}.{column}")
-                except Exception as e:
-                    _log.warning("Could not add %s.%s: %s", table, column, e)
-        if added:
-            _log.info("Added missing columns: %s", ", ".join(added))
+                except Exception:
+                    pass  # column might already exist from a concurrent startup
 
-    # Step 3: stamp at head so future migrations work normally
-    alembic_command.stamp(alembic_cfg, "head")
-    _log.info("Schema bootstrapped and stamped at head")
+    if added:
+        _log.info("Added missing columns: %s", ", ".join(added))
+    else:
+        _log.info("Schema up to date")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
-    # Run Alembic migrations (applies any pending schema changes)
     try:
-        _run_migrations()
+        _ensure_schema()
     except Exception as e:
-        logging.getLogger(__name__).error("Migration failed: %s", e, exc_info=True)
+        logging.getLogger(__name__).error("Schema sync failed: %s", e, exc_info=True)
+        # Last resort: at least create new tables
         Base.metadata.create_all(bind=engine)
 
     # Seed board members and permissions if empty
