@@ -1,3 +1,5 @@
+import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,6 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agent_admin, agents, templates, transcripts, resolutions
 from app.db.session import engine, Base
+
+# Configure logging before anything else
+logging.basicConfig(
+    level=getattr(logging, os.environ.get("LOG_LEVEL", "INFO").upper(), logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 settings = get_settings()
 
@@ -304,11 +312,83 @@ def _seed_templates(db):
         db.commit()
 
 
+def _ensure_schema():
+    """Ensure database schema matches models. Runs on every startup.
+
+    create_all() handles new tables but can't add columns to existing tables.
+    This function adds any missing columns directly, which is fast and idempotent.
+    """
+    from sqlalchemy import inspect, text
+
+    _log = logging.getLogger(__name__)
+
+    # Create any new tables
+    Base.metadata.create_all(bind=engine)
+
+    # Check for and add missing columns on existing tables
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+
+    # Build lookup of existing columns per table
+    existing_cols = {}
+    for table in existing_tables:
+        existing_cols[table] = {c["name"] for c in inspector.get_columns(table)}
+
+    # Every column that migrations would add (table, column, SQL)
+    required_columns = [
+        ("documents", "current_version", "INTEGER DEFAULT 1"),
+        ("documents", "archived_at", "TIMESTAMP"),
+        ("documents", "archived_by_id", "INTEGER"),
+        ("meetings", "duration_minutes", "INTEGER"),
+        ("meetings", "started_at", "TIMESTAMP"),
+        ("meetings", "ended_at", "TIMESTAMP"),
+        ("meetings", "recording_url", "TEXT"),
+        ("decisions", "visibility", "VARCHAR(20) DEFAULT 'standard'"),
+        ("decisions", "updated_at", "TIMESTAMP"),
+        ("decisions", "archived_at", "TIMESTAMP"),
+        ("decisions", "archived_by_id", "INTEGER"),
+        ("decisions", "archived_reason", "TEXT"),
+        ("decisions", "resolution_number", "VARCHAR(50)"),
+        ("decisions", "formal_document_id", "INTEGER"),
+        ("ideas", "category_id", "INTEGER"),
+        ("ideas", "status_reason", "TEXT"),
+        ("comments", "parent_id", "INTEGER"),
+        ("comments", "is_pinned", "BOOLEAN DEFAULT false"),
+        ("comments", "edited_at", "TIMESTAMP"),
+        ("audit_log", "entity_name", "VARCHAR(255)"),
+        ("audit_log", "ip_address", "VARCHAR(45)"),
+        ("audit_log", "user_agent", "TEXT"),
+        ("agenda_items", "item_type", "VARCHAR(30) DEFAULT 'information'"),
+        ("board_members", "timezone", "VARCHAR(50)"),
+    ]
+
+    added = []
+    with engine.begin() as conn:
+        for table, column, col_type in required_columns:
+            if table in existing_tables and column not in existing_cols.get(table, set()):
+                try:
+                    conn.execute(text(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                    ))
+                    added.append(f"{table}.{column}")
+                except Exception:
+                    pass  # column might already exist from a concurrent startup
+
+    if added:
+        _log.info("Added missing columns: %s", ", ".join(added))
+    else:
+        _log.info("Schema up to date")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
+    try:
+        _ensure_schema()
+    except Exception as e:
+        logging.getLogger(__name__).error("Schema sync failed: %s", e, exc_info=True)
+        # Last resort: at least create new tables
+        Base.metadata.create_all(bind=engine)
 
     # Seed board members and permissions if empty
     from app.db.session import SessionLocal

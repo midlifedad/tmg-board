@@ -5,15 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Bot, Loader2 } from "lucide-react";
 import { adminApi, type ToolInfo } from "@/lib/api";
-
-const SUPPORTED_MODELS = [
-  { value: "anthropic/claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-  { value: "anthropic/claude-haiku-3-5-20241022", label: "Claude Haiku 3.5" },
-  { value: "gemini/gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-  { value: "gemini/gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
-  { value: "groq/llama-3.3-70b-versatile", label: "Llama 3.3 70B" },
-  { value: "groq/llama-3.1-8b-instant", label: "Llama 3.1 8B (Fast)" },
-];
+import { type ModelInfo } from "@/lib/models";
 
 interface CreateAgentModalProps {
   isOpen: boolean;
@@ -24,12 +16,14 @@ interface CreateAgentModalProps {
 export function CreateAgentModal({ isOpen, onClose, onSuccess }: CreateAgentModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [model, setModel] = useState(SUPPORTED_MODELS[0].value);
+  const [model, setModel] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [temperature, setTemperature] = useState(0.3);
   const [maxIterations, setMaxIterations] = useState(5);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [availableTools, setAvailableTools] = useState<ToolInfo[]>([]);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +32,7 @@ export function CreateAgentModal({ isOpen, onClose, onSuccess }: CreateAgentModa
       // Reset form
       setName("");
       setDescription("");
-      setModel(SUPPORTED_MODELS[0].value);
+      setModel("");
       setSystemPrompt("");
       setTemperature(0.3);
       setMaxIterations(5);
@@ -47,6 +41,16 @@ export function CreateAgentModal({ isOpen, onClose, onSuccess }: CreateAgentModa
 
       // Load available tools
       adminApi.listAvailableTools().then(setAvailableTools).catch(() => {});
+
+      // Load available models (provider-filtered)
+      setModelsLoading(true);
+      adminApi.getAvailableModels()
+        .then((res) => {
+          setAvailableModels(res.models);
+          if (res.models.length > 0) setModel(res.models[0].value);
+          setModelsLoading(false);
+        })
+        .catch(() => setModelsLoading(false));
     }
   }, [isOpen]);
 
@@ -149,18 +153,29 @@ export function CreateAgentModal({ isOpen, onClose, onSuccess }: CreateAgentModa
             {/* Model */}
             <div>
               <label className="text-sm font-medium">Model *</label>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                disabled={submitting}
-              >
-                {SUPPORTED_MODELS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
+              {modelsLoading ? (
+                <div className="flex items-center gap-2 mt-1 h-10 px-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading models...
+                </div>
+              ) : availableModels.length === 0 ? (
+                <p className="mt-1 text-sm text-amber-400">
+                  No models available. Configure API keys in the API Keys section first.
+                </p>
+              ) : (
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className="w-full mt-1 h-10 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={submitting}
+                >
+                  {availableModels.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* System Prompt */}
@@ -244,7 +259,7 @@ export function CreateAgentModal({ isOpen, onClose, onSuccess }: CreateAgentModa
               <Button variant="outline" onClick={handleClose} disabled={submitting}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting || !name.trim() || !systemPrompt.trim()}>
+              <Button type="submit" disabled={submitting || !name.trim() || !systemPrompt.trim() || !model}>
                 {submitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

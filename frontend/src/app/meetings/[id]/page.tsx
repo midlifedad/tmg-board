@@ -26,6 +26,7 @@ import {
   Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption, type Transcript } from "@/lib/api";
 import { EditMeetingModal } from "@/components/edit-meeting-modal";
 import { TranscriptSection } from "@/components/transcript-section";
@@ -97,6 +98,7 @@ export default function MeetingDetailPage({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [showAddAgenda, setShowAddAgenda] = useState(false);
   const [newAgendaTitle, setNewAgendaTitle] = useState("");
   const [newAgendaDuration, setNewAgendaDuration] = useState("");
@@ -123,6 +125,23 @@ export default function MeetingDetailPage({
   // Drag-to-reorder state
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
+
+  const handleTransition = async (action: "start" | "end") => {
+    if (!meeting) return;
+    setTransitioning(true);
+    try {
+      if (action === "start") {
+        await meetingsApi.start(meeting.id);
+      } else {
+        await meetingsApi.end(meeting.id);
+      }
+      await fetchMeeting();
+    } catch (err) {
+      console.error(`Failed to ${action} meeting:`, err);
+    } finally {
+      setTransitioning(false);
+    }
+  };
 
   // Timezone
   const [tzAbbr, setTzAbbr] = useState("PT");
@@ -497,6 +516,18 @@ export default function MeetingDetailPage({
           <div className="flex items-center gap-2">
             {isChairOrAdmin && meeting.status === "scheduled" && (
               <>
+                <Button
+                  size="sm"
+                  onClick={() => handleTransition("start")}
+                  disabled={transitioning}
+                >
+                  {transitioning ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Clock className="h-4 w-4 mr-2" />
+                  )}
+                  Start Meeting
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
@@ -511,6 +542,20 @@ export default function MeetingDetailPage({
                   Cancel Meeting
                 </Button>
               </>
+            )}
+            {isChairOrAdmin && meeting.status === "in_progress" && (
+              <Button
+                size="sm"
+                onClick={() => handleTransition("end")}
+                disabled={transitioning}
+              >
+                {transitioning ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Check className="h-4 w-4 mr-2" />
+                )}
+                End Meeting
+              </Button>
             )}
             {meeting.status === "scheduled" && meeting.meetingLink && (
               <Button asChild>
@@ -881,7 +926,7 @@ export default function MeetingDetailPage({
                 <CardContent>
                   <div
                     className="prose-minutes print-content max-h-[600px] overflow-y-auto"
-                    dangerouslySetInnerHTML={{ __html: minutes.html_content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(minutes.html_content) }}
                   />
                 </CardContent>
               </Card>

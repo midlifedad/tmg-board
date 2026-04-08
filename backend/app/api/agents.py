@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from typing import AsyncGenerator, Optional
 
@@ -18,6 +19,8 @@ from app.models.member import BoardMember
 from app.schemas.agent import RunAgentRequest, AgentConfigResponse, AgentListResponse
 from app.services.agent_runner import run_agent_streaming
 from app.services.llm_provider import PROVIDER_KEY_MAP, validate_provider_keys
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -56,7 +59,6 @@ def _mask_key(value: str) -> str:
 
 class UpdateApiKeysRequest(BaseModel):
     anthropic_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
 
 
@@ -98,8 +100,6 @@ async def update_api_keys(
     updates = {}
     if request.anthropic_api_key is not None:
         updates["anthropic_api_key"] = request.anthropic_api_key
-    if request.gemini_api_key is not None:
-        updates["gemini_api_key"] = request.gemini_api_key
     if request.groq_api_key is not None:
         updates["groq_api_key"] = request.groq_api_key
 
@@ -117,6 +117,21 @@ async def update_api_keys(
     db.commit()
 
     return {"status": "updated", "keys": list(updates.keys())}
+
+
+@router.get("/available-models")
+async def get_available_models(
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_member),
+):
+    """Return models filtered to only providers with configured API keys.
+
+    Fetches live model lists from Anthropic and Groq APIs (cached 1 hour).
+    Falls back to a static list if provider APIs are unreachable.
+    """
+    from app.services.llm_provider import fetch_available_models
+    models = await fetch_available_models(db=db)
+    return {"models": models}
 
 
 # =========================================================================
@@ -175,41 +190,54 @@ async def run_agent_endpoint(
 
     async def event_generator() -> AsyncGenerator[str, None]:
         """Yield SSE-formatted events from the agent runner, then log usage."""
+        logger.info(
+            "Agent invocation: slug=%s user=%s model=%s",
+            request.agent_slug, current_user.email, config.model,
+        )
         start_time = time.time()
         usage_data = {"prompt_tokens": 0, "completion_tokens": 0, "model": config.model}
         tool_count = 0
         error_msg = None
 
-        async for event in run_agent_streaming(config, request.message, user_context, db=db):
-            # Track metrics from events
-            if event["type"] == "usage":
-                usage_data["prompt_tokens"] = event.get("prompt_tokens", 0)
-                usage_data["completion_tokens"] = event.get("completion_tokens", 0)
-                usage_data["model"] = event.get("model", config.model)
-            elif event["type"] == "tool_start":
-                tool_count += 1
-            elif event["type"] == "error":
-                error_msg = event.get("message", "Unknown error")
+        try:
+            async for event in run_agent_streaming(config, request.message, user_context, db=db):
+                # Track metrics from events
+                if event["type"] == "usage":
+                    usage_data["prompt_tokens"] = event.get("prompt_tokens", 0)
+                    usage_data["completion_tokens"] = event.get("completion_tokens", 0)
+                    usage_data["model"] = event.get("model", config.model)
+                elif event["type"] == "tool_start":
+                    tool_count += 1
+                elif event["type"] == "error":
+                    error_msg = event.get("message", "Unknown error")
 
-            # Format as SSE
-            yield f"event: agent\ndata: {json.dumps(event)}\n\n"
+                # Format as SSE
+                yield f"event: agent\ndata: {json.dumps(event)}\n\n"
+        except Exception as e:
+            error_msg = f"Agent stream crashed: {type(e).__name__}: {e}"
+            logger.error(error_msg, exc_info=True)
+            yield f"event: agent\ndata: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+            yield f"event: agent\ndata: {json.dumps({'type': 'done'})}\n\n"
 
-        # Create usage log after streaming completes
+        # Always log usage, even on failure
         duration_ms = int((time.time() - start_time) * 1000)
-        log = AgentUsageLog(
-            agent_id=config.id,
-            user_id=current_user.id,
-            model_used=usage_data["model"],
-            prompt_tokens=usage_data["prompt_tokens"],
-            completion_tokens=usage_data["completion_tokens"],
-            total_cost_usd=0.0,
-            tool_calls_count=tool_count,
-            duration_ms=duration_ms,
-            success=error_msg is None,
-            error_message=error_msg,
-        )
-        db.add(log)
-        db.commit()
+        try:
+            log = AgentUsageLog(
+                agent_id=config.id,
+                user_id=current_user.id,
+                model_used=usage_data["model"],
+                prompt_tokens=usage_data["prompt_tokens"],
+                completion_tokens=usage_data["completion_tokens"],
+                total_cost_usd=0.0,
+                tool_calls_count=tool_count,
+                duration_ms=duration_ms,
+                success=error_msg is None,
+                error_message=error_msg,
+            )
+            db.add(log)
+            db.commit()
+        except Exception as e:
+            logger.error("Failed to write usage log: %s", e)
 
     return StreamingResponse(
         event_generator(),

@@ -1,7 +1,7 @@
 """Meeting-related tool handlers: create_agenda_item, get_meeting, list_meetings.
 
 All tools use httpx.AsyncClient to call the board REST API internally.
-The base URL defaults to http://localhost:3010 and can be overridden via
+The base URL defaults to http://localhost:{PORT} and can be overridden via
 TOOL_API_BASE_URL environment variable.
 Tools pass X-User-Email header on every request for auth context.
 """
@@ -14,8 +14,11 @@ from app.tools import ToolDefinition, register_tool
 
 
 def _get_base_url() -> str:
-    """Get the base URL for internal API calls."""
-    return os.environ.get("TOOL_API_BASE_URL", "http://localhost:3010")
+    """Get the base URL for internal API calls (same backend)."""
+    return os.environ.get(
+        "TOOL_API_BASE_URL",
+        f"http://localhost:{os.environ.get('PORT', '3010')}",
+    )
 
 
 # ── create_agenda_item ──

@@ -177,10 +177,21 @@ export function useAgentStream(options?: UseAgentStreamOptions) {
           }
         }
 
-        // Stream ended normally -- mark as done (if not already via "done" event)
-        setState((prev) =>
-          prev.status === "streaming" ? { ...prev, status: "done" } : prev
-        );
+        // Stream ended — if we got no content and no done event, it's likely a backend error
+        setState((prev) => {
+          if (prev.status === "streaming") {
+            const hasContent = prev.text || prev.toolCalls.length > 0;
+            if (!hasContent) {
+              return {
+                ...prev,
+                status: "error",
+                error: "Agent stream ended unexpectedly. Check API key configuration in Admin > Agents.",
+              };
+            }
+            return { ...prev, status: "done" };
+          }
+          return prev;
+        });
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           setState((prev) => ({
