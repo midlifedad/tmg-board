@@ -102,7 +102,7 @@ Plans:
 
 ### v2.1 Stability & Quality
 
-- [x] **Phase 06: Bug Fixes, Minutes Persistence & Test Coverage** - Fix critical bugs from code review, add missing minutes persistence endpoint, print CSS, and comprehensive test coverage (completed 2026-04-08)
+- [ ] **Phase 06: Bug Fixes, Minutes Persistence & Test Coverage** - Fix critical bugs from code review, add missing minutes persistence endpoint, print CSS, and comprehensive test coverage
 
 ## Phase Details (v2.1)
 
@@ -117,10 +117,10 @@ Plans:
   4. Minutes Generator agent successfully persists generated minutes to the database
   5. Meeting detail page displays previously generated minutes and supports printing
   6. All tests pass with 120+ total test functions covering core domain
-**Plans:** 2/2 plans complete
+**Plans:** 0/2 complete
 Plans:
-- [x] 06-01-PLAN.md — Bug fixes (route conflict, XSS, auth leak) + minutes persistence endpoints + print CSS
-- [x] 06-02-PLAN.md — Comprehensive test coverage: meetings CRUD, minutes, auth, agent API keys, tool handlers
+- [ ] 06-01-PLAN.md — Bug fixes (route conflict, XSS, auth leak) + minutes persistence endpoints + print CSS
+- [ ] 06-02-PLAN.md — Comprehensive test coverage: meetings CRUD, minutes, auth, agent API keys, tool handlers
 
 ## Progress
 
@@ -133,4 +133,4 @@ Plans:
 | 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
 | 05. Admin Agent Management | 2/2 | Complete    | 2026-03-05 |
-| 06. Bug Fixes, Minutes Persistence & Tests | 2/2 | Complete    | 2026-04-08 |
+| 06. Bug Fixes, Minutes Persistence & Tests | 0/2 | In Progress | — |
