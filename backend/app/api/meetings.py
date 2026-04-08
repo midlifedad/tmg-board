@@ -141,6 +141,13 @@ async def list_meetings(
     total = query.count()
     meetings = query.order_by(Meeting.scheduled_date.desc()).offset(offset).limit(limit).all()
 
+    # Subquery: meeting IDs that have minutes documents (single query, avoids N+1)
+    minutes_meeting_ids = set(
+        row[0] for row in db.query(MeetingDocument.meeting_id).filter(
+            MeetingDocument.relationship_type == "minutes"
+        ).all()
+    )
+
     result_items = []
     for meeting in meetings:
         item_dict = {
@@ -155,7 +162,7 @@ async def list_meetings(
             "created_by_id": meeting.created_by_id,
             "created_at": meeting.created_at.isoformat() if meeting.created_at else None,
             "agenda_items_count": len(meeting.agenda_items),
-            "has_minutes": meeting.status == "completed",
+            "has_minutes": meeting.id in minutes_meeting_ids,
             "decisions_count": sum(1 for item in meeting.agenda_items if item.decision_id is not None),
         }
         result_items.append(item_dict)
