@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Stability & Quality
 status: in_progress
-stopped_at: Phase 06 planned, ready for execution
-last_updated: "2026-04-08T12:00:00Z"
-last_activity: 2026-04-08 — Created Phase 06 plans after code review of PR #52
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-04-08T04:47:13Z"
+last_activity: 2026-04-08 — Executed Plan 06-01 (bug fixes, minutes persistence, print CSS)
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State — TMG Board
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 ## Current Position
 
 Phase: 06 of 06 (Bug Fixes, Minutes Persistence & Test Coverage) — IN PROGRESS
-Plan: 0 of 2 in current phase (ready for execution)
-Status: Plans Created
-Last activity: 2026-04-08 — Code review of PR #52, created Phase 06 plans
+Plan: 1 of 2 in current phase (06-01 complete, 06-02 pending)
+Status: Executing
+Last activity: 2026-04-08 — Executed Plan 06-01 (bug fixes, minutes persistence, print CSS)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [=====-----] 50%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -55,19 +55,31 @@ Progress: [░░░░░░░░░░] 0%
 - Auth, API key endpoints completely untested
 - Agent infrastructure well-architected but missing error handling edges
 
+### Plan 06-01 Execution Decisions
+- **Route ordering fix** — api-keys GET/PUT moved before /{slug} GET in FastAPI router
+- **Minutes stored in Document.description** — HTML content in description field, virtual file_path minutes://{id}
+- **Upsert for minutes regeneration** — Updates existing Document instead of creating duplicates
+- **onMinutesGenerated callback** — Added to MinutesGenerator so meeting detail page can re-fetch
+
 ### Key Files
-- `backend/app/api/agents.py` — Route conflict fix needed (static before parameterized)
-- `backend/app/api/meetings.py` — Minutes endpoints to add
-- `backend/app/tools/transcripts.py` — create_minutes_document tool (currently hits 404)
-- `frontend/src/app/resolutions/[id]/page.tsx` — XSS fix needed
-- `frontend/src/app/meetings/page.tsx` — Auth leak fix
-- `frontend/src/app/globals.css` — Print CSS to add
+- `backend/app/api/agents.py` — Route conflict FIXED (static before parameterized)
+- `backend/app/api/meetings.py` — Minutes endpoints ADDED (POST and GET)
+- `backend/app/tools/transcripts.py` — create_minutes_document tool now hits working endpoint
+- `frontend/src/app/resolutions/[id]/page.tsx` — XSS FIXED (ReactMarkdown)
+- `frontend/src/app/meetings/page.tsx` — Auth leak FIXED
+- `frontend/src/app/globals.css` — Print CSS ADDED
 
 ### Blockers
 None
 
+## Performance Metrics
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 06 | 01 | 7min | 3 | 9 |
+
 ## Session Continuity
 
-Last session: 2026-04-08T12:00:00Z
-Stopped at: Phase 06 plans created, ready for execution
+Last session: 2026-04-08T04:47:13Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None

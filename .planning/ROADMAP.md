@@ -117,7 +117,7 @@ Plans:
   4. Minutes Generator agent successfully persists generated minutes to the database
   5. Meeting detail page displays previously generated minutes and supports printing
   6. All tests pass with 120+ total test functions covering core domain
-**Plans:** 0/2 complete
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 06-01-PLAN.md — Bug fixes (route conflict, XSS, auth leak) + minutes persistence endpoints + print CSS
 - [ ] 06-02-PLAN.md — Comprehensive test coverage: meetings CRUD, minutes, auth, agent API keys, tool handlers
@@ -133,4 +133,4 @@ Plans:
 | 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
 | 05. Admin Agent Management | 2/2 | Complete    | 2026-03-05 |
-| 06. Bug Fixes, Minutes Persistence & Tests | 0/2 | In Progress | — |
+| 06. Bug Fixes, Minutes Persistence & Tests | 1/2 | In Progress|  |
