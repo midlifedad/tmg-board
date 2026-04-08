@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+import hashlib
 from datetime import datetime
 from typing import Optional, List
 
-from sqlalchemy import String, DateTime, Integer, ForeignKey, Text
+from sqlalchemy import String, DateTime, Integer, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -53,6 +56,7 @@ class Decision(Base):
     deleted_by: Mapped[Optional["BoardMember"]] = relationship("BoardMember", foreign_keys=[deleted_by_id])
     archived_by: Mapped[Optional["BoardMember"]] = relationship("BoardMember", foreign_keys=[archived_by_id])
     votes: Mapped[List["Vote"]] = relationship("Vote", back_populates="decision", cascade="all, delete-orphan")
+    signatures: Mapped[List["ResolutionSignature"]] = relationship("ResolutionSignature", back_populates="decision", cascade="all, delete-orphan")
 
     @property
     def is_active(self) -> bool:
@@ -97,6 +101,46 @@ class Vote(Base):
 
     def __repr__(self) -> str:
         return f"<Vote {self.member_id} on {self.decision_id}: {self.vote}>"
+
+
+def generate_signature_hash(
+    member_name: str,
+    member_email: str,
+    decision_id: int,
+    signed_at: datetime,
+) -> str:
+    """Generate tamper-evidence hash for a resolution signature."""
+    payload = f"{member_name}:{member_email}:{decision_id}:{signed_at.isoformat()}"
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+class ResolutionSignature(Base):
+    """Digital signature record for a board resolution."""
+
+    __tablename__ = "resolution_signatures"
+    __table_args__ = (
+        UniqueConstraint("decision_id", "member_id", name="uq_resolution_member_signature"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    decision_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("decisions.id", ondelete="CASCADE"), nullable=False
+    )
+    member_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("board_members.id"), nullable=False
+    )
+    signed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    signature_hash: Mapped[str] = mapped_column(
+        String(64), nullable=False
+    )  # SHA-256 hash of member_name + decision_id + signed_at
+
+    # Relationships
+    decision: Mapped["Decision"] = relationship("Decision", back_populates="signatures")
+    member: Mapped["BoardMember"] = relationship("BoardMember")
+
+    def __repr__(self) -> str:
+        return f"<ResolutionSignature member={self.member_id} decision={self.decision_id}>"
 
 
 # Import for type hints

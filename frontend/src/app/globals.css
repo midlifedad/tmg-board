@@ -150,3 +150,34 @@ h1, h2 {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--steel-light);
 }
+
+/* Meeting minutes HTML styling */
+.prose-minutes {
+  color: var(--paper);
+  line-height: 1.7;
+}
+.prose-minutes h1 { font-size: 1.5rem; font-weight: 600; margin: 1.5rem 0 0.75rem; font-family: var(--font-serif), Georgia, serif; }
+.prose-minutes h2 { font-size: 1.25rem; font-weight: 600; margin: 1.25rem 0 0.5rem; font-family: var(--font-serif), Georgia, serif; }
+.prose-minutes h3 { font-size: 1.1rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+.prose-minutes p { margin: 0.5rem 0; }
+.prose-minutes ul, .prose-minutes ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+.prose-minutes li { margin: 0.25rem 0; }
+.prose-minutes strong { color: var(--gold-light); }
+.prose-minutes hr { border-color: var(--rule); margin: 1rem 0; }
+.prose-minutes table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
+.prose-minutes th, .prose-minutes td { border: 1px solid var(--rule); padding: 0.5rem; text-align: left; }
+.prose-minutes th { background: rgba(255,255,255,0.05); font-weight: 600; }
+
+/* Print styles */
+@media print {
+  body { background: white !important; color: black !important; }
+  .no-print { display: none !important; }
+  .print-content {
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+  .prose-minutes { color: black !important; max-height: none !important; overflow: visible !important; }
+  .prose-minutes strong { color: black !important; font-weight: 700; }
+  nav, header, aside, .sidebar, [data-sidebar] { display: none !important; }
+}

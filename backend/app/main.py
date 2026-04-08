@@ -4,10 +4,304 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin
+from app.api import auth, documents, meetings, decisions, ideas, webhooks, admin, agent_admin, agents, templates, transcripts, resolutions
 from app.db.session import engine, Base
 
 settings = get_settings()
+
+
+_MINUTES_GENERATOR_SYSTEM_PROMPT = """\
+You are the Minutes Generator Agent for The Many Group board governance platform.
+
+Your job is to produce structured, formal board meeting minutes in HTML format \
+from a meeting transcript combined with meeting metadata.
+
+Follow this workflow:
+1. Call get_meeting_details to retrieve the meeting title, date, time, location, \
+agenda items, and attendance list.
+2. Call get_meeting_transcript to retrieve the full transcript text.
+3. Analyze the transcript against the agenda items and attendance data.
+4. Generate comprehensive HTML minutes.
+5. Call create_minutes_document to save the generated HTML minutes.
+
+The minutes HTML must include these sections:
+- Meeting title, date, time, and location (use <h1> for the title)
+- Attendance table showing members present and absent (use <table>)
+- For each agenda item discussed (use <h2> for each item):
+  * Key discussion points (use <ul>/<li>)
+  * Decisions made
+  * Action items with responsible parties and deadlines
+- Motions and votes with results (if any)
+- Meeting adjournment time
+
+Formatting rules:
+- Use semantic HTML: <h1> for meeting title, <h2> for section headings, \
+<h3> for sub-sections
+- Use <ul>/<li> for lists of points, action items, and decisions
+- Use <table> with <thead>/<tbody> for attendance and vote tallies
+- Use <strong> to highlight decisions and action items
+- Use <em> for speaker attributions
+- Keep the tone formal and professional
+- Be concise but thorough -- capture all substantive points
+- Do NOT include verbatim transcript quotes unless they are formal motions
+- Always call create_minutes_document with the final HTML output"""
+
+_MEETING_SETUP_SYSTEM_PROMPT = """\
+You are the Meeting Setup Agent for The Many Group board governance platform.
+
+Your job is to parse a pasted meeting description into a structured meeting \
+with agenda items, then create it using the create_meeting_with_agenda tool.
+
+When given a meeting description, extract:
+1. Meeting title
+2. Date and time (if mentioned) -- use ISO 8601 format (e.g., "2026-04-15T10:00:00")
+3. Location or virtual meeting link (if mentioned)
+4. Duration (if mentioned, otherwise estimate by summing agenda item durations \
+plus 10 minutes buffer)
+5. Individual agenda items with:
+   - Title (concise, 3-10 words)
+   - Description (additional details if provided)
+   - Type: classify as one of:
+     * "information" -- announcements, reports, updates
+     * "discussion" -- topics needing group input
+     * "decision_required" -- votes, resolutions, approvals
+     * "consent_agenda" -- routine items approved as a batch \
+(e.g., minutes approval)
+   - Estimated duration in minutes (5 for simple, 10-15 for discussions, \
+15-30 for decisions)
+   - Order (sequence as listed in the description)
+
+Rules:
+- If the description mentions a vote, resolution, or approval, classify that \
+item as "decision_required"
+- If items are listed for review without discussion, classify as "consent_agenda"
+- Default item type is "information" unless context suggests otherwise
+- If the date is not specified, omit the scheduled_date field entirely \
+(do NOT guess)
+- If the location is not specified, omit the location field
+- Always call the create_meeting_with_agenda tool with the parsed data
+- After the tool call, respond with a brief summary of what you created and \
+list any fields the user needs to fill in manually (e.g., "I couldn't \
+determine the meeting date -- please set it manually")
+- Do NOT ask follow-up questions. Parse what you can from the description and \
+note what's missing."""
+
+_RESOLUTION_WRITER_SYSTEM_PROMPT = """\
+You are the Resolution Writer Agent for The Many Group board governance platform.
+
+Your job is to draft formal board resolution documents from brief descriptions.
+
+Follow this workflow:
+1. When given a resolution description, create a decision of type=resolution \
+using the create_resolution tool. Include a clear title and formal description text.
+2. If asked to produce a formal document, draft an HTML resolution document \
+using draft_resolution_document. The HTML should follow formal resolution format:
+   - WHEREAS clauses stating the context and rationale
+   - RESOLVED clauses stating the actions or decisions
+   - Signature block placeholder at the bottom
+3. Use list_resolutions and get_resolution to check existing resolutions when needed.
+
+Resolution formatting rules:
+- Title: "Resolution [Number]: [Subject]" format
+- WHEREAS clauses: Each starts with "WHEREAS," on its own line
+- RESOLVED clauses: Each starts with "NOW, THEREFORE, BE IT RESOLVED" or \
+"BE IT FURTHER RESOLVED"
+- Use formal, legal-style language appropriate for board governance
+- Keep resolutions concise but comprehensive
+- Always call create_resolution first, then optionally draft_resolution_document \
+for formal HTML
+
+HTML document formatting:
+- Use <h1> for the resolution title
+- Use <p> for WHEREAS and RESOLVED clauses with <strong> for the keywords
+- Use <table> for signature blocks
+- Include date, resolution number, and organization name in the header
+- Keep styling minimal (will be rendered with print styles)"""
+
+
+def _seed_agents(db):
+    """Seed built-in agent configurations if none exist.
+
+    Extracted as a standalone function so tests can call it directly
+    without running the full lifespan.
+    """
+    from app.models.agent import AgentConfig
+
+    if db.query(AgentConfig).count() == 0:
+        seed_agents = [
+            AgentConfig(
+                name="Meeting Setup",
+                slug="meeting-setup",
+                description="Helps create structured meeting agendas from descriptions",
+                system_prompt=_MEETING_SETUP_SYSTEM_PROMPT,
+                model="anthropic/claude-sonnet-4-5-20250929",
+                temperature=0.3,
+                max_iterations=5,
+                allowed_tool_names=[
+                    "create_meeting_with_agenda",
+                    "create_agenda_item",
+                    "get_meeting",
+                    "list_meetings",
+                ],
+            ),
+            AgentConfig(
+                name="Minutes Generator",
+                slug="minutes-generator",
+                description="Creates formatted meeting minutes from transcripts",
+                system_prompt=_MINUTES_GENERATOR_SYSTEM_PROMPT,
+                model="anthropic/claude-sonnet-4-5-20250929",
+                temperature=0.2,
+                max_iterations=3,
+                allowed_tool_names=[
+                    "get_meeting_details",
+                    "get_meeting_transcript",
+                    "create_minutes_document",
+                ],
+            ),
+            AgentConfig(
+                name="Resolution Writer",
+                slug="resolution-writer",
+                description="Drafts formal board resolution documents",
+                system_prompt=_RESOLUTION_WRITER_SYSTEM_PROMPT,
+                model="anthropic/claude-sonnet-4-5-20250929",
+                temperature=0.3,
+                max_iterations=3,
+                allowed_tool_names=[
+                    "create_resolution",
+                    "draft_resolution_document",
+                    "list_resolutions",
+                    "get_resolution",
+                ],
+            ),
+        ]
+        for agent in seed_agents:
+            db.add(agent)
+        db.commit()
+    else:
+        # Update existing Meeting Setup agent if it still has the Phase 01 placeholder
+        meeting_agent = db.query(AgentConfig).filter(
+            AgentConfig.slug == "meeting-setup"
+        ).first()
+        if meeting_agent and "[Detailed prompt to be added in Phase 02]" in (
+            meeting_agent.system_prompt or ""
+        ):
+            meeting_agent.system_prompt = _MEETING_SETUP_SYSTEM_PROMPT
+            meeting_agent.allowed_tool_names = [
+                "create_meeting_with_agenda",
+                "create_agenda_item",
+                "get_meeting",
+                "list_meetings",
+            ]
+            db.commit()
+
+        # Update existing Minutes Generator if it still has the Phase 01 placeholder
+        minutes_agent = db.query(AgentConfig).filter(
+            AgentConfig.slug == "minutes-generator"
+        ).first()
+        if minutes_agent and "[Detailed prompt to be added in Phase 03]" in (
+            minutes_agent.system_prompt or ""
+        ):
+            minutes_agent.system_prompt = _MINUTES_GENERATOR_SYSTEM_PROMPT
+            minutes_agent.allowed_tool_names = [
+                "get_meeting_details",
+                "get_meeting_transcript",
+                "create_minutes_document",
+            ]
+            db.commit()
+
+        # Update existing Resolution Writer if it still has the Phase 01 placeholder
+        resolution_agent = db.query(AgentConfig).filter(
+            AgentConfig.slug == "resolution-writer"
+        ).first()
+        if resolution_agent and "[Detailed prompt to be added in Phase 04]" in (
+            resolution_agent.system_prompt or ""
+        ):
+            resolution_agent.system_prompt = _RESOLUTION_WRITER_SYSTEM_PROMPT
+            resolution_agent.allowed_tool_names = [
+                "create_resolution",
+                "draft_resolution_document",
+                "list_resolutions",
+                "get_resolution",
+            ]
+            db.commit()
+
+
+def _seed_templates(db):
+    """Seed default meeting template if none exist."""
+    from app.models.template import MeetingTemplate, TemplateAgendaItem
+    from app.models.member import BoardMember
+
+    if db.query(MeetingTemplate).count() == 0:
+        # Use the first admin user as template creator
+        admin_user = db.query(BoardMember).filter(
+            BoardMember.role == "admin"
+        ).first()
+        if not admin_user:
+            return
+
+        template = MeetingTemplate(
+            name="Board Meeting",
+            description="Standard board meeting template with regulatory items",
+            default_duration_minutes=65,
+            default_location="Conference Room",
+            created_by_id=admin_user.id,
+        )
+        db.add(template)
+        db.flush()
+
+        items = [
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Call to Order",
+                item_type="information",
+                duration_minutes=5,
+                order_index=0,
+                is_regulatory=False,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Approval of Previous Minutes",
+                item_type="consent_agenda",
+                duration_minutes=5,
+                order_index=1,
+                is_regulatory=True,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Financial Report",
+                item_type="information",
+                duration_minutes=15,
+                order_index=2,
+                is_regulatory=True,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Old Business",
+                item_type="discussion",
+                duration_minutes=15,
+                order_index=3,
+                is_regulatory=False,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="New Business",
+                item_type="discussion",
+                duration_minutes=20,
+                order_index=4,
+                is_regulatory=False,
+            ),
+            TemplateAgendaItem(
+                template_id=template.id,
+                title="Adjournment",
+                item_type="information",
+                duration_minutes=5,
+                order_index=5,
+                is_regulatory=False,
+            ),
+        ]
+        for item in items:
+            db.add(item)
+        db.commit()
 
 
 @asynccontextmanager
@@ -99,6 +393,12 @@ async def lifespan(app: FastAPI):
         if not db.query(Setting).filter(Setting.key == "organization_name").first():
             db.add(Setting(key="organization_name", value=""))
         db.commit()
+
+        # Seed built-in agent configurations
+        _seed_agents(db)
+
+        # Seed default meeting template
+        _seed_templates(db)
     finally:
         db.close()
 
@@ -127,11 +427,16 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(agent_admin.router, prefix="/api/admin", tags=["admin-agents"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(meetings.router, prefix="/api/meetings", tags=["meetings"])
 app.include_router(decisions.router, prefix="/api/decisions", tags=["decisions"])
+app.include_router(resolutions.router, prefix="/api/resolutions", tags=["resolutions"])
 app.include_router(ideas.router, prefix="/api/ideas", tags=["ideas"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
+app.include_router(templates.router, prefix="/api/templates", tags=["templates"])
+app.include_router(transcripts.router, prefix="/api/meetings", tags=["transcripts"])
 
 
 @app.get("/api/health")

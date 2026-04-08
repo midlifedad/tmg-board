@@ -1,5 +1,5 @@
 """
-Meetings API endpoints - Full CRUD for meetings, agenda items, and attendance.
+Meetings API endpoints - Full CRUD for meetings, agenda items, attendance, and minutes.
 """
 from typing import List, Optional
 from datetime import datetime
@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models.member import BoardMember
-from app.models.meeting import Meeting, AgendaItem, MeetingAttendance
+from app.models.meeting import Meeting, AgendaItem, MeetingAttendance, MeetingDocument
+from app.models.document import Document
 from app.models.audit import AuditLog
 from app.api.auth import require_member, require_chair
 
@@ -40,7 +41,6 @@ class UpdateMeetingRequest(BaseModel):
     duration_minutes: Optional[int] = None
     location: Optional[str] = None
     meeting_link: Optional[str] = None
-    recording_url: Optional[str] = None
 
 
 class CreateAgendaItemRequest(BaseModel):
@@ -59,6 +59,28 @@ class UpdateAgendaItemRequest(BaseModel):
     duration_minutes: Optional[int] = None
     presenter_id: Optional[int] = None
     decision_id: Optional[int] = None
+
+
+class AgendaItemInput(BaseModel):
+    title: str
+    description: Optional[str] = None
+    item_type: str = "information"
+    duration_minutes: Optional[int] = None
+    presenter_id: Optional[int] = None
+
+
+class CreateMeetingWithAgendaRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+    scheduled_date: datetime = Field(..., alias="date")
+    duration_minutes: Optional[int] = None
+    location: Optional[str] = None
+    meeting_link: Optional[str] = None
+    template_id: Optional[int] = None
+    agenda_items: Optional[List[AgendaItemInput]] = None
+
+    class Config:
+        populate_by_name = True
 
 
 class ReorderAgendaRequest(BaseModel):
@@ -164,6 +186,96 @@ async def get_meeting(
     return meeting
 
 
+@router.post("/with-agenda")
+async def create_meeting_with_agenda(
+    request: CreateMeetingWithAgendaRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_chair),
+):
+    """Create a meeting with agenda items in a single call (Chair/Board/Admin)."""
+    meeting = Meeting(
+        title=request.title,
+        description=request.description,
+        scheduled_date=request.scheduled_date,
+        duration_minutes=request.duration_minutes,
+        location=request.location,
+        meeting_link=request.meeting_link,
+        status="scheduled",
+        created_by_id=current_user.id,
+    )
+    db.add(meeting)
+    db.flush()  # Get meeting ID
+
+    agenda_items_data = []
+
+    if request.agenda_items:
+        agenda_items_data = request.agenda_items
+    elif request.template_id:
+        # Load template and populate from it
+        from app.models.template import MeetingTemplate
+        template = db.query(MeetingTemplate).filter(
+            MeetingTemplate.id == request.template_id,
+            MeetingTemplate.is_active == True,
+        ).first()
+        if template:
+            for t_item in template.items:
+                agenda_items_data.append(AgendaItemInput(
+                    title=t_item.title,
+                    description=t_item.description,
+                    item_type=t_item.item_type,
+                    duration_minutes=t_item.duration_minutes,
+                ))
+
+    for idx, item_input in enumerate(agenda_items_data):
+        item = AgendaItem(
+            meeting_id=meeting.id,
+            title=item_input.title,
+            description=item_input.description,
+            item_type=item_input.item_type,
+            duration_minutes=item_input.duration_minutes,
+            presenter_id=item_input.presenter_id,
+            order_index=idx,
+        )
+        db.add(item)
+
+    db.add(AuditLog(
+        entity_type="meeting",
+        entity_id=meeting.id,
+        entity_name=request.title,
+        action="create",
+        changed_by_id=current_user.id,
+    ))
+
+    db.commit()
+    db.refresh(meeting)
+
+    # Return meeting with agenda items
+    return {
+        "id": meeting.id,
+        "title": meeting.title,
+        "description": meeting.description,
+        "scheduled_date": meeting.scheduled_date.isoformat() if meeting.scheduled_date else None,
+        "duration_minutes": meeting.duration_minutes,
+        "location": meeting.location,
+        "meeting_link": meeting.meeting_link,
+        "status": meeting.status,
+        "created_by_id": meeting.created_by_id,
+        "created_at": meeting.created_at.isoformat() if meeting.created_at else None,
+        "agenda_items": [
+            {
+                "id": item.id,
+                "title": item.title,
+                "description": item.description,
+                "item_type": item.item_type,
+                "duration_minutes": item.duration_minutes,
+                "presenter_id": item.presenter_id,
+                "order_index": item.order_index,
+            }
+            for item in meeting.agenda_items
+        ],
+    }
+
+
 @router.post("")
 async def create_meeting(
     request: CreateMeetingRequest,
@@ -242,10 +354,6 @@ async def update_meeting(
     if request.meeting_link is not None and request.meeting_link != meeting.meeting_link:
         changes["meeting_link"] = {"old": meeting.meeting_link, "new": request.meeting_link}
         meeting.meeting_link = request.meeting_link
-
-    if request.recording_url is not None and request.recording_url != meeting.recording_url:
-        changes["recording_url"] = {"old": meeting.recording_url, "new": request.recording_url}
-        meeting.recording_url = request.recording_url
 
     if changes:
         db.add(AuditLog(
@@ -742,4 +850,146 @@ async def update_attendance(
         "meeting_id": meeting_id,
         "member_id": member_id,
         "status": request.status
+    }
+
+
+# =============================================================================
+# Meeting Minutes
+# =============================================================================
+
+class CreateMinutesRequest(BaseModel):
+    html_content: str
+    title: str
+
+
+@router.post("/{meeting_id}/minutes")
+async def create_meeting_minutes(
+    meeting_id: int,
+    request: CreateMinutesRequest,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_chair),
+):
+    """Create or update minutes for a completed meeting.
+
+    Creates a Document of type 'minutes' and links it via MeetingDocument.
+    If minutes already exist for this meeting, updates the existing document.
+    """
+    meeting = db.query(Meeting).filter(
+        Meeting.id == meeting_id,
+        Meeting.deleted_at.is_(None)
+    ).first()
+
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Check if minutes already exist for this meeting (upsert logic)
+    existing_link = db.query(MeetingDocument).filter(
+        MeetingDocument.meeting_id == meeting_id,
+        MeetingDocument.relationship_type == "minutes",
+    ).first()
+
+    if existing_link:
+        # Update existing minutes document
+        doc = db.query(Document).filter(Document.id == existing_link.document_id).first()
+        if doc:
+            doc.title = request.title
+            doc.file_path = f"minutes://{meeting_id}"  # Virtual path for HTML-stored minutes
+            doc.description = request.html_content
+            doc.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(doc)
+
+            db.add(AuditLog(
+                entity_type="document",
+                entity_id=doc.id,
+                entity_name=request.title,
+                action="update_minutes",
+                changed_by_id=current_user.id,
+            ))
+            db.commit()
+
+            return {
+                "document_id": doc.id,
+                "meeting_id": meeting_id,
+                "title": doc.title,
+                "status": "updated",
+            }
+
+    # Create new minutes document
+    doc = Document(
+        title=request.title,
+        type="minutes",
+        description=request.html_content,
+        file_path=f"minutes://{meeting_id}",
+        uploaded_by_id=current_user.id,
+    )
+    db.add(doc)
+    db.flush()  # Get document ID
+
+    # Link document to meeting
+    link = MeetingDocument(
+        meeting_id=meeting_id,
+        document_id=doc.id,
+        relationship_type="minutes",
+        created_by_id=current_user.id,
+    )
+    db.add(link)
+
+    db.add(AuditLog(
+        entity_type="document",
+        entity_id=doc.id,
+        entity_name=request.title,
+        action="create_minutes",
+        changed_by_id=current_user.id,
+    ))
+
+    db.commit()
+    db.refresh(doc)
+
+    return {
+        "document_id": doc.id,
+        "meeting_id": meeting_id,
+        "title": doc.title,
+        "status": "created",
+    }
+
+
+@router.get("/{meeting_id}/minutes")
+async def get_meeting_minutes(
+    meeting_id: int,
+    db: Session = Depends(get_db),
+    current_user: BoardMember = Depends(require_member),
+):
+    """Get the minutes document for a meeting.
+
+    Returns the HTML content and metadata, or 404 if no minutes exist.
+    """
+    meeting = db.query(Meeting).filter(
+        Meeting.id == meeting_id,
+        Meeting.deleted_at.is_(None)
+    ).first()
+
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    # Look up minutes document via MeetingDocument junction
+    link = db.query(MeetingDocument).filter(
+        MeetingDocument.meeting_id == meeting_id,
+        MeetingDocument.relationship_type == "minutes",
+    ).first()
+
+    if not link:
+        raise HTTPException(status_code=404, detail="No minutes found for this meeting")
+
+    doc = db.query(Document).filter(Document.id == link.document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Minutes document not found")
+
+    return {
+        "document_id": doc.id,
+        "meeting_id": meeting_id,
+        "title": doc.title,
+        "html_content": doc.description or "",
+        "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        "updated_at": doc.updated_at.isoformat() if doc.updated_at else None,
     }

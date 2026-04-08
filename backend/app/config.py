@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     aws_region: str = "us-west-2"
     s3_bucket: str = "tmg-board-documents"
 
+    # LLM Providers (read by LiteLLM from env automatically)
+    anthropic_api_key: str = ""
+    gemini_api_key: str = ""
+    groq_api_key: str = ""
+
     # App
     base_url: str = "https://tmgboard.themany.com"
     debug: bool = False

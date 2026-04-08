@@ -55,9 +55,18 @@ async function proxyRequest(req: NextRequest, path: string[]) {
       responseHeaders.set(key, value);
     });
 
+    // SSE streaming: forward ReadableStream directly (do NOT buffer)
+    const respContentType = response.headers.get("content-type") || "";
+    if (respContentType.includes("text/event-stream")) {
+      return new NextResponse(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+      });
+    }
+
     // Use arrayBuffer for binary responses (PDFs, images, etc.)
     // to avoid UTF-8 text decoding corruption
-    const respContentType = response.headers.get("content-type") || "";
     const isBinary =
       respContentType.includes("application/pdf") ||
       respContentType.includes("application/octet-stream") ||
