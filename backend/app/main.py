@@ -315,8 +315,17 @@ def _seed_templates(db):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
+    # Run Alembic migrations (applies any pending schema changes)
+    from alembic.config import Config as AlembicConfig
+    from alembic import command as alembic_command
+
+    alembic_cfg = AlembicConfig("alembic.ini")
+    try:
+        alembic_command.upgrade(alembic_cfg, "head")
+        logging.getLogger(__name__).info("Alembic migrations applied successfully")
+    except Exception as e:
+        logging.getLogger(__name__).warning("Alembic migration failed, falling back to create_all: %s", e)
+        Base.metadata.create_all(bind=engine)
 
     # Seed board members and permissions if empty
     from app.db.session import SessionLocal
