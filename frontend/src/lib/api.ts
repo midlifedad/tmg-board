@@ -951,6 +951,32 @@ export const categoriesApi = {
 };
 
 // =============================================================================
+// Generation API (Meeting Minutes)
+// =============================================================================
+
+export interface MeetingMinutesResponse {
+  id: number;
+  meeting_id: number;
+  content_markdown: string;
+  created_at: string;
+  generated_by_id: number;
+}
+
+export const generationApi = {
+  generateMinutes: async (meetingId: string, transcript: string): Promise<MeetingMinutesResponse> => {
+    return api.post(`/meetings/${meetingId}/minutes`, { transcript });
+  },
+  getMinutes: async (meetingId: string): Promise<MeetingMinutesResponse | null> => {
+    try {
+      return await api.get(`/meetings/${meetingId}/minutes`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
+  },
+};
+
+// =============================================================================
 // Admin API (requires admin/chair role)
 // =============================================================================
 
