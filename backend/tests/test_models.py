@@ -1,12 +1,8 @@
-"""Tests for DocumentTemplate and MeetingMinutes SQLAlchemy models.
-
-Wave 0 stubs — unskipped and implemented in Task 2.
-"""
+"""Tests for DocumentTemplate and MeetingMinutes SQLAlchemy models."""
 import pytest
 from sqlalchemy.exc import IntegrityError
 
 
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 2")
 def test_document_template_creation(db_session):
     """Verify DocumentTemplate can be created with required fields."""
     from app.models.generation import DocumentTemplate
@@ -29,7 +25,6 @@ def test_document_template_creation(db_session):
     assert template.created_at is not None
 
 
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 2")
 def test_meeting_minutes_creation(db_session, sample_meeting, admin_user):
     """Verify MeetingMinutes can be created linked to a meeting."""
     from app.models.generation import DocumentTemplate, MeetingMinutes
@@ -60,7 +55,6 @@ def test_meeting_minutes_creation(db_session, sample_meeting, admin_user):
     assert minutes.created_at is not None
 
 
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 2")
 def test_meeting_minutes_unique_per_meeting(db_session, sample_meeting, admin_user):
     """Verify unique constraint on meeting_id prevents duplicates."""
     from app.models.generation import MeetingMinutes

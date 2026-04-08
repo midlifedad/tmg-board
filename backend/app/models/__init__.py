@@ -5,6 +5,7 @@ from app.models.decision import Decision, Vote
 from app.models.idea import Idea, Comment, IdeaCategory, IdeaHistory, CommentReaction
 from app.models.audit import AuditLog, DocumentAccessLog
 from app.models.admin import Invitation, Permission, RolePermission, Setting, UserSession
+from app.models.generation import DocumentTemplate, MeetingMinutes
 
 __all__ = [
     "BoardMember",
@@ -28,4 +29,6 @@ __all__ = [
     "RolePermission",
     "Setting",
     "UserSession",
+    "DocumentTemplate",
+    "MeetingMinutes",
 ]

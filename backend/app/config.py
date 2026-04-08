@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     aws_region: str = "us-west-2"
     s3_bucket: str = "tmg-board-documents"
 
+    # Anthropic AI
+    anthropic_api_key: str = ""
+
     # App
     base_url: str = "https://tmgboard.themany.com"
     debug: bool = False
