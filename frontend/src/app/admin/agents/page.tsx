@@ -17,6 +17,7 @@ import {
   PowerOff,
   DollarSign,
   Activity,
+  Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -28,19 +29,7 @@ import {
 import { usePermissions } from "@/hooks/use-permissions";
 import { CreateAgentModal } from "@/components/create-agent-modal";
 import { EditAgentModal } from "@/components/edit-agent-modal";
-
-const MODEL_LABELS: Record<string, string> = {
-  "anthropic/claude-sonnet-4-5-20250929": "Claude Sonnet 4.5",
-  "anthropic/claude-haiku-3-5-20241022": "Claude Haiku 3.5",
-  "gemini/gemini-2.0-flash": "Gemini 2.0 Flash",
-  "gemini/gemini-2.0-flash-lite": "Gemini 2.0 Flash Lite",
-  "groq/llama-3.3-70b-versatile": "Llama 3.3 70B",
-  "groq/llama-3.1-8b-instant": "Llama 3.1 8B (Fast)",
-};
-
-function getModelLabel(modelId: string): string {
-  return MODEL_LABELS[modelId] || modelId;
-}
+import { getModelLabel } from "@/lib/models";
 
 export default function AdminAgentsPage() {
   const router = useRouter();
@@ -55,6 +44,10 @@ export default function AdminAgentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AdminAgentConfig | null>(null);
+  const [apiKeys, setApiKeys] = useState<Record<string, { configured: boolean; source: string; masked_value: string }>>({});
+  const [keyInputs, setKeyInputs] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [keyMessage, setKeyMessage] = useState<{ provider: string; type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (!permissionsLoading && !isAdmin) {
@@ -90,6 +83,33 @@ export default function AdminAgentsPage() {
       fetchData();
     }
   }, [session?.user?.email, isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      adminApi.getApiKeys().then(setApiKeys).catch(console.error);
+    }
+  }, [isAdmin]);
+
+  const handleSaveKey = async (provider: string) => {
+    const keyField = provider === "anthropic" ? "anthropic_api_key" : "groq_api_key";
+    const value = keyInputs[provider];
+    if (!value?.trim()) return;
+
+    setSavingKey(provider);
+    setKeyMessage(null);
+    try {
+      await adminApi.updateApiKey({ [keyField]: value.trim() });
+      setKeyMessage({ provider, type: "success", text: "Key saved successfully" });
+      setKeyInputs((prev) => ({ ...prev, [provider]: "" }));
+      // Refresh status
+      const updated = await adminApi.getApiKeys();
+      setApiKeys(updated);
+    } catch (err) {
+      setKeyMessage({ provider, type: "error", text: "Failed to save key" });
+    } finally {
+      setSavingKey(null);
+    }
+  };
 
   const refetchData = async () => {
     try {
@@ -229,6 +249,62 @@ export default function AdminAgentsPage() {
             <BarChart3 className="h-4 w-4 mr-2" />
             Usage
           </Button>
+        </div>
+
+        {/* API Keys Section */}
+        <div className="mb-2">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Key className="h-5 w-5 text-[var(--gold)]" />
+            LLM API Keys
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {["anthropic", "groq"].map((provider) => {
+              const status = apiKeys[provider];
+              const providerLabel = provider === "anthropic" ? "Anthropic" : "Groq";
+              return (
+                <Card key={provider} className="bg-zinc-900 border-zinc-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-white font-medium">{providerLabel}</span>
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full",
+                        status?.configured
+                          ? "bg-green-900/50 text-green-400"
+                          : "bg-yellow-900/50 text-yellow-400"
+                      )}>
+                        {status?.configured ? "Configured" : "Not Configured"}
+                      </span>
+                    </div>
+                    {status?.configured && status.masked_value && (
+                      <p className="text-sm text-zinc-400 mb-3">Current: {status.masked_value}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        placeholder={`Enter ${providerLabel} API key`}
+                        value={keyInputs[provider] || ""}
+                        onChange={(e) => setKeyInputs((prev) => ({ ...prev, [provider]: e.target.value }))}
+                        className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[var(--gold)]"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleSaveKey(provider)}
+                        disabled={!keyInputs[provider]?.trim() || savingKey === provider}
+                        className="bg-[var(--gold)] text-black hover:bg-[var(--gold)]/90"
+                      >
+                        {savingKey === provider ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                      </Button>
+                    </div>
+                    {keyMessage?.provider === provider && (
+                      <p className={cn("text-xs mt-2", keyMessage.type === "success" ? "text-green-400" : "text-red-400")}>
+                        {keyMessage.text}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         {/* Error */}

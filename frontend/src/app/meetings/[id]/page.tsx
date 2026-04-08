@@ -26,6 +26,7 @@ import {
   Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption, type Transcript } from "@/lib/api";
 import { EditMeetingModal } from "@/components/edit-meeting-modal";
 import { TranscriptSection } from "@/components/transcript-section";
@@ -925,7 +926,7 @@ export default function MeetingDetailPage({
                 <CardContent>
                   <div
                     className="prose-minutes print-content max-h-[600px] overflow-y-auto"
-                    dangerouslySetInnerHTML={{ __html: minutes.html_content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(minutes.html_content) }}
                   />
                 </CardContent>
               </Card>
