@@ -1,12 +1,8 @@
-"""Tests for the DocumentGeneratorService.
-
-Wave 0 stubs — unskipped and implemented in Task 3.
-"""
+"""Tests for the DocumentGeneratorService."""
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 def test_jinja2_template_rendering():
     """Verify template renders meeting context correctly."""
     from app.services.document_generator import DocumentGeneratorService
@@ -29,7 +25,6 @@ def test_jinja2_template_rendering():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_generate_meeting_minutes_calls_anthropic(mock_anthropic_client):
     """Verify service calls AsyncAnthropic with rendered prompt."""
     from app.services.document_generator import DocumentGeneratorService
@@ -56,7 +51,6 @@ async def test_generate_meeting_minutes_calls_anthropic(mock_anthropic_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_generate_meeting_minutes_returns_markdown(mock_anthropic_client):
     """Verify service returns the text from Anthropic response."""
     from app.services.document_generator import DocumentGeneratorService

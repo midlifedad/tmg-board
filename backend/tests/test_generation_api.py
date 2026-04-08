@@ -1,13 +1,10 @@
-"""API integration tests for generation endpoints.
-
-Wave 0 stubs — unskipped and implemented in Task 3.
-"""
+"""API integration tests for generation endpoints."""
 import pytest
 import pytest_asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_generate_minutes_requires_auth(test_client):
     """POST without auth returns 401/403."""
     response = await test_client.post(
@@ -18,14 +15,21 @@ async def test_generate_minutes_requires_auth(test_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_generate_minutes_success(test_client, chair_user, sample_meeting, seeded_template):
     """POST with chair auth + transcript returns 200 with markdown."""
-    response = await test_client.post(
-        f"/api/meetings/{sample_meeting.id}/minutes",
-        json={"transcript": "The meeting was called to order at 10:00 AM."},
-        headers={"x-user-email": chair_user.email},
+    # Mock the document_generator singleton so no real Anthropic call is made
+    mock_generator = MagicMock()
+    mock_generator.generate_meeting_minutes = AsyncMock(
+        return_value="# Mock Meeting Minutes\n\nTest content"
     )
+
+    with patch("app.api.generation.document_generator", mock_generator):
+        response = await test_client.post(
+            f"/api/meetings/{sample_meeting.id}/minutes",
+            json={"transcript": "The meeting was called to order at 10:00 AM."},
+            headers={"x-user-email": chair_user.email},
+        )
+
     assert response.status_code == 200
     data = response.json()
     assert "content_markdown" in data
@@ -33,16 +37,21 @@ async def test_generate_minutes_success(test_client, chair_user, sample_meeting,
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_get_minutes_returns_stored(test_client, chair_user, sample_meeting, seeded_template):
     """GET returns previously generated minutes."""
-    # First generate minutes
-    post_response = await test_client.post(
-        f"/api/meetings/{sample_meeting.id}/minutes",
-        json={"transcript": "Test transcript."},
-        headers={"x-user-email": chair_user.email},
+    mock_generator = MagicMock()
+    mock_generator.generate_meeting_minutes = AsyncMock(
+        return_value="# Stored Meeting Minutes\n\nStored content"
     )
-    assert post_response.status_code == 200
+
+    with patch("app.api.generation.document_generator", mock_generator):
+        # First generate minutes
+        post_response = await test_client.post(
+            f"/api/meetings/{sample_meeting.id}/minutes",
+            json={"transcript": "Test transcript."},
+            headers={"x-user-email": chair_user.email},
+        )
+        assert post_response.status_code == 200
 
     # Then retrieve them
     get_response = await test_client.get(
@@ -56,7 +65,6 @@ async def test_get_minutes_returns_stored(test_client, chair_user, sample_meetin
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_get_minutes_404_when_none(test_client, chair_user, sample_meeting):
     """GET returns 404 when no minutes exist."""
     response = await test_client.get(
@@ -67,7 +75,6 @@ async def test_get_minutes_404_when_none(test_client, chair_user, sample_meeting
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_templates_list_requires_admin(test_client, chair_user):
     """GET /admin/templates without admin auth returns 403."""
     response = await test_client.get(
@@ -78,7 +85,6 @@ async def test_templates_list_requires_admin(test_client, chair_user):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_templates_list_success(test_client, admin_user, seeded_template):
     """GET /admin/templates with admin auth returns template list."""
     response = await test_client.get(
@@ -93,7 +99,6 @@ async def test_templates_list_success(test_client, admin_user, seeded_template):
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_template_update_success(test_client, admin_user, seeded_template):
     """PUT /admin/templates/{id} updates template."""
     response = await test_client.put(
@@ -107,7 +112,6 @@ async def test_template_update_success(test_client, admin_user, seeded_template)
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Wave 0 stub — implementation in Task 3")
 async def test_template_update_invalid_jinja(test_client, admin_user, seeded_template):
     """PUT with bad Jinja2 returns 400."""
     response = await test_client.put(
