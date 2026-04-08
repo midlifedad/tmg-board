@@ -8,6 +8,7 @@ v2.0 adds an agentic layer to the existing TMG Board governance platform. Phase 
 
 - ✅ **v1.0 Meetings UX Redesign** — Phases pre-01 (shipped 2026-03-04, outside GSD)
 - ✅ **v2.0 Agentic Layer & Board Enhancements** — Phases 01-05 (completed 2026-03-05)
+- 🔄 **v2.1 Stability & Quality** — Phase 06 (in progress)
 
 ## Phases
 
@@ -99,9 +100,31 @@ Plans:
 - [x] 05-01-PLAN.md — Backend: Agent admin API (CRUD, tool list, usage stats endpoints) with tests
 - [x] 05-02-PLAN.md — Frontend: Admin agents page, create/edit modals, tool assignment, usage tab, sidebar entry
 
+### v2.1 Stability & Quality
+
+- [ ] **Phase 06: Bug Fixes, Minutes Persistence & Test Coverage** - Fix critical bugs from code review, add missing minutes persistence endpoint, print CSS, and comprehensive test coverage
+
+## Phase Details (v2.1)
+
+### Phase 06: Bug Fixes, Minutes Persistence & Test Coverage
+**Goal**: Fix 4 critical bugs (route conflict, XSS, auth leak, minutes not persisting), add print support for meeting minutes, and bring test coverage from ~35% to ~60%+
+**Depends on**: v2.0 complete
+**Requirements**: BUG-01, BUG-02, BUG-03, BUG-04, TEST-01, TEST-02, TEST-03
+**Success Criteria** (what must be TRUE):
+  1. Admin can access GET /api/agents/api-keys without 404 (route conflict fixed)
+  2. Resolution detail page renders content safely via ReactMarkdown (no XSS)
+  3. Unauthenticated users do not see admin UI on meetings/decisions pages
+  4. Minutes Generator agent successfully persists generated minutes to the database
+  5. Meeting detail page displays previously generated minutes and supports printing
+  6. All tests pass with 120+ total test functions covering core domain
+**Plans:** 0/2 complete
+Plans:
+- [ ] 06-01-PLAN.md — Bug fixes (route conflict, XSS, auth leak) + minutes persistence endpoints + print CSS
+- [ ] 06-02-PLAN.md — Comprehensive test coverage: meetings CRUD, minutes, auth, agent API keys, tool handlers
+
 ## Progress
 
-**Execution Order:** 01 → 02 → 03 → 04 → 05
+**Execution Order:** 01 → 02 → 03 → 04 → 05 → 06
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -110,3 +133,4 @@ Plans:
 | 03. Transcripts & Minutes Generator | 3/3 | Complete    | 2026-03-05 |
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
 | 05. Admin Agent Management | 2/2 | Complete    | 2026-03-05 |
+| 06. Bug Fixes, Minutes Persistence & Tests | 0/2 | In Progress | — |
