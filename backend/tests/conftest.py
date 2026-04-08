@@ -1,4 +1,6 @@
 """Shared test fixtures for the TMG Board backend test suite."""
+from datetime import datetime
+
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -10,6 +12,7 @@ from app.db import get_db
 from app.main import app
 from app.models.agent import AgentConfig, AgentUsageLog
 from app.models.member import BoardMember
+from app.models.meeting import Meeting, AgendaItem
 
 
 @pytest.fixture
@@ -125,7 +128,10 @@ def seed_template(db_session, seed_user):
 
 @pytest.fixture
 def mock_litellm():
-    """Mock litellm.acompletion for testing agent invocations."""
+    """Mock litellm.acompletion for testing agent invocations.
+
+    Available for any test that needs to mock LLM calls.
+    """
     mock_response = AsyncMock()
     mock_response.choices = [
         AsyncMock(
@@ -143,3 +149,102 @@ def mock_litellm():
 
     with patch("litellm.acompletion", new_callable=AsyncMock, return_value=mock_response) as mock:
         yield mock
+
+
+# =============================================================================
+# Meeting & Role Fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def seed_meeting(db_session, seed_user):
+    """Create a scheduled Meeting linked to seed_user."""
+    meeting = Meeting(
+        title="Test Board Meeting",
+        description="A test meeting for unit tests",
+        scheduled_date=datetime(2026, 3, 15, 10, 0),
+        duration_minutes=90,
+        location="Conference Room A",
+        status="scheduled",
+        created_by_id=seed_user.id,
+    )
+    db_session.add(meeting)
+    db_session.commit()
+    db_session.refresh(meeting)
+    return meeting
+
+
+@pytest.fixture
+def completed_meeting(db_session, seed_user):
+    """Create a completed Meeting for transcript/minutes tests."""
+    meeting = Meeting(
+        title="Completed Board Meeting",
+        description="A completed meeting for testing minutes and transcripts",
+        scheduled_date=datetime(2026, 2, 15, 10, 0),
+        duration_minutes=60,
+        location="Board Room",
+        status="completed",
+        created_by_id=seed_user.id,
+        started_at=datetime(2026, 2, 15, 10, 0),
+        ended_at=datetime(2026, 2, 15, 11, 0),
+    )
+    db_session.add(meeting)
+    db_session.commit()
+    db_session.refresh(meeting)
+    return meeting
+
+
+@pytest.fixture
+def seed_shareholder(db_session):
+    """Create a BoardMember with role='shareholder' for permission testing."""
+    member = BoardMember(
+        email="shareholder@themany.com",
+        name="Shareholder User",
+        role="shareholder",
+    )
+    db_session.add(member)
+    db_session.commit()
+    return member
+
+
+@pytest.fixture
+def seed_board_member(db_session):
+    """Create a BoardMember with role='board' for permission testing."""
+    member = BoardMember(
+        email="board@themany.com",
+        name="Board Member",
+        role="board",
+    )
+    db_session.add(member)
+    db_session.commit()
+    return member
+
+
+@pytest.fixture
+def seed_chair_member(db_session):
+    """Create a BoardMember with role='chair' for permission testing."""
+    member = BoardMember(
+        email="chair@themany.com",
+        name="Chair Member",
+        role="chair",
+    )
+    db_session.add(member)
+    db_session.commit()
+    return member
+
+
+@pytest.fixture
+def seed_agenda_item(db_session, seed_meeting):
+    """Create an AgendaItem linked to seed_meeting."""
+    item = AgendaItem(
+        meeting_id=seed_meeting.id,
+        title="Call to Order",
+        description="Opening the meeting",
+        item_type="information",
+        duration_minutes=5,
+        order_index=0,
+    )
+    db_session.add(item)
+    db_session.commit()
+    db_session.refresh(item)
+    return item
