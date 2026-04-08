@@ -286,3 +286,96 @@ async def test_run_agent_inactive(client, db_session, seed_user):
         headers={"X-User-Email": seed_user.email},
     )
     assert resp.status_code == 400
+
+
+# =========================================================================
+# GET /api/agents/api-keys (admin only)
+# =========================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_api_keys_admin(client, db_session, seed_user):
+    """GET /api/agents/api-keys returns provider status for admin."""
+    resp = await client.get(
+        "/api/agents/api-keys",
+        headers={"X-User-Email": seed_user.email},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    # Should have provider entries
+    assert "anthropic" in data
+    assert "configured" in data["anthropic"]
+    assert "source" in data["anthropic"]
+    assert "masked_value" in data["anthropic"]
+
+
+@pytest.mark.asyncio
+async def test_get_api_keys_non_admin_403(client, db_session, seed_user):
+    """GET /api/agents/api-keys returns 403 for non-admin user."""
+    from app.models.member import BoardMember
+
+    board_user = BoardMember(
+        email="board-api-test@themany.com",
+        name="Board API Test",
+        role="board",
+    )
+    db_session.add(board_user)
+    db_session.commit()
+
+    resp = await client.get(
+        "/api/agents/api-keys",
+        headers={"X-User-Email": board_user.email},
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_put_api_keys_admin(client, db_session, seed_user):
+    """PUT /api/agents/api-keys updates keys in settings table."""
+    payload = {"anthropic_api_key": "sk-ant-test-key-12345"}
+    resp = await client.put(
+        "/api/agents/api-keys",
+        json=payload,
+        headers={"X-User-Email": seed_user.email},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "updated"
+    assert "anthropic_api_key" in data["keys"]
+
+
+@pytest.mark.asyncio
+async def test_put_api_keys_non_admin_403(client, db_session, seed_user):
+    """PUT /api/agents/api-keys returns 403 for non-admin user."""
+    from app.models.member import BoardMember
+
+    chair_user = BoardMember(
+        email="chair-api-test@themany.com",
+        name="Chair API Test",
+        role="chair",
+    )
+    db_session.add(chair_user)
+    db_session.commit()
+
+    payload = {"anthropic_api_key": "sk-should-fail"}
+    resp = await client.put(
+        "/api/agents/api-keys",
+        json=payload,
+        headers={"X-User-Email": chair_user.email},
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_api_keys_route_not_shadowed(client, db_session, seed_user):
+    """GET /api/agents/api-keys does NOT match /{slug} (route ordering is correct)."""
+    # If route ordering is wrong, this would try to look up an agent with slug="api-keys"
+    # and return 404 instead of the actual api-keys endpoint
+    resp = await client.get(
+        "/api/agents/api-keys",
+        headers={"X-User-Email": seed_user.email},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    # Must be the API keys response (has provider names), not a 404 or agent detail
+    assert "anthropic" in data or "gemini" in data or "groq" in data
