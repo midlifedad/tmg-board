@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Stability & Quality
-status: in_progress
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-04-08T04:47:13Z"
-last_activity: 2026-04-08 — Executed Plan 06-01 (bug fixes, minutes persistence, print CSS)
+status: complete
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-04-08T04:57:48Z"
+last_activity: 2026-04-08 — Executed Plan 06-02 (comprehensive test coverage)
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State — TMG Board
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 
 ## Current Position
 
-Phase: 06 of 06 (Bug Fixes, Minutes Persistence & Test Coverage) — IN PROGRESS
-Plan: 1 of 2 in current phase (06-01 complete, 06-02 pending)
-Status: Executing
-Last activity: 2026-04-08 — Executed Plan 06-01 (bug fixes, minutes persistence, print CSS)
+Phase: 06 of 06 (Bug Fixes, Minutes Persistence & Test Coverage) — COMPLETE
+Plan: 2 of 2 in current phase (06-01 complete, 06-02 complete)
+Status: Complete
+Last activity: 2026-04-08 — Executed Plan 06-02 (comprehensive test coverage)
 
-Progress: [=====-----] 50%
+Progress: [==========] 100%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -61,6 +61,11 @@ Progress: [=====-----] 50%
 - **Upsert for minutes regeneration** — Updates existing Document instead of creating duplicates
 - **onMinutesGenerated callback** — Added to MinutesGenerator so meeting detail page can re-fetch
 
+### Plan 06-02 Execution Decisions
+- **Test auth via real API calls** — not function isolation, tests full dependency chain
+- **Auth hierarchy reflects actual behavior** — require_member is require_board, shareholder gets 403
+- **Added chair fixture** — beyond plan scope, needed for complete 4-role coverage
+
 ### Key Files
 - `backend/app/api/agents.py` — Route conflict FIXED (static before parameterized)
 - `backend/app/api/meetings.py` — Minutes endpoints ADDED (POST and GET)
@@ -68,6 +73,10 @@ Progress: [=====-----] 50%
 - `frontend/src/app/resolutions/[id]/page.tsx` — XSS FIXED (ReactMarkdown)
 - `frontend/src/app/meetings/page.tsx` — Auth leak FIXED
 - `frontend/src/app/globals.css` — Print CSS ADDED
+- `backend/tests/test_meetings_api.py` — 24 tests for meetings CRUD/agenda/attendance
+- `backend/tests/test_minutes_persistence.py` — 8 tests for minutes endpoints
+- `backend/tests/test_auth.py` — 14 tests for auth dependencies across all roles
+- `backend/tests/test_tool_handlers.py` — 9 tests for transcript tool handlers
 
 ### Blockers
 None
@@ -77,9 +86,10 @@ None
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 06 | 01 | 7min | 3 | 9 |
+| 06 | 02 | 5min | 4 | 7 |
 
 ## Session Continuity
 
-Last session: 2026-04-08T04:47:13Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-04-08T04:57:48Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
