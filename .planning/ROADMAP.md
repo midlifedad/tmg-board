@@ -137,7 +137,7 @@ Plans:
   7. Gemini models and provider removed from the model list and provider map
 **Plans:** 2 plans
 Plans:
-- [ ] 07-01-PLAN.md — Backend: remove Gemini provider, fix has_minutes, add available-models endpoint
+- [x] 07-01-PLAN.md — Backend: remove Gemini provider, fix has_minutes, add available-models endpoint
 - [ ] 07-02-PLAN.md — Frontend: API key management UI, consolidated model list, provider-aware dropdowns, minutes XSS fix
 
 ## Progress
@@ -152,4 +152,4 @@ Plans:
 | 04. Board Resolutions & Resolution Writer | 3/3 | Complete    | 2026-03-05 |
 | 05. Admin Agent Management | 2/2 | Complete    | 2026-03-05 |
 | 06. Bug Fixes, Minutes Persistence & Tests | 2/2 | Complete    | 2026-04-08 |
-| 07. Agent Configuration & Provider Mgmt | 0/2 | Planned     |  |
+| 07. Agent Configuration & Provider Mgmt | 1/2 | In Progress |  |

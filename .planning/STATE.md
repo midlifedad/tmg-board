@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Stability & Quality
 status: in_progress
-stopped_at: Planning Phase 07
-last_updated: "2026-04-08T05:30:00Z"
-last_activity: 2026-04-08 — Planning Phase 07 (agent config, provider management)
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-04-08T19:19:00Z"
+last_activity: 2026-04-08 — Executed Phase 07 Plan 01 (Gemini removal, SUPPORTED_MODELS, has_minutes fix)
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State — TMG Board
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 
 ## Current Position
 
-Phase: 07 of 07 (Agent Configuration & Provider Management) — PLANNING
-Plan: 0 of 2 in current phase
-Status: Planning
-Last activity: 2026-04-08 — Planning Phase 07
+Phase: 07 of 07 (Agent Configuration & Provider Management) — IN PROGRESS
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-04-08 — Executed Plan 07-01
 
-Progress: [=====-----] 50%
+Progress: [=======---] 75%
 
 ## Tech Stack
 - **Frontend:** Next.js 15, React, TypeScript, Tailwind CSS, shadcn/ui
@@ -55,6 +55,11 @@ Progress: [=====-----] 50%
 - **DOMPurify for minutes HTML** — not ReactMarkdown (minutes are HTML, not markdown)
 - **Fix has_minutes with actual DB query** — not hardcoded to completed status
 
+### Phase 07 Plan 01 Decisions
+- **SUPPORTED_MODELS as list-of-dicts** — value/label/provider keys for direct JSON serialization
+- **available-models endpoint open to all members** — not admin-only, since agent modals need it
+- **Set pre-query for minutes_meeting_ids** — single query before loop, O(1) lookups
+
 ### Key Files
 - `backend/app/services/llm_provider.py` — Provider key map, sync_api_keys
 - `backend/app/api/agents.py` — API key endpoints, agent run
@@ -73,9 +78,10 @@ None
 |-------|------|----------|-------|-------|
 | 06 | 01 | 7min | 3 | 9 |
 | 06 | 02 | 5min | 4 | 7 |
+| 07 | 01 | 2min | 2 | 3 |
 
 ## Session Continuity
 
-Last session: 2026-04-08T05:30:00Z
-Stopped at: Planning Phase 07
+Last session: 2026-04-08T19:19:00Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
