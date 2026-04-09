@@ -202,11 +202,11 @@ async def test_create_minutes_document_success(user_context):
     assert parsed["document_id"] == 42
     assert parsed["status"] == "created"
 
-    # Verify the POST was called with correct body (markdown converted to HTML)
+    # Verify the POST was called with raw markdown content
     mock.post.assert_called_once()
     call_kwargs = mock.post.call_args.kwargs
     assert call_kwargs["json"]["title"] == "Meeting Minutes - January 2026"
-    assert "<h1>" in call_kwargs["json"]["html_content"]
+    assert call_kwargs["json"]["content"] == "# Minutes\n\nContent here."
     assert call_kwargs["headers"]["X-User-Email"] == "test@themany.com"
 
 

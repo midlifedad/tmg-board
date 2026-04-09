@@ -24,7 +24,7 @@ ADMIN_HEADERS = {"X-User-Email": "test@themany.com"}
 async def test_create_minutes(client, db_session, seed_user, completed_meeting):
     """POST /api/meetings/{id}/minutes creates Document + MeetingDocument link."""
     payload = {
-        "html_content": "<h1>Board Meeting Minutes</h1><p>The meeting was called to order.</p>",
+        "content": "# Board Meeting Minutes\n\nThe meeting was called to order.",
         "title": "Meeting Minutes - February 2026",
     }
     resp = await client.post(
@@ -43,7 +43,7 @@ async def test_create_minutes(client, db_session, seed_user, completed_meeting):
     doc = db_session.query(Document).filter(Document.id == data["document_id"]).first()
     assert doc is not None
     assert doc.type == "minutes"
-    assert "<h1>Board Meeting Minutes</h1>" in doc.description
+    assert "Board Meeting Minutes" in doc.description
 
     # Verify MeetingDocument link
     link = db_session.query(MeetingDocument).filter(
@@ -58,7 +58,7 @@ async def test_create_minutes(client, db_session, seed_user, completed_meeting):
 async def test_create_minutes_requires_chair(client, db_session, seed_user, seed_shareholder, completed_meeting):
     """POST /api/meetings/{id}/minutes returns 403 for shareholder."""
     payload = {
-        "html_content": "<p>Minutes</p>",
+        "content": "Minutes content",
         "title": "Minutes",
     }
     resp = await client.post(
@@ -72,7 +72,7 @@ async def test_create_minutes_requires_chair(client, db_session, seed_user, seed
 @pytest.mark.asyncio
 async def test_create_minutes_meeting_not_found(client, db_session, seed_user):
     """POST /api/meetings/99999/minutes returns 404 for nonexistent meeting."""
-    payload = {"html_content": "<p>Test</p>", "title": "Test"}
+    payload = {"content": "Test", "title": "Test"}
     resp = await client.post(
         "/api/meetings/99999/minutes",
         json=payload,
@@ -91,7 +91,7 @@ async def test_get_minutes(client, db_session, seed_user, completed_meeting):
     """GET /api/meetings/{id}/minutes returns minutes content after creation."""
     # First create minutes
     payload = {
-        "html_content": "<h2>Minutes Content</h2><p>Discussion points here.</p>",
+        "content": "## Minutes Content\n\nDiscussion points here.",
         "title": "Board Meeting Minutes",
     }
     create_resp = await client.post(
@@ -109,7 +109,7 @@ async def test_get_minutes(client, db_session, seed_user, completed_meeting):
     assert resp.status_code == 200
     data = resp.json()
     assert data["meeting_id"] == completed_meeting.id
-    assert "Minutes Content" in data["html_content"]
+    assert "Minutes Content" in data["content"]
     assert data["title"] == "Board Meeting Minutes"
     assert "document_id" in data
 
@@ -129,7 +129,7 @@ async def test_upsert_minutes(client, db_session, seed_user, completed_meeting):
     """POST /api/meetings/{id}/minutes again updates existing minutes (upsert)."""
     # Create initial minutes
     first_payload = {
-        "html_content": "<p>First draft of minutes.</p>",
+        "content": "First draft of minutes.",
         "title": "Draft Minutes",
     }
     first_resp = await client.post(
@@ -142,7 +142,7 @@ async def test_upsert_minutes(client, db_session, seed_user, completed_meeting):
 
     # Update with new content
     second_payload = {
-        "html_content": "<p>Final version of minutes with corrections.</p>",
+        "content": "Final version of minutes with corrections.",
         "title": "Final Minutes",
     }
     second_resp = await client.post(
@@ -160,7 +160,7 @@ async def test_upsert_minutes(client, db_session, seed_user, completed_meeting):
         f"/api/meetings/{completed_meeting.id}/minutes",
         headers=ADMIN_HEADERS,
     )
-    assert "Final version" in get_resp.json()["html_content"]
+    assert "Final version" in get_resp.json()["content"]
 
 
 @pytest.mark.asyncio
@@ -168,7 +168,7 @@ async def test_get_minutes_any_member(client, db_session, seed_user, seed_board_
     """GET /api/meetings/{id}/minutes is accessible to board members (not just chair)."""
     # Create minutes as admin
     payload = {
-        "html_content": "<p>Shared minutes.</p>",
+        "content": "Shared minutes.",
         "title": "Shared Minutes",
     }
     await client.post(
@@ -183,4 +183,4 @@ async def test_get_minutes_any_member(client, db_session, seed_user, seed_board_
         headers={"X-User-Email": seed_board_member.email},
     )
     assert resp.status_code == 200
-    assert "Shared minutes" in resp.json()["html_content"]
+    assert "Shared minutes" in resp.json()["content"]

@@ -868,7 +868,7 @@ async def update_attendance(
 # =============================================================================
 
 class CreateMinutesRequest(BaseModel):
-    html_content: str
+    content: str
     title: str
 
 
@@ -907,7 +907,7 @@ async def create_meeting_minutes(
         if doc:
             doc.title = request.title
             doc.file_path = f"minutes://{meeting_id}"  # Virtual path for HTML-stored minutes
-            doc.description = request.html_content
+            doc.description = request.content
             doc.updated_at = datetime.utcnow()
             db.commit()
             db.refresh(doc)
@@ -932,7 +932,7 @@ async def create_meeting_minutes(
     doc = Document(
         title=request.title,
         type="minutes",
-        description=request.html_content,
+        description=request.content,
         file_path=f"minutes://{meeting_id}",
         uploaded_by_id=current_user.id,
     )
@@ -1005,7 +1005,7 @@ async def get_meeting_minutes(
         "document_id": doc.id,
         "meeting_id": meeting_id,
         "title": doc.title,
-        "html_content": doc.description or "",
+        "content": doc.description or "",
         "created_at": doc.created_at.isoformat() if doc.created_at else None,
         "updated_at": doc.updated_at.isoformat() if doc.updated_at else None,
     }
