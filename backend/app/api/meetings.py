@@ -141,10 +141,13 @@ async def list_meetings(
     total = query.count()
     meetings = query.order_by(Meeting.scheduled_date.desc()).offset(offset).limit(limit).all()
 
-    # Subquery: meeting IDs that have minutes documents (single query, avoids N+1)
+    # Subquery: meeting IDs that have non-archived minutes documents (single query, avoids N+1)
     minutes_meeting_ids = set(
-        row[0] for row in db.query(MeetingDocument.meeting_id).filter(
-            MeetingDocument.relationship_type == "minutes"
+        row[0] for row in db.query(MeetingDocument.meeting_id).join(
+            Document, Document.id == MeetingDocument.document_id
+        ).filter(
+            MeetingDocument.relationship_type == "minutes",
+            Document.archived_at.is_(None),
         ).all()
     )
 
@@ -889,10 +892,13 @@ async def create_meeting_minutes(
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
-    # Check if minutes already exist for this meeting (upsert logic)
-    existing_link = db.query(MeetingDocument).filter(
+    # Check if non-archived minutes already exist for this meeting (upsert logic)
+    existing_link = db.query(MeetingDocument).join(
+        Document, Document.id == MeetingDocument.document_id
+    ).filter(
         MeetingDocument.meeting_id == meeting_id,
         MeetingDocument.relationship_type == "minutes",
+        Document.archived_at.is_(None),
     ).first()
 
     if existing_link:
@@ -979,10 +985,13 @@ async def get_meeting_minutes(
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
-    # Look up minutes document via MeetingDocument junction
-    link = db.query(MeetingDocument).filter(
+    # Look up non-archived minutes document via MeetingDocument junction
+    link = db.query(MeetingDocument).join(
+        Document, Document.id == MeetingDocument.document_id
+    ).filter(
         MeetingDocument.meeting_id == meeting_id,
         MeetingDocument.relationship_type == "minutes",
+        Document.archived_at.is_(None),
     ).first()
 
     if not link:
