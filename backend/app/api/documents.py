@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -265,7 +265,7 @@ async def render_document(
     db: Session = Depends(get_db),
     current_user: BoardMember = Depends(require_member)
 ):
-    """Render an HTML document for inline viewing (iframe)."""
+    """Render a document for inline viewing (HTML via iframe, or markdown as text)."""
     document = db.query(Document).filter(
         Document.id == document_id,
         Document.deleted_at.is_(None)
@@ -274,14 +274,6 @@ async def render_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    if not document.file_path.endswith('.html'):
-        raise HTTPException(status_code=400, detail="Only HTML documents can be rendered")
-
-    file_path = UPLOAD_DIR / document.file_path
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found on disk")
-
     # Log access
     db.add(DocumentAccessLog(
         document_id=document_id,
@@ -289,6 +281,21 @@ async def render_document(
         action="view"
     ))
     db.commit()
+
+    # Minutes documents store markdown in description with a virtual file_path
+    if document.file_path and document.file_path.startswith("minutes://"):
+        return PlainTextResponse(
+            content=document.description or "",
+            media_type="text/markdown",
+        )
+
+    if not document.file_path or not document.file_path.endswith('.html'):
+        raise HTTPException(status_code=400, detail="Only HTML and markdown documents can be rendered")
+
+    file_path = UPLOAD_DIR / document.file_path
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
 
     return FileResponse(
         path=file_path,

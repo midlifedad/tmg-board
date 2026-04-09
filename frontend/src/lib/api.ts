@@ -367,6 +367,30 @@ export const documentsApi = {
   },
 
   /**
+   * Check if a document stores markdown content (e.g. minutes)
+   */
+  isMarkdownDocument: (doc: Document): boolean => {
+    return doc.file_path?.startsWith('minutes://') || false;
+  },
+
+  /**
+   * Fetch markdown content for inline rendering
+   */
+  fetchMarkdownContent: async (id: string): Promise<string> => {
+    const response = await fetch(`${API_BASE_URL}/documents/${id}/render`, {
+      headers: {
+        "X-User-Email": api["userEmail"] || "",
+      },
+    });
+
+    if (!response.ok) {
+      throw new ApiError(response.status, "Failed to load markdown document");
+    }
+
+    return response.text();
+  },
+
+  /**
    * Archive document
    */
   archive: async (id: string): Promise<void> => {
@@ -670,7 +694,7 @@ export const meetingsApi = {
   /**
    * Get minutes for a meeting (returns null if none exist)
    */
-  getMinutes: async (meetingId: string): Promise<{ document_id: number; html_content: string; title: string; created_at: string | null; updated_at: string | null } | null> => {
+  getMinutes: async (meetingId: string): Promise<{ document_id: number; content: string; title: string; created_at: string | null; updated_at: string | null } | null> => {
     try {
       return await api.get(`/meetings/${meetingId}/minutes`);
     } catch (e) {

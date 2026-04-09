@@ -26,11 +26,11 @@ import {
   Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import DOMPurify from "dompurify";
 import { meetingsApi, authApi, api, type Meeting as ApiMeeting, type AgendaItem as ApiAgendaItem, type MemberOption, type Transcript } from "@/lib/api";
 import { EditMeetingModal } from "@/components/edit-meeting-modal";
 import { TranscriptSection } from "@/components/transcript-section";
 import { MinutesGenerator } from "@/components/minutes-generator";
+import { MarkdownViewer } from "@/components/markdown-viewer";
 import { getTimezoneAbbr } from "@/lib/timezone";
 
 type MeetingStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
@@ -111,7 +111,7 @@ export default function MeetingDetailPage({
   const [transcript, setTranscript] = useState<Transcript | null>(null);
 
   // Minutes state
-  const [minutes, setMinutes] = useState<{ document_id: number; html_content: string; title: string } | null>(null);
+  const [minutes, setMinutes] = useState<{ document_id: number; content: string; title: string } | null>(null);
 
   // Inline editing state
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -924,9 +924,9 @@ export default function MeetingDetailPage({
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div
-                    className="prose-minutes print-content max-h-[600px] overflow-y-auto"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(minutes.html_content) }}
+                  <MarkdownViewer
+                    content={minutes.content}
+                    className="max-h-[600px] overflow-y-auto"
                   />
                 </CardContent>
               </Card>

@@ -4,7 +4,7 @@ Tools:
 - get_board_members: Lists active board members for name-spelling reference
 - get_meeting_details: Fetches meeting info, agenda, and attendance in parallel
 - get_meeting_transcript: Fetches transcript content for a meeting
-- create_minutes_document: Converts markdown minutes to HTML and saves them
+- create_minutes_document: Saves markdown minutes linked to a meeting
 
 All tools use httpx.AsyncClient to call the board REST API internally.
 The base URL defaults to http://localhost:{PORT} and can be overridden via
@@ -18,7 +18,6 @@ import json
 import os
 
 import httpx
-import markdown as md
 
 from app.tools import ToolDefinition, register_tool
 
@@ -168,24 +167,17 @@ register_tool(ToolDefinition(
 # -- create_minutes_document --
 
 
-def _md_to_html(text: str) -> str:
-    """Convert markdown to HTML for storage and rendering."""
-    return md.markdown(text, extensions=["tables", "sane_lists"])
-
-
 async def _create_minutes_document(params: dict, user_context: dict) -> str:
-    """Convert markdown minutes to HTML and save as a minutes document."""
+    """Save markdown minutes linked to a meeting."""
     meeting_id = params["meeting_id"]
     title = params["title"]
     content = params["content"]
-
-    html_content = _md_to_html(content)
 
     try:
         async with httpx.AsyncClient(base_url=_get_base_url()) as client:
             response = await client.post(
                 f"/api/meetings/{meeting_id}/minutes",
-                json={"title": title, "html_content": html_content},
+                json={"title": title, "content": content},
                 headers={"X-User-Email": user_context["email"]},
             )
             if response.status_code >= 400:
@@ -206,9 +198,8 @@ async def _create_minutes_document(params: dict, user_context: dict) -> str:
 register_tool(ToolDefinition(
     name="create_minutes_document",
     description=(
-        "Save meeting minutes. Accepts markdown content, converts it to HTML, "
-        "and links the document to the meeting. Always call this as the final "
-        "step after writing the minutes."
+        "Save meeting minutes as a markdown document linked to the meeting. "
+        "Always call this as the final step after writing the minutes."
     ),
     parameters_schema={
         "type": "object",

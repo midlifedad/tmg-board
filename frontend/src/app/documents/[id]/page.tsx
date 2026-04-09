@@ -27,10 +27,12 @@ import {
   Maximize2,
   Minimize2,
   Globe,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { documentsApi, api, type Document as ApiDocument, type DocumentVersion } from "@/lib/api";
 import { usePermissions } from "@/hooks/use-permissions";
+import { MarkdownViewer } from "@/components/markdown-viewer";
 import { EditDocumentModal } from "@/components/edit-document-modal";
 import { UploadVersionModal } from "@/components/upload-version-modal";
 import { PdfViewer } from "@/components/pdf-viewer";
@@ -79,6 +81,8 @@ export default function DocumentDetailPage({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isHtmlDocument, setIsHtmlDocument] = useState(false);
+  const [isMarkdownDocument, setIsMarkdownDocument] = useState(false);
+  const [markdownContent, setMarkdownContent] = useState<string | null>(null);
   const [htmlBlobUrl, setHtmlBlobUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -123,8 +127,9 @@ export default function DocumentDetailPage({
         api.setUserEmail(email);
         const docData = await documentsApi.get(id);
 
-        // Check if this is an HTML document
+        // Check document content type
         setIsHtmlDocument(documentsApi.isHtmlDocument(docData));
+        setIsMarkdownDocument(documentsApi.isMarkdownDocument(docData));
 
         // Fetch signing status if available
         let signers: Array<{ name: string; email: string; signedAt: string | null }> = [];
@@ -185,6 +190,21 @@ export default function DocumentDetailPage({
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
   }, [id, isHtmlDocument]);
+
+  // Fetch markdown content for inline rendering
+  useEffect(() => {
+    if (!isMarkdownDocument) return;
+
+    const fetchMarkdown = async () => {
+      try {
+        const content = await documentsApi.fetchMarkdownContent(id);
+        setMarkdownContent(content);
+      } catch (err) {
+        console.error("Failed to load markdown document:", err);
+      }
+    };
+    fetchMarkdown();
+  }, [id, isMarkdownDocument]);
 
   // Fetch version history when expanded
   useEffect(() => {
@@ -336,7 +356,7 @@ export default function DocumentDetailPage({
               }}
             >
               <Download className="h-4 w-4 mr-2" />
-              Download {isHtmlDocument ? "HTML" : "PDF"}
+              Download {isMarkdownDocument ? "MD" : isHtmlDocument ? "HTML" : "PDF"}
             </Button>
             {can("documents.archive") && (
               document.archivedAt ? (
@@ -401,10 +421,10 @@ export default function DocumentDetailPage({
 
         <div className={cn(
           "grid gap-6",
-          isHtmlDocument ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"
+          (isHtmlDocument || isMarkdownDocument) ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"
         )}>
           {/* Document Viewer */}
-          <div className={isHtmlDocument ? "" : "lg:col-span-2"}>
+          <div className={(isHtmlDocument || isMarkdownDocument) ? "" : "lg:col-span-2"}>
             {isHtmlDocument ? (
               /* HTML Viewer - sandboxed iframe */
               <Card>
@@ -430,6 +450,34 @@ export default function DocumentDetailPage({
                     sandbox="allow-same-origin"
                     title={document.title}
                   />
+                </CardContent>
+              </Card>
+            ) : isMarkdownDocument ? (
+              /* Markdown Viewer */
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-green-400" />
+                    {document.title}
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="no-print min-h-[44px]"
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {markdownContent !== null ? (
+                    <MarkdownViewer content={markdownContent} />
+                  ) : (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
