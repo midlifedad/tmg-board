@@ -17,6 +17,40 @@ from app.tools import execute_tool, get_tools_for_agent
 logger = logging.getLogger(__name__)
 
 
+def _extract_user_error(raw: str) -> str:
+    """Pull a human-readable message out of nested LiteLLM exception strings."""
+    import json as _json
+
+    # Try to find a JSON body with a "message" field (Anthropic/OpenAI style)
+    for prefix in ['"message":"', "'message': '"]:
+        idx = raw.find(prefix)
+        if idx != -1:
+            start = idx + len(prefix)
+            end = raw.find('"' if prefix.startswith('"') else "'", start)
+            if end != -1:
+                return raw[start:end]
+
+    # Try parsing embedded JSON object
+    brace = raw.find('{"')
+    if brace != -1:
+        try:
+            obj = _json.loads(raw[brace:])
+            msg = obj.get("error", {}).get("message") or obj.get("message")
+            if msg:
+                return msg
+        except (_json.JSONDecodeError, AttributeError):
+            pass
+
+    # Fallback: strip the litellm prefix noise
+    for noise in ["litellm.BadRequestError: ", "AnthropicException - ", "litellm."]:
+        raw = raw.replace(noise, "")
+
+    # Truncate if still too long
+    if len(raw) > 200:
+        return raw[:200] + "..."
+    return raw
+
+
 async def run_agent(
     config,
     message: str,
@@ -126,9 +160,11 @@ async def run_agent_streaming(
                 db=db,
             )
         except Exception as e:
-            error_msg = f"LLM call failed: {type(e).__name__}: {e}"
-            logger.error(error_msg, exc_info=True)
-            yield {"type": "error", "message": error_msg}
+            raw_msg = str(e)
+            logger.error("LLM call failed: %s: %s", type(e).__name__, raw_msg, exc_info=True)
+            # Extract user-friendly message from nested LiteLLM/provider errors
+            user_msg = _extract_user_error(raw_msg)
+            yield {"type": "error", "message": user_msg}
             break
 
         msg = response.choices[0].message

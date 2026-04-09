@@ -10,7 +10,7 @@ from app.models.agent import AgentConfig
 # -- Tool Registration Tests --
 
 
-MINUTES_TOOLS = ["get_meeting_details", "get_meeting_transcript", "create_minutes_document"]
+MINUTES_TOOLS = ["get_board_members", "get_meeting_details", "get_meeting_transcript", "create_minutes_document"]
 
 
 def test_tools_registered():
@@ -20,8 +20,9 @@ def test_tools_registered():
 
 
 def test_tool_schemas():
-    """Each tool has meeting_id as a required parameter."""
-    for name in MINUTES_TOOLS:
+    """Meeting-scoped tools have meeting_id as a required parameter."""
+    meeting_tools = [t for t in MINUTES_TOOLS if t != "get_board_members"]
+    for name in meeting_tools:
         tool = TOOL_REGISTRY[name]
         schema = tool.parameters_schema
         assert "meeting_id" in schema["properties"], (
@@ -53,8 +54,8 @@ def test_minutes_generator_seed_prompt(seeded_db_session):
     assert "[Detailed prompt to be added in Phase 03]" not in agent.system_prompt, (
         "Minutes Generator still has placeholder prompt"
     )
-    assert "HTML" in agent.system_prompt, (
-        "Production prompt should mention HTML format"
+    assert "markdown" in agent.system_prompt.lower(), (
+        "Production prompt should mention markdown format"
     )
     assert "minutes" in agent.system_prompt.lower(), (
         "Production prompt should mention minutes"
@@ -116,15 +117,10 @@ def test_seed_upgrade_replaces_placeholder(db_session):
     assert "[Detailed prompt to be added in Phase 03]" not in updated.system_prompt, (
         "Placeholder prompt was not replaced by upgrade block"
     )
-    assert "HTML" in updated.system_prompt, (
-        "Upgraded prompt should mention HTML format"
+    assert "markdown" in updated.system_prompt.lower(), (
+        "Upgraded prompt should mention markdown format"
     )
-    assert "get_meeting_details" in updated.allowed_tool_names, (
-        "Upgraded agent should have get_meeting_details tool"
-    )
-    assert "get_meeting_transcript" in updated.allowed_tool_names, (
-        "Upgraded agent should have get_meeting_transcript tool"
-    )
-    assert "create_minutes_document" in updated.allowed_tool_names, (
-        "Upgraded agent should have create_minutes_document tool"
-    )
+    for tool_name in MINUTES_TOOLS:
+        assert tool_name in updated.allowed_tool_names, (
+            f"Upgraded agent should have {tool_name} tool"
+        )

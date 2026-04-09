@@ -1,9 +1,10 @@
 """Transcript-related tool handlers for the Minutes Generator agent.
 
 Tools:
+- get_board_members: Lists active board members for name-spelling reference
 - get_meeting_details: Fetches meeting info, agenda, and attendance in parallel
 - get_meeting_transcript: Fetches transcript content for a meeting
-- create_minutes_document: Creates an HTML minutes document linked to a meeting
+- create_minutes_document: Converts markdown minutes to HTML and saves them
 
 All tools use httpx.AsyncClient to call the board REST API internally.
 The base URL defaults to http://localhost:{PORT} and can be overridden via
@@ -17,6 +18,7 @@ import json
 import os
 
 import httpx
+import markdown as md
 
 from app.tools import ToolDefinition, register_tool
 
@@ -27,6 +29,39 @@ def _get_base_url() -> str:
         "TOOL_API_BASE_URL",
         f"http://localhost:{os.environ.get('PORT', '3010')}",
     )
+
+
+# -- get_board_members --
+
+
+async def _get_board_members(params: dict, user_context: dict) -> str:
+    """Fetch all active board members (id + name) for name-spelling reference."""
+    try:
+        async with httpx.AsyncClient(base_url=_get_base_url()) as client:
+            response = await client.get(
+                "/api/meetings/members",
+                headers={"X-User-Email": user_context["email"]},
+            )
+            if response.status_code >= 400:
+                return json.dumps({"error": response.text, "status": response.status_code})
+            return json.dumps(response.json())
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+register_tool(ToolDefinition(
+    name="get_board_members",
+    description=(
+        "Get all active board members with their canonical name spellings. "
+        "Use this to match names heard in a transcript to correct spellings."
+    ),
+    parameters_schema={
+        "type": "object",
+        "properties": {},
+    },
+    handler=_get_board_members,
+    category="transcripts",
+))
 
 
 # -- get_meeting_details --
@@ -133,11 +168,18 @@ register_tool(ToolDefinition(
 # -- create_minutes_document --
 
 
+def _md_to_html(text: str) -> str:
+    """Convert markdown to HTML for storage and rendering."""
+    return md.markdown(text, extensions=["tables", "sane_lists"])
+
+
 async def _create_minutes_document(params: dict, user_context: dict) -> str:
-    """Create an HTML minutes document and link it to the meeting."""
+    """Convert markdown minutes to HTML and save as a minutes document."""
     meeting_id = params["meeting_id"]
     title = params["title"]
-    html_content = params["html_content"]
+    content = params["content"]
+
+    html_content = _md_to_html(content)
 
     try:
         async with httpx.AsyncClient(base_url=_get_base_url()) as client:
@@ -147,17 +189,12 @@ async def _create_minutes_document(params: dict, user_context: dict) -> str:
                 headers={"X-User-Email": user_context["email"]},
             )
             if response.status_code >= 400:
-                # If the minutes endpoint doesn't exist yet (parallel plan),
-                # return a clear message rather than failing silently
                 if response.status_code in (404, 405):
                     return json.dumps({
                         "error": (
                             "Minutes endpoint not available yet. "
-                            "The /api/meetings/{meeting_id}/minutes endpoint "
-                            "may not have been created. The HTML content was "
-                            "generated successfully but could not be saved."
+                            "The content was generated but could not be saved."
                         ),
-                        "html_content": html_content,
                         "status": response.status_code,
                     })
                 return json.dumps({"error": response.text, "status": response.status_code})
@@ -169,9 +206,9 @@ async def _create_minutes_document(params: dict, user_context: dict) -> str:
 register_tool(ToolDefinition(
     name="create_minutes_document",
     description=(
-        "Create a formatted HTML minutes document and link it to the meeting. "
-        "The document is saved as type 'minutes' and automatically linked to "
-        "the source meeting."
+        "Save meeting minutes. Accepts markdown content, converts it to HTML, "
+        "and links the document to the meeting. Always call this as the final "
+        "step after writing the minutes."
     ),
     parameters_schema={
         "type": "object",
@@ -184,12 +221,12 @@ register_tool(ToolDefinition(
                 "type": "string",
                 "description": "Title for the minutes document (e.g., 'Board Meeting Minutes - January 2026')",
             },
-            "html_content": {
+            "content": {
                 "type": "string",
-                "description": "The formatted HTML content of the meeting minutes",
+                "description": "The meeting minutes written in markdown format",
             },
         },
-        "required": ["meeting_id", "title", "html_content"],
+        "required": ["meeting_id", "title", "content"],
     },
     handler=_create_minutes_document,
     category="transcripts",
